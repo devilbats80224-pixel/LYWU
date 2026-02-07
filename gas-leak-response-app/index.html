@@ -33,6 +33,7 @@ textarea{min-height:40px;resize:vertical}
 .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));border:none}
 .btn.danger{background:#fff1f1;border:1px solid #efb9b9;color:var(--danger)}
 .btn.warn{background:#fff8e5;border:1px solid #ecd89e;color:var(--warn)}
+.btn.icon-btn{min-width:42px;padding:8px 10px;font-size:20px;line-height:1}
 .small{font-size:12px;color:var(--sub)}
 .flex{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 hr.sep{border:none;border-top:1px dashed #c8d5e6;margin:12px 0}
@@ -172,6 +173,7 @@ body.modal-open{overflow:hidden}
     <div class="row10" id="gasRow"></div>
     <div class="flex" style="margin-top:10px">
       <button class="btn primary" id="btnSearch">查詢</button>
+      <button class="btn icon-btn" id="btnResetSearch" type="button" title="清空查詢" aria-label="清空查詢">↻</button>
       <span class="small">欄位留空將忽略。按 <kbd>Enter</kbd> 亦可。　初始資料已內嵌，後續變更會儲存到 LocalStorage。</span>
     </div>
     <div id="resultGas" class="small" style="margin-top:8px">尚未輸入。</div>
@@ -1264,6 +1266,7 @@ imgManageGrid.addEventListener('click',async e=>{
 });
 
 document.getElementById('btnSearch').onclick=runSearch;
+document.getElementById('btnResetSearch').onclick=resetSearchInputs;
 
 document.getElementById('btnSaveImgs').onclick=async ()=>{
   const files=[...imgInput.files];
@@ -1332,6 +1335,16 @@ function runSearch(){
   for(let i=1;i<=SEARCH_INPUT_COUNT;i++){const v=normGasKeep(document.getElementById(`q${i}`).value);if(v)list.push(v);}
   const out=list.map(g=>describeGas(g)).join('');
   document.getElementById('resultGas').innerHTML=out||'尚未輸入。';
+}
+
+function resetSearchInputs(){
+  for(let i=1;i<=SEARCH_INPUT_COUNT;i++){
+    const el=document.getElementById(`q${i}`);
+    if(el)el.value='';
+  }
+  runSearch();
+  const first=document.getElementById('q1');
+  if(first)first.focus();
 }
 
 function buildThumbFigures(title,keys,mapKey){
