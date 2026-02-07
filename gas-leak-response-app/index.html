@@ -144,7 +144,13 @@ body.modal-open{overflow:hidden}
   .row10,.group{grid-template-columns:1fr}
   .delete-row{grid-template-columns:1fr}
   .delete-row .btn{width:100%}
-  .table-scroll{overflow:auto;max-height:min(60vh,720px)}
+  .table-scroll{
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+    max-height:min(60vh,720px)
+  }
+  .table-scroll .table{min-width:1380px}
+  .table thead th{white-space:nowrap}
   .doc-page img{height:min(56vh,560px)}
   .zoom-tools{right:10px;left:10px;justify-content:center}
   .zoom-tools input[type=range]{width:120px}

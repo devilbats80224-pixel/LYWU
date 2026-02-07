@@ -113,7 +113,13 @@ body.modal-open{overflow:hidden}
   .row10,.group{grid-template-columns:1fr}
   .delete-row{grid-template-columns:1fr}
   .delete-row .btn{width:100%}
-  .table-scroll{max-height:min(60vh,720px)}
+  .table-scroll{
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+    max-height:min(60vh,720px)
+  }
+  .table-scroll .table{min-width:920px}
+  .table thead th{white-space:nowrap}
 }
 </style>
   <link rel="manifest" href="./manifest.webmanifest" />
@@ -128,7 +134,7 @@ body.modal-open{overflow:hidden}
   <h1>氣體偵測器與 CLPX 紙帶查詢</h1>
 
   <section>
-    <label>依「氣體」查詢（最多 10 筆，小寫不拘）</label>
+    <label>依「氣體」查詢（最多 5 筆，小寫不拘）</label>
     <div class="row10" id="gasRow"></div>
     <div class="flex" style="margin-top:10px">
       <button class="btn primary" id="btnSearch">查詢</button>
@@ -675,7 +681,7 @@ const PRESET = {
 let DB = loadDB();
 
 const gasRow = document.getElementById('gasRow');
-for(let i=1;i<=10;i++){
+for(let i=1;i<=5;i++){
   const inp=document.createElement('input');
   inp.setAttribute('list','gasNames');
   inp.placeholder=`輸入 ${i}`;
@@ -999,7 +1005,7 @@ function findGasKeyInsensitive(input){
 
 function runSearch(){
   const list=[];
-  for(let i=1;i<=10;i++){const v=normGasKeep(document.getElementById(`q${i}`).value);if(v)list.push(v);}
+  for(let i=1;i<=5;i++){const v=normGasKeep(document.getElementById(`q${i}`).value);if(v)list.push(v);}
   const out=list.map(g=>describeGas(g)).join('');
   document.getElementById('resultGas').innerHTML=out||'尚未輸入。';
 }

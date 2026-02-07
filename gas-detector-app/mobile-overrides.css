@@ -42,7 +42,15 @@ html,body{
     font-size:16px;
   }
   .table-scroll{
+    overflow:auto !important;
+    -webkit-overflow-scrolling:touch;
     max-height:min(58vh,620px) !important;
+  }
+  .table-scroll .table{
+    min-width:920px;
+  }
+  .table thead th{
+    white-space:nowrap;
   }
   .table th,
   .table td{
