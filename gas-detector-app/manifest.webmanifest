@@ -11,7 +11,7 @@
   "theme_color": "#2f6fed",
   "icons": [
     {
-      "src": "./icon.png",
+      "src": "./detector-icon.png",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any"

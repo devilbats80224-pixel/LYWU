@@ -1,10 +1,10 @@
-const CACHE_NAME = 'gas-detector-offline-v2';
+const CACHE_NAME = 'gas-detector-offline-v3';
 const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './mobile-overrides.css',
-  './icon.png'
+  './detector-icon.png'
 ];
 
 self.addEventListener('install', event => {

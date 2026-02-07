@@ -1,10 +1,10 @@
-const CACHE_NAME = 'gas-leak-response-offline-v2';
+const CACHE_NAME = 'gas-leak-response-offline-v3';
 const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './mobile-overrides.css',
-  './icon.png'
+  './leak-response-icon.png'
 ];
 
 self.addEventListener('install', event => {
