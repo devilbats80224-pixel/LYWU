@@ -157,7 +157,7 @@ body.modal-open{overflow:hidden}
   <section>
     <div class="flex" style="justify-content:space-between;align-items:center">
       <div class="flex">
-        <button class="btn" id="btnToggleOverview" aria-expanded="true">收合資料總覽</button>
+        <button class="btn" id="btnToggleOverview" aria-expanded="false">展開資料總覽</button>
         <div class="small">資料總覽</div>
       </div>
       <div class="flex">
@@ -172,7 +172,7 @@ body.modal-open{overflow:hidden}
         <button class="btn" id="btnPreset">還原預設</button>
       </div>
     </div>
-    <div id="overviewBody" class="overview-body">
+    <div id="overviewBody" class="overview-body hidden">
       <div id="tableWrap" class="card"></div>
     </div>
   </section>
@@ -1492,5 +1492,14 @@ function normalizeDB(db){
 function fileToDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});}
 </script>
 
-<script>\nif ("serviceWorker" in navigator) {\n  window.addEventListener("load", function () {\n    navigator.serviceWorker.register("./sw.js").catch(function (err) {\n      console.warn("Service Worker 註冊失敗:", err);\n    });\n  });\n}\n</script>\n</body>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("./sw.js").catch(function (err) {
+      console.warn("Service Worker 註冊失敗:", err);
+    });
+  });
+}
+</script>
+</body>
 </html>

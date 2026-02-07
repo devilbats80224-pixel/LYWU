@@ -116,15 +116,6 @@ kbd{background:#eaf1ff;border:1px solid #bdd0f1;border-radius:6px;padding:2px 6p
 .img-manage-item figcaption{font-size:12px;color:var(--sub);margin-top:6px}
 .img-del-btn{margin-top:6px;width:100%;padding:6px;border:1px solid #efb9b9;background:#fff1f1;color:var(--danger);border-radius:8px;cursor:pointer}
 .img-del-btn:hover{filter:brightness(1.05)}
-.zoom-tools{
-  position:fixed;right:14px;bottom:14px;z-index:10000;
-  display:flex;align-items:center;gap:8px;flex-wrap:nowrap;
-  padding:8px 10px;border:1px solid #c9d9f3;border-radius:12px;
-  background:rgba(255,255,255,.95);box-shadow:0 10px 24px rgba(31,41,55,.14)
-}
-.zoom-tools .btn{padding:6px 10px;border-radius:10px}
-.zoom-tools input[type=range]{width:140px}
-.zoom-tools .pct{min-width:44px;text-align:center;font-weight:700;color:var(--sub)}
 body.modal-open{overflow:hidden}
 .modal{
   position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
@@ -153,8 +144,6 @@ body.modal-open{overflow:hidden}
   .table-scroll .table{min-width:1380px}
   .table thead th{white-space:nowrap}
   .doc-page img{height:min(56vh,560px)}
-  .zoom-tools{right:10px;left:10px;justify-content:center}
-  .zoom-tools input[type=range]{width:120px}
 }
 </style>
   <link rel="manifest" href="./manifest.webmanifest" />
@@ -182,7 +171,7 @@ body.modal-open{overflow:hidden}
   <section>
     <div class="flex" style="justify-content:space-between;align-items:center">
       <div class="flex">
-        <button class="btn" id="btnToggleOverview" aria-expanded="true">收合資料總覽</button>
+        <button class="btn" id="btnToggleOverview" aria-expanded="false">展開資料總覽</button>
         <div class="small">資料總覽</div>
       </div>
       <div class="flex">
@@ -197,7 +186,7 @@ body.modal-open{overflow:hidden}
         <button class="btn" id="btnPreset">還原預設</button>
       </div>
     </div>
-    <div id="overviewBody" class="overview-body">
+    <div id="overviewBody" class="overview-body hidden">
       <div id="tableWrap" class="card"></div>
     </div>
   </section>
@@ -325,13 +314,6 @@ body.modal-open{overflow:hidden}
   <datalist id="ovPrincipleOptions"></datalist>
   <datalist id="ovNoteOptions"></datalist>
 
-  <div class="zoom-tools" id="zoomTools" aria-label="頁面縮放工具">
-    <button class="btn" id="btnZoomOut" type="button" title="縮小">－</button>
-    <input id="zoomRange" type="range" min="70" max="130" step="5" value="100" aria-label="頁面縮放"/>
-    <button class="btn" id="btnZoomIn" type="button" title="放大">＋</button>
-    <span class="pct" id="zoomPct">100%</span>
-    <button class="btn" id="btnZoomReset" type="button">重設</button>
-  </div>
 </div>
 
 <script>
@@ -353,7 +335,6 @@ body.modal-open{overflow:hidden}
 })();
 const MAX_IMAGES_PER_DETECTOR = 20;
 const LS_KEY = 'gas_leak_response_db_portable_v1';
-const LS_PAGE_ZOOM_KEY = 'gas_leak_response_page_zoom';
 const IDB_NAME = 'gas_leak_response_storage_v1';
 const IDB_STORE = 'kv';
 const IDB_DB_KEY = 'full_db';
@@ -815,11 +796,6 @@ const btnToggleOverview=document.getElementById('btnToggleOverview');
 const btnEditOverview=document.getElementById('btnEditOverview');
 const btnSaveOverview=document.getElementById('btnSaveOverview');
 const btnCancelOverview=document.getElementById('btnCancelOverview');
-const zoomRange=document.getElementById('zoomRange');
-const zoomPct=document.getElementById('zoomPct');
-const btnZoomOut=document.getElementById('btnZoomOut');
-const btnZoomIn=document.getElementById('btnZoomIn');
-const btnZoomReset=document.getElementById('btnZoomReset');
 let isOverviewEditing=false;
 let overviewEditSnapshot=null;
 
@@ -1158,33 +1134,6 @@ async function bootstrapPersistentStorage(){
   }
   await saveDB({silent:true});
 }
-
-function clampZoom(v){
-  return Math.max(70,Math.min(130,Math.round(v/5)*5));
-}
-function applyPageZoom(percent,{persist=true}={}){
-  const next=clampZoom(Number(percent)||100);
-  document.documentElement.style.zoom=String(next/100);
-  zoomRange.value=String(next);
-  zoomPct.textContent=`${next}%`;
-  if(persist){
-    try{localStorage.setItem(LS_PAGE_ZOOM_KEY,String(next));}catch(_){}
-  }
-}
-function adjustPageZoom(delta){
-  applyPageZoom(Number(zoomRange.value)+delta);
-}
-zoomRange.addEventListener('input',()=>applyPageZoom(zoomRange.value));
-btnZoomOut.addEventListener('click',()=>adjustPageZoom(-5));
-btnZoomIn.addEventListener('click',()=>adjustPageZoom(5));
-btnZoomReset.addEventListener('click',()=>applyPageZoom(100));
-(function initPageZoom(){
-  let stored=100;
-  try{
-    stored=Number(localStorage.getItem(LS_PAGE_ZOOM_KEY)||100);
-  }catch(_){}
-  applyPageZoom(stored,{persist:false});
-})();
 
 function refreshDatalists(){
   const gasList=document.getElementById('gasNames'); gasList.innerHTML='';
@@ -1843,5 +1792,14 @@ async function fileToOptimizedDataURL(file,{doc=false}={}){
 }
 </script>
 
-<script>\nif ("serviceWorker" in navigator) {\n  window.addEventListener("load", function () {\n    navigator.serviceWorker.register("./sw.js").catch(function (err) {\n      console.warn("Service Worker 註冊失敗:", err);\n    });\n  });\n}\n</script>\n</body>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("./sw.js").catch(function (err) {
+      console.warn("Service Worker 註冊失敗:", err);
+    });
+  });
+}
+</script>
+</body>
 </html>
