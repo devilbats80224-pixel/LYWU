@@ -18,7 +18,7 @@ build_one() {
   perl -0pi -e 's#</body>#<script>\\nif ("serviceWorker" in navigator) {\\n  window.addEventListener("load", function () {\\n    navigator.serviceWorker.register("./sw.js").catch(function (err) {\\n      console.warn("Service Worker 註冊失敗:", err);\\n    });\\n  });\\n}\\n</script>\\n</body>#s' "$app_dir/index.html"
 }
 
-build_one "$ROOT_DIR/Gas_Detector_Lookup_Portable_CLPXfinal.html" "$OUT_DIR/gas-detector-app" "氣體偵測器" "detector-icon.png"
-build_one "$ROOT_DIR/氣體洩漏應變.html" "$OUT_DIR/gas-leak-response-app" "氣體洩漏應變" "leak-response-icon.png"
+build_one "$ROOT_DIR/Gas_Detector_Lookup_Portable_CLPXfinal.html" "$OUT_DIR/gas-detector-app" "氣體偵測器" "detector-icon-v2.png"
+build_one "$ROOT_DIR/氣體洩漏應變.html" "$OUT_DIR/gas-leak-response-app" "氣體洩漏應變" "leak-response-icon-v2.png"
 
 echo "Done: rebuilt iOS offline app bundles in $OUT_DIR"

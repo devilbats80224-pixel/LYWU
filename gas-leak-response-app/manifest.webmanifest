@@ -11,7 +11,7 @@
   "theme_color": "#2f6fed",
   "icons": [
     {
-      "src": "./leak-response-icon.png",
+      "src": "./leak-response-icon-v2.png",
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any"
