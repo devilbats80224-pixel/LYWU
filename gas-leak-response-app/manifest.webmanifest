@@ -1,0 +1,20 @@
+{
+  "id": "gas-leak-response-offline-app-v1",
+  "name": "氣體洩漏應變",
+  "short_name": "洩漏應變",
+  "description": "離線查詢氣體洩漏應變資訊。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f7fb",
+  "theme_color": "#2f6fed",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+html,body{
+  overscroll-behavior:contain;
+}
+
+.container{
+  max-width:100%;
+}
+
+@media (max-width: 900px){
+  body{
+    -webkit-text-size-adjust:100%;
+  }
+  .container{
+    margin:8px auto 20px;
+    padding:0 10px;
+  }
+  h1{
+    margin:8px 0 12px;
+    font-size:24px;
+    letter-spacing:.02em;
+  }
+  section{
+    border-radius:14px;
+    padding:12px;
+    margin:10px 0;
+  }
+  .group,
+  .row10,
+  .delete-row{
+    grid-template-columns:1fr !important;
+    gap:10px;
+  }
+  .flex{
+    gap:8px;
+  }
+  .btn{
+    min-height:42px;
+    font-size:16px;
+  }
+  input[type=text],input[list],textarea,select{
+    min-height:44px;
+    font-size:16px;
+  }
+  .table-scroll{
+    max-height:min(58vh,620px) !important;
+  }
+  .table th,
+  .table td{
+    padding:8px 6px;
+  }
+  .overview-edit-tools{
+    position:sticky;
+    bottom:0;
+    z-index:8;
+    margin-top:0;
+    padding:10px 0 calc(8px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg,rgba(243,247,251,0),rgba(243,247,251,.95) 35%,rgba(243,247,251,1) 100%);
+  }
+  .modal{
+    padding:10px;
+  }
+  .modal-card{
+    width:calc(100vw - 10px);
+    max-height:92vh;
+    padding:12px;
+  }
+}

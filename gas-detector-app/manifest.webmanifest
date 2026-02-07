@@ -1,0 +1,20 @@
+{
+  "id": "gas-detector-offline-app-v1",
+  "name": "氣體偵測器查詢",
+  "short_name": "氣體偵測器",
+  "description": "離線查詢氣體、偵測器與 CLPX 紙帶。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f7fb",
+  "theme_color": "#2f6fed",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
