@@ -1022,8 +1022,8 @@ function resetSearchInputs(){
   if(rev)rev.value='';
   runSearch();
   runReverse();
-  const first=document.getElementById('q1');
-  if(first)first.focus();
+  const active=document.activeElement;
+  if(active && typeof active.blur==='function') active.blur();
 }
 
 function describeGas(inputName){
