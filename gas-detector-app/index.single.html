@@ -1141,6 +1141,11 @@ const SEARCH_INPUT_COUNT = 10;
 const MOBILE_SEARCH_INPUT_COUNT = 5;
 const COMPRESSED_EXPORT_BUNDLE_TYPE = 'offline_compressed_json_bundle';
 const COMPRESSED_EXPORT_ENCODING = 'gzip-base64-utf8-v1';
+const EXPORT_IMAGE_MAX_SIDE = 1600;
+const EXPORT_IMAGE_QUALITY = 0.82;
+const EXPORT_FALLBACK_QUALITY = 0.74;
+const EXPORT_MIN_GAIN_RATIO = 0.98;
+const EXPORT_YIELD_EVERY = 4;
 const gasRow = document.getElementById('gasRow');
 const resultGas = document.getElementById('resultGas');
 const revPaperInput = document.getElementById('revPaper');
@@ -2802,6 +2807,17 @@ function loadImageElementFromFile(file){
     img.src=url;
   });
 }
+function loadImageElementFromDataURL(dataUrl){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>resolve(img);
+    img.onerror=(e)=>reject(e||new Error('圖片載入失敗'));
+    img.src=String(dataUrl||'');
+  });
+}
+function nextUiTick(){
+  return new Promise(resolve=>setTimeout(resolve,0));
+}
 async function fileToOptimizedDataURL(file,{doc=false}={}){
   const img=await loadImageElementFromFile(file);
   const maxW=doc?2000:1600;
@@ -2885,6 +2901,113 @@ async function parsePossiblyCompressedImportJson(rawText){
     return JSON.parse(innerText);
   }
   return parsed;
+}
+function getDataUrlMimeType(dataUrl){
+  return ((String(dataUrl||'').match(/^data:([^;,]+)/i)||[])[1]||'').toLowerCase();
+}
+function isCompressibleImageDataUrl(dataUrl){
+  const mime=getDataUrlMimeType(dataUrl);
+  if(!mime.startsWith('image/'))return false;
+  return mime!=='image/svg+xml';
+}
+async function optimizeImageDataUrlForExport(dataUrl){
+  const original=String(dataUrl||'').trim();
+  if(!isCompressibleImageDataUrl(original))return original;
+
+  let img;
+  try{
+    img=await loadImageElementFromDataURL(original);
+  }catch(_){
+    return original;
+  }
+
+  const naturalW=Math.max(1,Math.round(Number(img.naturalWidth)||1));
+  const naturalH=Math.max(1,Math.round(Number(img.naturalHeight)||1));
+  const ratio=Math.min(1,EXPORT_IMAGE_MAX_SIDE/naturalW,EXPORT_IMAGE_MAX_SIDE/naturalH);
+  const drawW=Math.max(1,Math.round(naturalW*ratio));
+  const drawH=Math.max(1,Math.round(naturalH*ratio));
+
+  const canvas=document.createElement('canvas');
+  canvas.width=drawW;
+  canvas.height=drawH;
+  const ctx=canvas.getContext('2d');
+  if(!ctx)return original;
+
+  ctx.fillStyle='#ffffff';
+  ctx.fillRect(0,0,drawW,drawH);
+  ctx.drawImage(img,0,0,drawW,drawH);
+
+  const qualityAttempts=[EXPORT_IMAGE_QUALITY];
+  if(EXPORT_FALLBACK_QUALITY<EXPORT_IMAGE_QUALITY){
+    qualityAttempts.push(EXPORT_FALLBACK_QUALITY);
+  }
+  let best=original;
+  for(const q of qualityAttempts){
+    try{
+      const out=canvas.toDataURL('image/jpeg',q);
+      if(out&&out.length<best.length)best=out;
+    }catch(_){
+      // noop
+    }
+  }
+  if(best===original)return original;
+  if(best.length>original.length*EXPORT_MIN_GAIN_RATIO)return original;
+  return best;
+}
+function collectExportImageRefs(db){
+  const refs=[];
+  const fieldImages=(db.fieldImages&&typeof db.fieldImages==='object')?db.fieldImages:{};
+  Object.values(fieldImages).forEach(targetMap=>{
+    if(!targetMap||typeof targetMap!=='object')return;
+    Object.values(targetMap).forEach(list=>{
+      const arr=Array.isArray(list)?list:[];
+      for(let i=0;i<arr.length;i++){
+        refs.push({holder:arr,index:i});
+      }
+    });
+  });
+  return refs.filter(ref=>isCompressibleImageDataUrl(ref.holder?.[ref.index]));
+}
+async function buildOptimizedExportPayload(db,{onProgress}={}){
+  const optimizedDb=cloneForStorage(db);
+  const refs=collectExportImageRefs(optimizedDb);
+  const cache=new Map();
+  let changed=0;
+  let savedChars=0;
+
+  for(let i=0;i<refs.length;i++){
+    const ref=refs[i];
+    const before=String(ref.holder?.[ref.index]||'').trim();
+    if(before){
+      let after=cache.get(before);
+      if(after===undefined){
+        after=await optimizeImageDataUrlForExport(before);
+        cache.set(before,after);
+      }
+      if(after&&after!==before){
+        ref.holder[ref.index]=after;
+        changed+=1;
+        savedChars+=Math.max(0,before.length-after.length);
+      }
+    }
+    if(typeof onProgress==='function'){
+      onProgress({
+        done:i+1,
+        total:refs.length,
+        changed,
+        savedChars
+      });
+    }
+    if((i+1)%EXPORT_YIELD_EVERY===0)await nextUiTick();
+  }
+  return {
+    db:optimizedDb,
+    stats:{
+      total:refs.length,
+      changed,
+      savedChars
+    }
+  };
 }
 
 btnPhotoManager.addEventListener('click',openPhotoModal);
@@ -3275,55 +3398,48 @@ document.getElementById('btnExportFull').addEventListener('click',async ()=>{
   exportBtn.textContent='匯出壓縮中...';
   try{
     const exportedAt=new Date().toISOString();
+    const snapshot=cloneForStorage(DB);
+    const legacyPayload={
+      type:'gas_lookup_full_config',
+      version:4,
+      exportedAt,
+      db:snapshot
+    };
+    const legacyPrettySize=new Blob([JSON.stringify(legacyPayload,null,2)],{type:'application/json'}).size;
+    const {db:optimizedDb,stats}=await buildOptimizedExportPayload(snapshot,{
+      onProgress:({done,total})=>{
+        if(!total){
+          exportBtn.textContent='匯出壓縮中...';
+          return;
+        }
+        const pct=Math.max(1,Math.min(99,Math.round((done/total)*100)));
+        exportBtn.textContent=`匯出壓縮中... ${pct}%`;
+      }
+    });
     const payload={
       type:'gas_lookup_full_config',
       version:4,
       exportedAt,
-      db:cloneForStorage(DB)
+      db:optimizedDb
     };
-    const plainText=JSON.stringify(payload);
-    const plainBytes=new Blob([plainText],{type:'application/json'}).size;
-
-    let downloadText=plainText;
-    let downloadName='gas_lookup_full_config.json';
-    let compressed=false;
-
-    if(typeof CompressionStream==='function'){
-      const payloadBase64=await gzipTextToBase64(plainText);
-      const wrapped={
-        type:COMPRESSED_EXPORT_BUNDLE_TYPE,
-        formatVersion:1,
-        encoding:COMPRESSED_EXPORT_ENCODING,
-        schemaType:payload.type,
-        schemaVersion:payload.version,
-        exportedAt,
-        payloadBase64
-      };
-      downloadText=JSON.stringify(wrapped);
-      downloadName='gas_lookup_full_config.compressed.json';
-      compressed=true;
-    }
-
-    const blob=new Blob([downloadText],{type:'application/json'});
+    const jsonText=JSON.stringify(payload);
+    const blob=new Blob([jsonText],{type:'application/json'});
     const a=document.createElement('a');
     const url=URL.createObjectURL(blob);
     a.href=url;
-    a.download=downloadName;
+    a.download='gas_lookup_full_config.json';
     a.click();
     URL.revokeObjectURL(url);
 
-    const savedBytes=Math.max(0,plainBytes-blob.size);
-    const reducedPct=plainBytes>0?(savedBytes/plainBytes)*100:0;
-    if(compressed){
-      alert(
-        `已完成無損壓縮匯出。\n`+
-        `檔案大小約 ${formatBytes(plainBytes)} -> ${formatBytes(blob.size)}，`+
-        `減少 ${formatBytes(savedBytes)}（約 ${reducedPct.toFixed(1)}%）。\n`+
-        `照片資料保持原樣，不會影響畫質。`
-      );
-    }else{
-      alert('已匯出（目前瀏覽器不支援 CompressionStream，改用一般 JSON 匯出）。');
-    }
+    const savedBytes=Math.max(0,legacyPrettySize-blob.size);
+    const reducedPct=legacyPrettySize>0?(savedBytes/legacyPrettySize)*100:0;
+    alert(
+      `已完成匯出。\n`+
+      `影像檢查 ${stats.total} 筆，實際壓縮 ${stats.changed} 筆。\n`+
+      `檔案大小約 ${formatBytes(legacyPrettySize)} -> ${formatBytes(blob.size)}，`+
+      `減少 ${formatBytes(savedBytes)}（約 ${reducedPct.toFixed(1)}%）。\n`+
+      `此壓縮只套用在匯出檔，不會改動目前頁面資料。`
+    );
   }catch(err){
     alert('匯出失敗：'+(err&&err.message?err.message:String(err||'未知錯誤')));
   }finally{
