@@ -10,6 +10,7 @@
   --bg:#f3f7fb; --panel:#ffffff; --card:#f7fafd;
   --text:#1f2937; --sub:#5f6f82; --chip:#eef4ff; --chip-b:#c9d9f3;
   --accent:#2f6fed; --accent2:#4aa3ff; --danger:#c73333; --warn:#8a6a00;
+  --photo-thumb-w:210px; --photo-thumb-h:150px;
   --overview-tail-space:clamp(420px,90vh,1200px);
 }
 *{box-sizing:border-box}
@@ -23,6 +24,86 @@ label{display:block;font-size:13px;color:var(--sub);margin:4px 2px 8px}
 input[type=text],input[list],textarea,select{
   width:100%;background:#fff;border:1px solid #c8d5e6;color:var(--text);
   padding:11px 12px;border-radius:12px;font-size:16px;outline:none
+}
+input[list]::-webkit-calendar-picker-indicator{
+  opacity:1;
+  display:block;
+  cursor:pointer;
+}
+.query-input-wrap{
+  position:relative;
+}
+.query-input-wrap > input[list]{
+  padding-right:12px;
+}
+.query-drop-btn{
+  display:none;
+  position:absolute;
+  right:8px;
+  top:50%;
+  transform:translateY(-50%);
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  border:1px solid #bdd0f1;
+  background:#eef4ff;
+  color:#6b7280;
+  font-size:12px;
+  cursor:pointer;
+}
+.query-drop-btn:hover{filter:brightness(1.05)}
+.mobile-query-ui .query-input-wrap > input[list]{
+  padding-right:64px;
+}
+.mobile-query-ui .query-input-wrap > input[list]::-webkit-calendar-picker-indicator{
+  opacity:0;
+  pointer-events:none;
+}
+.mobile-query-ui .query-drop-btn{
+  display:block;
+}
+.mobile-query-ui .query-input-wrap.open .query-drop-btn{
+  color:#2f6fed;
+  border-color:#7da2dd;
+}
+.mobile-query-ui .query-dropdown-panel{
+  position:absolute;
+  left:0;
+  right:0;
+  top:calc(100% + 6px);
+  z-index:3000;
+  border:1px solid #c9d9f3;
+  border-radius:12px;
+  background:#fff;
+  box-shadow:0 12px 26px rgba(31,41,55,.18);
+  overflow:hidden;
+}
+.query-dropdown-list{
+  max-height:300px;
+  overflow:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.query-dropdown-option{
+  width:100%;
+  border:none;
+  border-top:1px solid #edf2f9;
+  background:#fff;
+  color:var(--text);
+  text-align:left;
+  padding:10px 12px;
+  font-size:16px;
+  cursor:pointer;
+}
+.query-dropdown-option:first-child{
+  border-top:none;
+}
+.query-dropdown-option:hover{
+  background:#f5f9ff;
+}
+.query-dropdown-empty{
+  padding:11px 12px;
+  font-size:13px;
+  color:var(--sub);
 }
 input[type=text]:focus,input[list]:focus,textarea:focus,select:focus{border-color:#7da2dd;box-shadow:0 0 0 3px rgba(47,111,237,.15)}
 textarea{min-height:40px;resize:vertical}
@@ -40,27 +121,67 @@ hr.sep{border:none;border-top:1px dashed #c8d5e6;margin:12px 0}
 th,td{padding:8px 10px;border-bottom:1px solid #dbe4ef}
 th{text-align:left;color:var(--sub)}
 .table th,.table td{vertical-align:top}
-.table-scroll{overflow:auto;position:relative;max-height:min(72vh,960px)}
+.table-scroll{
+  overflow:auto;
+  position:relative;
+  max-height:min(72vh,960px);
+  -webkit-overflow-scrolling:touch;
+}
+.table-scroll .table{min-width:1380px}
 .table thead th{
   position:sticky;
   top:0;
   z-index:4;
   background:var(--panel);
   box-shadow:0 1px 0 #dbe4ef;
+  white-space:nowrap;
 }
 .table .tail-space td{
   padding:0;
   border-bottom:none;
   height:var(--overview-tail-space);
 }
-.table .col-gas{width:35%;white-space:normal;word-break:break-word}
-.table .col-det{width:28%;white-space:normal;word-break:break-word}
-.table .col-paper{width:17%;white-space:nowrap}
-.table .col-note{width:20%;white-space:normal;word-break:break-word}
-.table .col-op{width:10%;white-space:nowrap}
+.table .col-gas{width:23%;white-space:normal;word-break:break-word;line-height:1.35}
+.table .col-det{width:9%;white-space:normal;word-break:break-word}
+.table .col-paper{width:11%;white-space:nowrap;word-break:normal}
+.table .col-ppe{width:13%;white-space:nowrap}
+.table .col-sds{width:7%;white-space:normal;word-break:break-word}
+.table .col-un{width:13%;white-space:nowrap}
+.table .col-principle{width:10%;white-space:normal;word-break:break-word}
+.table .col-note{width:14%;white-space:normal;word-break:break-word}
+.table .col-op{width:8%;white-space:nowrap}
+.table .field-col{min-width:140px;white-space:normal;word-break:break-word}
+.table [data-field-id="papers"],
+.table [data-field-id="ppes"],
+.table [data-field-id="unNumbers"]{
+  white-space:nowrap !important;
+  word-break:normal !important;
+  overflow-wrap:normal !important;
+}
+.table.overview-view{table-layout:auto}
+.table.overview-view td:not(.col-gas),
+.table.overview-view th:not(.col-gas){
+  white-space:nowrap !important;
+  word-break:normal !important;
+  overflow-wrap:normal !important;
+}
+.table.overview-view .field-col{min-width:160px}
+.table.overview-view .col-gas{
+  min-width:240px;
+  white-space:normal !important;
+  word-break:break-word !important;
+  overflow-wrap:anywhere;
+}
+.table.overview-edit{table-layout:auto}
 .table.overview-edit input{width:100%;padding:7px 8px;border:1px solid #c8d5e6;border-radius:8px;background:#fff;color:var(--text)}
 .table.overview-edit .row-del{border:1px solid #efb9b9;background:#fff1f1;color:var(--danger);padding:6px 10px;border-radius:8px;cursor:pointer}
 .table.overview-edit .row-del:hover{filter:brightness(1.05)}
+.table.overview-edit td{padding:9px 8px}
+.table.overview-edit input{font-size:14px;min-width:160px}
+.table.overview-edit .col-gas{width:auto;min-width:300px}
+.table.overview-edit .col-gas input{min-width:280px}
+.table.overview-edit .field-col{width:auto;min-width:180px}
+.table.overview-edit .col-op{width:auto;min-width:96px}
 .overview-edit-tools{margin-top:10px}
 .badge{background:var(--chip);border:1px solid var(--chip-b);border-radius:999px;
   padding:6px 10px;margin:4px 6px 0 0;display:inline-block}
@@ -84,17 +205,171 @@ kbd{background:#eaf1ff;border:1px solid #bdd0f1;border-radius:6px;padding:2px 6p
 }
 .multi-option .del:hover{filter:brightness(1.05)}
 
-.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:8px}
-.img-grid figure{margin:0;background:#fff;border:1px solid #d9e6f4;border-radius:10px;padding:6px}
-.img-grid img{width:100%;height:100px;object-fit:contain;border-radius:6px;display:block}
+.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--photo-thumb-w),var(--photo-thumb-w)));justify-content:flex-start;gap:10px;margin-top:8px}
+.img-grid figure{margin:0;width:var(--photo-thumb-w);background:#fff;border:1px solid #d9e6f4;border-radius:10px;padding:6px}
+.img-grid img{width:100%;height:var(--photo-thumb-h);object-fit:contain;border-radius:6px;display:block;background:#f6f9fd}
 .img-grid figcaption{font-size:11px;color:var(--sub);margin-top:4px;text-align:center}
+.img-group-title{margin-top:8px;font-size:12px;color:var(--sub)}
+.doc-pages{display:flex;flex-direction:column;align-items:flex-start;gap:12px;margin-top:10px}
+.doc-page{margin:0;width:min(100%,980px);background:#fff;border:1px solid #d9e6f4;border-radius:10px;padding:8px}
+.doc-page img{width:100%;height:min(78vh,980px);object-fit:contain;border-radius:8px;display:block;background:#f6f9fd}
+.doc-page figcaption{font-size:12px;color:var(--sub);margin-top:6px}
 
-.img-manage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:8px}
-.img-manage-item{margin:0;background:#fff;border:1px solid #d9e6f4;border-radius:10px;padding:8px}
-.img-manage-item img{width:100%;height:110px;object-fit:contain;border-radius:8px;display:block;background:#f6f9fd}
+.img-manage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--photo-thumb-w),var(--photo-thumb-w)));justify-content:flex-start;gap:10px;margin-top:8px}
+.img-manage-item{margin:0;width:var(--photo-thumb-w);background:#fff;border:1px solid #d9e6f4;border-radius:10px;padding:8px}
+.img-manage-item img{width:100%;height:var(--photo-thumb-h);object-fit:contain;border-radius:8px;display:block;background:#f6f9fd}
 .img-manage-item figcaption{font-size:12px;color:var(--sub);margin-top:6px}
 .img-del-btn{margin-top:6px;width:100%;padding:6px;border:1px solid #efb9b9;background:#fff1f1;color:var(--danger);border-radius:8px;cursor:pointer}
 .img-del-btn:hover{filter:brightness(1.05)}
+.photo-setting-grid{display:grid;gap:8px}
+.photo-setting-row{display:grid;grid-template-columns:1fr 140px;gap:8px;align-items:center}
+.photo-setting-row .small{font-size:13px}
+.field-manager-list{display:grid;gap:8px;margin-top:10px}
+.field-manager-row{
+  display:grid;
+  grid-template-columns:minmax(130px,1fr) auto auto auto;
+  gap:8px;
+  align-items:center;
+}
+.field-manager-row .field-title{
+  width:100%;
+  min-width:0;
+  padding:8px 10px;
+  border:1px solid #c8d5e6;
+  border-radius:10px;
+  background:#fff;
+}
+.field-manager-row .btn{padding:6px 10px}
+
+.query-manager-list{display:grid;gap:8px;margin-top:10px}
+.query-manager-row{
+  display:grid;
+  grid-template-columns:minmax(130px,1fr) auto;
+  gap:8px;
+  align-items:center;
+  padding:8px 10px;
+  border:1px solid #dce8f6;
+  border-radius:10px;
+  background:#fcfdff;
+}
+.query-font-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.query-font-tools input[type=range]{width:220px}
+.query-font-tools .pct{min-width:56px;text-align:right;font-weight:700;color:var(--sub)}
+
+#resultGas{--query-font-scale:1}
+#resultGas .result-card{font-size:calc(2em * var(--query-font-scale));line-height:1.45}
+#resultGas .result-card .small{font-size:.95em}
+#resultGas .result-card .badge{font-size:1em}
+#resultGas .result-card .img-group-title{font-size:.58em}
+#resultGas .result-card figcaption{font-size:.55em}
+#resultGas .other-gas{margin-top:10px}
+#resultGas .other-gas summary{
+  list-style:none;
+  cursor:pointer;
+  display:inline-block;
+  padding:6px 12px;
+  border:1px solid #c9d9f3;
+  border-radius:10px;
+  background:#eef4ff;
+  color:#1f2937;
+  font-weight:700;
+}
+#resultGas .other-gas summary::-webkit-details-marker{display:none}
+#resultGas .other-gas .other-gas-content{
+  margin-top:8px;
+  padding:8px 10px;
+  border:1px solid #dce8f6;
+  border-radius:10px;
+  background:#f8fbff;
+}
+
+#imageViewerModal{
+  z-index:12000;
+  background:rgba(15,23,42,.88);
+  padding:20px;
+}
+#imageViewerModal .viewer-wrap{
+  width:min(100%,1200px);
+  height:min(100%,96vh);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+#imageViewerModal .viewer-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  color:#f8fbff;
+}
+#imageViewerModal .viewer-close{
+  border:1px solid rgba(255,255,255,.4);
+  background:rgba(255,255,255,.12);
+  color:#fff;
+  border-radius:10px;
+  padding:8px 14px;
+  cursor:pointer;
+}
+#imageViewerModal .viewer-close:hover{filter:brightness(1.1)}
+#imageViewerModal .viewer-body{
+  flex:1;
+  min-height:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+}
+#imageViewerModal .viewer-img{
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  border-radius:10px;
+  background:#fff;
+  transform-origin:center center;
+  cursor:default;
+  user-select:none;
+  -webkit-user-drag:none;
+}
+#imageViewerModal .viewer-zoom{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  color:#dbeafe;
+}
+#imageViewerModal .viewer-zoom-btn{
+  border:1px solid rgba(255,255,255,.4);
+  background:rgba(255,255,255,.12);
+  color:#fff;
+  border-radius:10px;
+  padding:6px 12px;
+  cursor:pointer;
+}
+#imageViewerModal .viewer-zoom-btn:hover{filter:brightness(1.1)}
+#imageViewerModal .viewer-zoom input[type=range]{
+  width:min(320px,48vw);
+}
+#imageViewerModal .viewer-zoom .viewer-zoom-pct{
+  min-width:56px;
+  text-align:center;
+  font-weight:700;
+}
+#imageViewerModal .viewer-caption{
+  color:#dbeafe;
+  font-size:14px;
+  text-align:center;
+  word-break:break-word;
+}
+.zoom-tools{
+  position:fixed;right:14px;bottom:14px;z-index:10000;
+  display:flex;align-items:center;gap:8px;flex-wrap:nowrap;
+  padding:8px 10px;border:1px solid #c9d9f3;border-radius:12px;
+  background:rgba(255,255,255,.95);box-shadow:0 10px 24px rgba(31,41,55,.14)
+}
+#zoomTools{display:none!important}
+.zoom-tools .btn{padding:6px 10px;border-radius:10px}
+.zoom-tools input[type=range]{width:140px}
+.zoom-tools .pct{min-width:44px;text-align:center;font-weight:700;color:var(--sub)}
 body.modal-open{overflow:hidden}
 .modal{
   position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
@@ -111,35 +386,138 @@ body.modal-open{overflow:hidden}
 .delete-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
 .delete-row .btn{height:42px;white-space:nowrap}
 @media (max-width:900px){
+  :root{
+    --photo-thumb-w:min(44vw,220px);
+    --photo-thumb-h:min(30vw,150px);
+    --overview-tail-space:clamp(220px,45vh,520px);
+  }
+  html,body{-webkit-text-size-adjust:100%}
+  .container{margin:12px auto;padding:0 10px}
+  h1{margin:4px 0 12px;font-size:26px;letter-spacing:.04em}
+  section{padding:12px;border-radius:14px;margin:10px 0}
+  label{font-size:14px}
+  .small{font-size:13px;line-height:1.45}
+  input[type=text],input[list],textarea,select{font-size:17px;padding:12px}
+  .mobile-query-ui .query-drop-btn{
+    width:46px;
+    height:46px;
+  }
+  .mobile-query-ui .query-dropdown-option{
+    font-size:17px;
+    padding:12px;
+  }
+  .btn{min-height:44px;padding:10px 12px;font-size:16px}
+  .btn.icon-btn{min-width:44px;min-height:44px;padding:8px 10px}
   .row10,.group{grid-template-columns:1fr}
+
+  #queryActionBar{
+    display:grid;
+    grid-template-columns:1fr 56px 1fr;
+    gap:8px;
+    align-items:center;
+  }
+  #queryActionBar .small{grid-column:1 / -1}
+  #queryActionBar #btnSearch,
+  #queryActionBar #btnResetSearch,
+  #queryActionBar #btnQueryManager{width:100%}
+  #resultGas .result-card{font-size:calc(1.35em * var(--query-font-scale));line-height:1.4}
+  #resultGas .result-card .badge{max-width:100%}
+  #resultGas .result-card .img-group-title{font-size:.72em}
+  #resultGas .result-card figcaption{font-size:.7em}
+
+  #overviewTopBar{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+  }
+  #overviewTopBar > .flex{width:100%}
+  #overviewTopLeft{justify-content:space-between}
+  #overviewTopRight{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+  }
+  #overviewTopRight .btn{width:100%;margin:0}
+
+  .card{padding:10px}
+  #tableWrap.card{padding:8px}
+  .table-scroll{overflow:auto;max-height:min(58vh,700px)}
+  .table-scroll .table{min-width:980px}
+  .table th,.table td{padding:7px 8px}
+  .table.overview-edit input{font-size:15px;min-width:130px}
+  .table.overview-edit .col-gas{min-width:220px}
+  .table.overview-edit .col-gas input{min-width:200px}
+  .table.overview-edit .field-col{min-width:150px}
+
   .delete-row{grid-template-columns:1fr}
   .delete-row .btn{width:100%}
-  .table-scroll{
-    overflow:auto;
-    -webkit-overflow-scrolling:touch;
-    max-height:min(60vh,720px)
+  .field-manager-row{grid-template-columns:1fr 1fr}
+  .query-manager-row{grid-template-columns:1fr}
+  .photo-setting-row{grid-template-columns:1fr}
+
+  .img-grid,
+  .img-manage-grid{
+    grid-template-columns:repeat(auto-fill,minmax(min(44vw,220px),1fr));
+    justify-content:stretch;
   }
-  .table-scroll .table{min-width:920px}
-  .table thead th{white-space:nowrap}
+  .img-grid figure,
+  .img-manage-item{width:auto}
+  .doc-page{width:100%}
+  .doc-page img{height:min(52vh,520px)}
+
+  .modal{padding:0}
+  .modal .modal-card{
+    width:100vw !important;
+    max-height:100vh;
+    height:100vh;
+    border:none;
+    border-radius:0;
+    padding:12px;
+  }
+  .modal-head{
+    position:sticky;
+    top:0;
+    background:var(--panel);
+    z-index:2;
+    padding-bottom:8px;
+  }
+
+  #imageViewerModal{padding:10px}
+  #imageViewerModal .viewer-wrap{height:min(100%,98vh);gap:8px}
+  #imageViewerModal .viewer-zoom{gap:8px;flex-wrap:wrap}
+  #imageViewerModal .viewer-zoom input[type=range]{width:min(72vw,300px)}
+
+  .zoom-tools{right:10px;left:10px;justify-content:center}
+  .zoom-tools input[type=range]{width:120px}
+  .query-font-tools input[type=range]{width:100%}
+}
+@media (max-width:640px){
+  #queryActionBar{
+    grid-template-columns:1fr 56px;
+  }
+  #queryActionBar #btnQueryManager{
+    grid-column:1 / -1;
+  }
+  #overviewTopRight{
+    grid-template-columns:1fr;
+  }
+  .field-manager-row{
+    grid-template-columns:1fr;
+  }
 }
 </style>
-  <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="stylesheet" href="./mobile-overrides.css" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="氣體偵測器" />
-  <link rel="apple-touch-icon" href="./detector-icon-v2.png" />
 </head>
 <body>
 <div class="container">
   <h1>氣體偵測器與 CLPX 紙帶查詢</h1>
 
   <section>
-    <label>依「氣體」查詢（最多 5 筆，小寫不拘）</label>
+    <label>依「氣體」查詢（桌機最多 10 筆／手機最多 5 筆，小寫不拘）</label>
     <div class="row10" id="gasRow"></div>
-    <div class="flex" style="margin-top:10px">
+    <div class="flex" id="queryActionBar" style="margin-top:10px">
       <button class="btn primary" id="btnSearch">查詢</button>
       <button class="btn icon-btn" id="btnResetSearch" type="button" title="清空查詢" aria-label="清空查詢">↻</button>
+      <button class="btn" id="btnQueryManager" type="button">查詢管理</button>
       <span class="small">欄位留空將忽略。按 <kbd>Enter</kbd> 亦可。　初始資料已內嵌，後續變更會儲存到 LocalStorage。</span>
     </div>
     <div id="resultGas" class="small" style="margin-top:8px">尚未輸入。</div>
@@ -149,23 +527,23 @@ body.modal-open{overflow:hidden}
     <label>依「紙帶編號」反查可量測的氣體</label>
     <div class="flex">
       <input list="paperCodes" id="revPaper" placeholder="例：1-600-570 或 600-57"/>
-      <button class="btn" id="btnReverse">反查</button>
+      <button class="btn" id="btnReverse" type="button">反查</button>
     </div>
     <div id="resultPaper" class="small" style="margin-top:8px">尚未輸入。</div>
   </section>
 
   <section>
-    <div class="flex" style="justify-content:space-between;align-items:center">
-      <div class="flex">
+    <div class="flex" id="overviewTopBar" style="justify-content:space-between;align-items:center">
+      <div class="flex" id="overviewTopLeft">
         <button class="btn" id="btnToggleOverview" aria-expanded="false">展開資料總覽</button>
         <div class="small">資料總覽</div>
       </div>
-      <div class="flex">
+      <div class="flex" id="overviewTopRight">
         <button class="btn" id="btnEditOverview">編輯資料總覽</button>
-        <button class="btn danger" id="btnFieldDelete">欄位刪除</button>
+        <button class="btn" id="btnFieldDelete">欄位管理</button>
         <button class="btn primary hidden" id="btnSaveOverview">儲存總覽編輯</button>
         <button class="btn hidden" id="btnCancelOverview">取消編輯</button>
-        <button class="btn" id="btnPhotoManager">偵測器照片管理</button>
+        <button class="btn" id="btnPhotoManager">照片管理</button>
         <button class="btn" id="btnExportFull">匯出完整設定(JSON)</button>
         <input id="fileIn" type="file" accept="application/json" class="hidden"/>
         <button class="btn warn" id="btnImport">匯入並覆蓋</button>
@@ -180,13 +558,17 @@ body.modal-open{overflow:hidden}
   <div id="photoModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="photoModalTitle">
     <div class="modal-card">
       <div class="modal-head">
-        <h3 id="photoModalTitle" style="margin:0">偵測器照片管理</h3>
+        <h3 id="photoModalTitle" style="margin:0">照片管理</h3>
         <button class="btn" id="btnClosePhotoModal" type="button">關閉</button>
       </div>
       <div class="group">
         <div>
-          <label>偵測器（來自上方「資料總覽編輯」）</label>
-          <select id="selDetForImg"></select>
+          <label>管理欄位</label>
+          <select id="selPhotoType"></select>
+        </div>
+        <div>
+          <label id="photoTargetLabel">偵測器（來自上方「資料總覽編輯」）</label>
+          <select id="selPhotoTarget"></select>
         </div>
         <div>
           <label>選擇圖片檔</label>
@@ -194,13 +576,16 @@ body.modal-open{overflow:hidden}
         </div>
       </div>
       <div class="flex" style="margin-top:8px">
-        <button class="btn" id="btnSaveImgs">儲存偵測器照片</button>
-        <button class="btn danger" id="btnClearImgs">清除該偵測器所有照片</button>
-        <span class="small" id="imgHint">僅存最多 20 張，超過會保留最近的 20 張。</span>
+        <button class="btn danger" id="btnClearImgs">清除目前項目所有照片</button>
+        <span class="small" id="imgHint">選檔後會立即上傳儲存。每個項目最多保留最近 20 張。</span>
       </div>
       <div class="card" style="margin-top:10px">
         <div class="small">已儲存照片（可刪除單張）</div>
         <div id="imgManageGrid" class="img-manage-grid"></div>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <div class="small">照片顯示欄位設定（可指定不顯示/縮圖/A4）</div>
+        <div id="photoFieldSettingList" class="photo-setting-grid"></div>
       </div>
     </div>
   </div>
@@ -208,41 +593,48 @@ body.modal-open{overflow:hidden}
   <div id="fieldDeleteModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="fieldDeleteModalTitle">
     <div class="modal-card" style="width:min(920px,96vw)">
       <div class="modal-head">
-        <h3 id="fieldDeleteModalTitle" style="margin:0">欄位刪除</h3>
+        <h3 id="fieldDeleteModalTitle" style="margin:0">欄位管理</h3>
         <button class="btn" id="btnCloseFieldDeleteModal" type="button">關閉</button>
       </div>
-      <div class="small">每個欄位可獨立下拉選擇刪除，會連動整份資料總覽。</div>
-      <div class="delete-grid">
-        <div>
-          <label>氣體</label>
-          <div class="delete-row">
-            <select id="selDeleteGas"></select>
-            <button class="btn danger" id="btnDeleteGas" type="button">刪除氣體</button>
-          </div>
-        </div>
-        <div>
-          <label>偵測器</label>
-          <div class="delete-row">
-            <select id="selDeleteDetector"></select>
-            <button class="btn danger" id="btnDeleteDetector" type="button">刪除偵測器</button>
-          </div>
-        </div>
-        <div>
-          <label>CLPX紙帶</label>
-          <div class="delete-row">
-            <select id="selDeletePaper"></select>
-            <button class="btn danger" id="btnDeletePaper" type="button">刪除紙帶</button>
-          </div>
-        </div>
-        <div>
-          <label>備註</label>
-          <div class="delete-row">
-            <select id="selDeleteNote"></select>
-            <button class="btn danger" id="btnDeleteNote" type="button">刪除備註</button>
-          </div>
+      <div class="card">
+        <div class="small">整欄管理：可新增/刪除欄位、改欄位名稱、調整欄位順序（「氣體」欄固定保留）。</div>
+        <div id="fieldManagerList" class="field-manager-list"></div>
+        <div class="flex" style="margin-top:8px">
+          <input id="newFieldName" type="text" placeholder="新增欄位名稱（例如：備援裝備）"/>
+          <button class="btn" id="btnAddField" type="button">新增欄位</button>
+          <button class="btn primary" id="btnSaveFieldLayout" type="button">套用欄位設定</button>
         </div>
       </div>
-      <div id="deleteFieldPreview" class="small" style="margin-top:10px"></div>
+      <hr class="sep">
+      <div class="small">欄位值刪除：下方每個欄位都可下拉刪除欄位內容，會連動整份資料總覽。</div>
+      <div id="deleteFieldRows" class="delete-grid"></div>
+      <div class="card" style="margin-top:10px">
+        <div class="small" id="deleteFieldPreview">目前可刪除項目數量讀取中。</div>
+      </div>
+      <div class="flex" style="margin-top:8px">
+        <span class="small">刪除成功後會立即儲存；若儲存失敗會自動還原。</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="queryManagerModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="queryManagerModalTitle">
+    <div class="modal-card" style="width:min(760px,96vw)">
+      <div class="modal-head">
+        <h3 id="queryManagerModalTitle" style="margin:0">查詢管理</h3>
+        <button class="btn" id="btnCloseQueryManagerModal" type="button">關閉</button>
+      </div>
+      <div class="card">
+        <div class="small">查詢結果顯示欄位（可自由勾選；「氣體」固定顯示）</div>
+        <div id="queryFieldSettingList" class="query-manager-list"></div>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <div class="small">查詢結果字體大小</div>
+        <div class="query-font-tools">
+          <input id="queryFontRange" type="range" min="70" max="220" step="10" value="100" aria-label="查詢結果字體大小"/>
+          <span id="queryFontPct" class="pct">100%</span>
+          <button class="btn" id="btnQueryFontReset" type="button">重設</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -251,7 +643,41 @@ body.modal-open{overflow:hidden}
   <datalist id="ovGasOptions"></datalist>
   <datalist id="ovDetectorOptions"></datalist>
   <datalist id="ovPaperOptions"></datalist>
+  <datalist id="ovPpeOptions"></datalist>
+  <datalist id="ovSdsOptions"></datalist>
+  <datalist id="ovUnOptions"></datalist>
+  <datalist id="ovPrincipleOptions"></datalist>
   <datalist id="ovNoteOptions"></datalist>
+  <datalist id="ovGhsOptions"></datalist>
+  <datalist id="ovHCardOptions"></datalist>
+
+  <div id="imageViewerModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="放大圖片檢視">
+    <div class="viewer-wrap">
+      <div class="viewer-head">
+        <div id="imageViewerIndex">1 / 1</div>
+        <button id="btnCloseImageViewer" class="viewer-close" type="button">✕</button>
+      </div>
+      <div class="viewer-body">
+        <img id="imageViewerImg" class="viewer-img" alt="放大圖片"/>
+      </div>
+      <div class="viewer-zoom">
+        <button id="btnViewerZoomOut" class="viewer-zoom-btn" type="button">－</button>
+        <input id="viewerZoomRange" type="range" min="50" max="300" step="10" value="100" aria-label="圖片縮放"/>
+        <button id="btnViewerZoomIn" class="viewer-zoom-btn" type="button">＋</button>
+        <span id="viewerZoomPct" class="viewer-zoom-pct">100%</span>
+        <button id="btnViewerZoomReset" class="viewer-zoom-btn" type="button">重設</button>
+      </div>
+      <div id="imageViewerCaption" class="viewer-caption"></div>
+    </div>
+  </div>
+
+  <div class="zoom-tools" id="zoomTools" aria-label="頁面縮放工具">
+    <button class="btn" id="btnZoomOut" type="button" title="縮小">－</button>
+    <input id="zoomRange" type="range" min="70" max="130" step="5" value="100" aria-label="頁面縮放"/>
+    <button class="btn" id="btnZoomIn" type="button" title="放大">＋</button>
+    <span class="pct" id="zoomPct">100%</span>
+    <button class="btn" id="btnZoomReset" type="button">重設</button>
+  </div>
 </div>
 
 <script>
@@ -273,22 +699,51 @@ body.modal-open{overflow:hidden}
 })();
 const MAX_IMAGES_PER_DETECTOR = 20;
 const LS_KEY = 'gas_lookup_db_portable_v1';
+const LS_PAGE_ZOOM_KEY = 'gas_lookup_page_zoom';
 const IDB_NAME = 'gas_lookup_storage_v1';
 const IDB_STORE = 'kv';
 const IDB_DB_KEY = 'full_db';
 const LEGACY_LS_KEYS = [
+  'gas_lookup_db_portable_v1',
   'gas_lookup_db_portable',
   'gas_lookup_db_portable_v0',
+  'gas_leak_response_db_portable',
+  'gas_leak_response_db_portable_v0',
+  'gas_lookup_db_portable',
   'gas_lookup_db',
   'gas_lookup_data',
   'gas_lookup_backup'
 ];
-let idbOpenPromise=null;
-let idbSaveQueue=Promise.resolve();
 const DETECTOR_FRAGMENT_RULES = [
   { merged:'小黑機 SP-220', parts:['小黑機','SP-220'] },
   { merged:'四合一 GX-2012', parts:['四合一','GX-2012'] }
 ];
+const BUILTIN_FIELD_META = {
+  gas:{label:'氣體',multi:false,builtin:true},
+  detectors:{label:'偵測器',multi:true,builtin:true},
+  papers:{label:'CLPX紙帶',multi:true,builtin:true},
+  note:{label:'備註',multi:false,builtin:true}
+};
+const DEFAULT_FIELD_ORDER = [
+  'gas',
+  'detectors',
+  'papers',
+  'note'
+];
+const DEFAULT_PHOTO_DISPLAY = {
+  detectors:'thumb'
+};
+const DEFAULT_QUERY_FONT_SCALE_PERCENT = 100;
+const MIN_QUERY_FONT_SCALE_PERCENT = 70;
+const MAX_QUERY_FONT_SCALE_PERCENT = 220;
+const PHOTO_MODE_LABELS = {
+  none:'不顯示',
+  thumb:'縮圖',
+  a4:'A4顯示'
+};
+const LEGACY_FIELD_IMAGE_MAP = {
+  detectors:'detectorImages'
+};
 
 const PRESET = {
   "gases": {
@@ -682,410 +1137,273 @@ const PRESET = {
 
 let DB = loadDB();
 
+const SEARCH_INPUT_COUNT = 10;
+const MOBILE_SEARCH_INPUT_COUNT = 5;
+const COMPRESSED_EXPORT_BUNDLE_TYPE = 'offline_compressed_json_bundle';
+const COMPRESSED_EXPORT_ENCODING = 'gzip-base64-utf8-v1';
 const gasRow = document.getElementById('gasRow');
-for(let i=1;i<=5;i++){
+const resultGas = document.getElementById('resultGas');
+const revPaperInput = document.getElementById('revPaper');
+const resultPaper = document.getElementById('resultPaper');
+const btnReverse = document.getElementById('btnReverse');
+const btnQueryManager = document.getElementById('btnQueryManager');
+const queryManagerModal = document.getElementById('queryManagerModal');
+const btnCloseQueryManagerModal = document.getElementById('btnCloseQueryManagerModal');
+const queryFieldSettingList = document.getElementById('queryFieldSettingList');
+const queryFontRange = document.getElementById('queryFontRange');
+const queryFontPct = document.getElementById('queryFontPct');
+const btnQueryFontReset = document.getElementById('btnQueryFontReset');
+const selPhotoType = document.getElementById('selPhotoType');
+const selPhotoTarget = document.getElementById('selPhotoTarget');
+const photoTargetLabel = document.getElementById('photoTargetLabel');
+const imgManageGrid = document.getElementById('imgManageGrid');
+const imgInput = document.getElementById('imgInput');
+const btnPhotoManager = document.getElementById('btnPhotoManager');
+const btnFieldDelete = document.getElementById('btnFieldDelete');
+const photoModal = document.getElementById('photoModal');
+const btnClosePhotoModal = document.getElementById('btnClosePhotoModal');
+const photoFieldSettingList = document.getElementById('photoFieldSettingList');
+const fieldDeleteModal = document.getElementById('fieldDeleteModal');
+const btnCloseFieldDeleteModal = document.getElementById('btnCloseFieldDeleteModal');
+const fieldManagerList = document.getElementById('fieldManagerList');
+const newFieldName = document.getElementById('newFieldName');
+const btnAddField = document.getElementById('btnAddField');
+const btnSaveFieldLayout = document.getElementById('btnSaveFieldLayout');
+const deleteFieldRows = document.getElementById('deleteFieldRows');
+const deleteFieldPreview = document.getElementById('deleteFieldPreview');
+const overviewBody = document.getElementById('overviewBody');
+const btnToggleOverview = document.getElementById('btnToggleOverview');
+const btnEditOverview = document.getElementById('btnEditOverview');
+const btnSaveOverview = document.getElementById('btnSaveOverview');
+const btnCancelOverview = document.getElementById('btnCancelOverview');
+const btnClearImgs = document.getElementById('btnClearImgs');
+const zoomRange = document.getElementById('zoomRange');
+const zoomPct = document.getElementById('zoomPct');
+const btnZoomOut = document.getElementById('btnZoomOut');
+const btnZoomIn = document.getElementById('btnZoomIn');
+const btnZoomReset = document.getElementById('btnZoomReset');
+const imageViewerModal = document.getElementById('imageViewerModal');
+const imageViewerBody = imageViewerModal.querySelector('.viewer-body');
+const imageViewerImg = document.getElementById('imageViewerImg');
+const imageViewerCaption = document.getElementById('imageViewerCaption');
+const imageViewerIndex = document.getElementById('imageViewerIndex');
+const btnCloseImageViewer = document.getElementById('btnCloseImageViewer');
+const viewerZoomRange = document.getElementById('viewerZoomRange');
+const viewerZoomPct = document.getElementById('viewerZoomPct');
+const btnViewerZoomOut = document.getElementById('btnViewerZoomOut');
+const btnViewerZoomIn = document.getElementById('btnViewerZoomIn');
+const btnViewerZoomReset = document.getElementById('btnViewerZoomReset');
+
+let isOverviewEditing = false;
+let overviewEditSnapshot = null;
+let fieldLayoutDraft = null;
+let idbOpenPromise = null;
+let idbSaveQueue = Promise.resolve();
+let viewerItems = [];
+let viewerIndex = 0;
+let viewerWheelLockUntil = 0;
+let viewerZoom = 100;
+let viewerPanX = 0;
+let viewerPanY = 0;
+let viewerDragging = false;
+let viewerDragStartX = 0;
+let viewerDragStartY = 0;
+let viewerPanStartX = 0;
+let viewerPanStartY = 0;
+let viewerSuppressCloseUntil = 0;
+let activeQueryDropdownWrap = null;
+let mobileQueryUiEnabled = false;
+
+function detectMobileQueryUi(){
+  return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+}
+function getActiveSearchInputCount(){
+  return mobileQueryUiEnabled?MOBILE_SEARCH_INPUT_COUNT:SEARCH_INPUT_COUNT;
+}
+function applySearchInputCountMode(){
+  const activeCount=getActiveSearchInputCount();
+  const wraps=[...gasRow.querySelectorAll('.query-input-wrap')];
+  wraps.forEach((wrap,idx)=>{
+    const index=Number(wrap.dataset.queryIndex||idx+1);
+    const hidden=index>activeCount;
+    wrap.classList.toggle('hidden',hidden);
+    const input=wrap.querySelector('input[list="gasNames"]');
+    if(input)input.disabled=hidden;
+    if(hidden)closeQueryDropdown(wrap);
+  });
+}
+function syncMobileQueryUiMode(){
+  const prev=mobileQueryUiEnabled;
+  mobileQueryUiEnabled=detectMobileQueryUi();
+  document.body.classList.toggle('mobile-query-ui',mobileQueryUiEnabled);
+  applySearchInputCountMode();
+  if(!mobileQueryUiEnabled){
+    closeAllQueryDropdowns();
+  }
+  if(prev!==mobileQueryUiEnabled){
+    runSearch();
+  }
+}
+
+function getQueryInputParts(wrap){
+  return {
+    input:wrap.querySelector('input[list="gasNames"]'),
+    button:wrap.querySelector('.query-drop-btn'),
+    panel:wrap.querySelector('.query-dropdown-panel'),
+    list:wrap.querySelector('.query-dropdown-list')
+  };
+}
+function renderQueryDropdownOptions(wrap,{preferAll=false}={}){
+  const {input,list}=getQueryInputParts(wrap);
+  if(!input||!list)return;
+
+  const all=getAllGases();
+  const keyword=normGasKeep(input.value).toUpperCase();
+  const options=(!preferAll&&keyword)
+    ? all.filter(g=>String(g).toUpperCase().includes(keyword))
+    : all;
+
+  list.innerHTML='';
+  if(options.length===0){
+    const empty=document.createElement('div');
+    empty.className='query-dropdown-empty';
+    empty.textContent='無符合項目';
+    list.appendChild(empty);
+    return;
+  }
+
+  options.forEach(value=>{
+    const opt=document.createElement('button');
+    opt.type='button';
+    opt.className='query-dropdown-option';
+    opt.dataset.value=value;
+    opt.textContent=value;
+    list.appendChild(opt);
+  });
+}
+function closeQueryDropdown(wrap){
+  if(!wrap)return;
+  const {button,panel}=getQueryInputParts(wrap);
+  wrap.classList.remove('open');
+  if(panel)panel.classList.add('hidden');
+  if(button)button.setAttribute('aria-expanded','false');
+  if(activeQueryDropdownWrap===wrap){
+    activeQueryDropdownWrap=null;
+  }
+}
+function closeAllQueryDropdowns(){
+  document.querySelectorAll('.query-input-wrap.open').forEach(closeQueryDropdown);
+}
+function openQueryDropdown(wrap,{preferAll=true}={}){
+  if(!mobileQueryUiEnabled)return;
+  if(!wrap)return;
+  closeAllQueryDropdowns();
+  const {button,panel}=getQueryInputParts(wrap);
+  renderQueryDropdownOptions(wrap,{preferAll});
+  wrap.classList.add('open');
+  if(panel)panel.classList.remove('hidden');
+  if(button)button.setAttribute('aria-expanded','true');
+  activeQueryDropdownWrap=wrap;
+}
+function buildQueryInput(index){
+  const wrap=document.createElement('div');
+  wrap.className='query-input-wrap';
+  wrap.dataset.queryIndex=String(index);
+
   const inp=document.createElement('input');
   inp.setAttribute('list','gasNames');
-  inp.placeholder=`輸入 ${i}`;
-  inp.id=`q${i}`;
-  gasRow.appendChild(inp);
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter')runSearch();});
-}
+  inp.placeholder=`輸入 ${index}`;
+  inp.id=`q${index}`;
 
-const selDetForImg=document.getElementById('selDetForImg');
-const imgManageGrid=document.getElementById('imgManageGrid');
-const imgInput=document.getElementById('imgInput');
-const btnPhotoManager=document.getElementById('btnPhotoManager');
-const btnFieldDelete=document.getElementById('btnFieldDelete');
-const photoModal=document.getElementById('photoModal');
-const btnClosePhotoModal=document.getElementById('btnClosePhotoModal');
-const fieldDeleteModal=document.getElementById('fieldDeleteModal');
-const btnCloseFieldDeleteModal=document.getElementById('btnCloseFieldDeleteModal');
-const selDeleteGas=document.getElementById('selDeleteGas');
-const btnDeleteGas=document.getElementById('btnDeleteGas');
-const selDeleteDetector=document.getElementById('selDeleteDetector');
-const btnDeleteDetector=document.getElementById('btnDeleteDetector');
-const selDeletePaper=document.getElementById('selDeletePaper');
-const btnDeletePaper=document.getElementById('btnDeletePaper');
-const selDeleteNote=document.getElementById('selDeleteNote');
-const btnDeleteNote=document.getElementById('btnDeleteNote');
-const deleteFieldPreview=document.getElementById('deleteFieldPreview');
-const overviewBody=document.getElementById('overviewBody');
-const btnToggleOverview=document.getElementById('btnToggleOverview');
-const btnEditOverview=document.getElementById('btnEditOverview');
-const btnSaveOverview=document.getElementById('btnSaveOverview');
-const btnCancelOverview=document.getElementById('btnCancelOverview');
-let isOverviewEditing=false;
-let overviewEditSnapshot=null;
+  const btn=document.createElement('button');
+  btn.type='button';
+  btn.className='query-drop-btn';
+  btn.setAttribute('aria-label',`開啟輸入 ${index} 下拉選單`);
+  btn.setAttribute('aria-expanded','false');
+  btn.textContent='▼';
 
-function syncModalOpenState(){
-  const hasOpenModal=!photoModal.classList.contains('hidden')||!fieldDeleteModal.classList.contains('hidden');
-  document.body.classList.toggle('modal-open',hasOpenModal);
-}
-function openPhotoModal(){
-  photoModal.classList.remove('hidden');
-  syncModalOpenState();
-  renderDetectorPhotoSelect();
-}
-function closePhotoModal(){
-  photoModal.classList.add('hidden');
-  syncModalOpenState();
-}
-function openFieldDeleteModal(){
-  if(isOverviewEditing){
-    alert('目前在「資料總覽編輯」模式，請先儲存或取消編輯後再刪除。');
-    return;
-  }
-  renderDeleteSelectors();
-  fieldDeleteModal.classList.remove('hidden');
-  syncModalOpenState();
-}
-function closeFieldDeleteModal(){
-  fieldDeleteModal.classList.add('hidden');
-  syncModalOpenState();
-}
-btnPhotoManager.addEventListener('click',openPhotoModal);
-btnClosePhotoModal.addEventListener('click',closePhotoModal);
-btnFieldDelete.addEventListener('click',openFieldDeleteModal);
-btnCloseFieldDeleteModal.addEventListener('click',closeFieldDeleteModal);
-photoModal.addEventListener('click',e=>{
-  if(e.target===photoModal)closePhotoModal();
-});
-fieldDeleteModal.addEventListener('click',e=>{
-  if(e.target===fieldDeleteModal)closeFieldDeleteModal();
-});
-document.addEventListener('keydown',e=>{
-  if(e.key!=='Escape')return;
-  if(!fieldDeleteModal.classList.contains('hidden')){
-    closeFieldDeleteModal();
-    return;
-  }
-  if(!photoModal.classList.contains('hidden'))closePhotoModal();
-});
+  const panel=document.createElement('div');
+  panel.className='query-dropdown-panel hidden';
+  const list=document.createElement('div');
+  list.className='query-dropdown-list';
+  panel.appendChild(list);
+  const focusInput=()=>{
+    try{
+      inp.focus({preventScroll:true});
+    }catch(_){
+      inp.focus();
+    }
+  };
 
-function renderDetectorPhotoSelect(){
-  const detectors=getAllDetectors();
-  const prev=selDetForImg.value;
-  selDetForImg.innerHTML=detectors.map(d=>`<option value="${d}">${d}</option>`).join('');
-  if(prev&&detectors.includes(prev)){
-    selDetForImg.value=prev;
-  }
-  if(!selDetForImg.value&&detectors.length){
-    selDetForImg.value=detectors[0];
-  }
-  renderImageManager();
-}
-renderDetectorPhotoSelect();
-
-function getAllNotes(){
-  const all=new Set();
-  Object.values(DB.gases||{}).forEach(rec=>{
-    const note=String(rec?.note??'').trim();
-    if(note)all.add(note);
-  });
-  return [...all].sort((a,b)=>a.localeCompare(b,'zh-Hant',{sensitivity:'base'}));
-}
-function fillDeleteSelect(select,values){
-  const prev=select.value;
-  const unique=[...new Set((values||[]).map(v=>String(v??'').trim()).filter(Boolean))]
-    .sort((a,b)=>a.localeCompare(b,'zh-Hant',{sensitivity:'base'}));
-  select.innerHTML=unique.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
-  if(prev&&unique.includes(prev)){
-    select.value=prev;
-  }
-  if(!select.value&&unique.length){
-    select.value=unique[0];
-  }
-  select.disabled=unique.length===0;
-}
-function renderDeleteFieldPreview(){
-  const counts=[
-    `氣體 ${getAllGases().length}`,
-    `偵測器 ${getAllDetectors().length}`,
-    `CLPX紙帶 ${getAllPapers().length}`,
-    `備註 ${getAllNotes().length}`
-  ];
-  deleteFieldPreview.textContent=`目前可刪除項目數：${counts.join('、')}。`;
-}
-function renderDeleteSelectors(){
-  fillDeleteSelect(selDeleteGas,getAllGases());
-  fillDeleteSelect(selDeleteDetector,getAllDetectors());
-  fillDeleteSelect(selDeletePaper,getAllPapers());
-  fillDeleteSelect(selDeleteNote,getAllNotes());
-  renderDeleteFieldPreview();
-}
-function removeListValueFromAllGases(field,value){
-  let changed=false;
-  Object.keys(DB.gases||{}).forEach(gas=>{
-    const rec=DB.gases[gas]||{detectors:[],papers:[],note:''};
-    const before=Array.isArray(rec[field])?rec[field]:[];
-    const next=before.filter(v=>v!==value);
-    if(next.length!==before.length){
-      rec[field]=next;
-      DB.gases[gas]=rec;
-      changed=true;
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      runSearch();
+      closeQueryDropdown(wrap);
+      return;
+    }
+    if(e.key==='Escape'){
+      closeQueryDropdown(wrap);
+      return;
+    }
+    if(mobileQueryUiEnabled&&e.key==='ArrowDown'&&e.altKey){
+      e.preventDefault();
+      openQueryDropdown(wrap,{preferAll:true});
     }
   });
-  return changed;
-}
-function removeNoteValueFromAllGases(value){
-  let changed=false;
-  Object.keys(DB.gases||{}).forEach(gas=>{
-    const rec=DB.gases[gas]||{detectors:[],papers:[],note:''};
-    if(String(rec.note||'').trim()===value){
-      rec.note='';
-      DB.gases[gas]=rec;
-      changed=true;
+  inp.addEventListener('input',()=>{
+    if(wrap.classList.contains('open')){
+      renderQueryDropdownOptions(wrap,{preferAll:false});
     }
   });
-  return changed;
-}
-async function handleDeleteAction({select,kind,field,label}){
-  const value=(select.value||'').trim();
-  if(!value){
-    alert(`目前沒有可刪除的「${label}」。`);
-    return;
-  }
-  const confirmMsg=kind==='gas'
-    ? `確定刪除氣體「${value}」整筆資料？`
-    : `確定刪除「${label}：${value}」？\n此動作會連動整份資料總覽。`;
-  if(!confirm(confirmMsg))return;
 
-  const snapshot=cloneForStorage(DB);
-  let changed=false;
-  if(kind==='gas'){
-    if(DB.gases[value]){
-      delete DB.gases[value];
-      changed=true;
+  btn.addEventListener('click',e=>{
+    e.preventDefault();
+    if(!mobileQueryUiEnabled){
+      focusInput();
+      return;
     }
-  }else if(kind==='note'){
-    changed=removeNoteValueFromAllGases(value);
-  }else{
-    changed=removeListValueFromAllGases(field,value);
-  }
-  if(!changed){
-    alert('找不到可刪除的對應項目。');
-    return;
-  }
-
-  rebuildDerivedFromGases();
-  DB=normalizeDB(DB);
-  if(!await saveDB()){
-    DB=normalizeDB(snapshot);
-    alert('儲存失敗：瀏覽器儲存空間不足或寫入失敗，已自動還原。');
-    return;
-  }
-  refreshDatalists();
-  renderTable();
-  runSearch();
-  runReverse();
-  renderDeleteSelectors();
-  alert(`已刪除「${label}：${value}」。`);
-}
-btnDeleteGas.addEventListener('click',()=>handleDeleteAction({select:selDeleteGas,kind:'gas',label:'氣體'}));
-btnDeleteDetector.addEventListener('click',()=>handleDeleteAction({select:selDeleteDetector,kind:'list',field:'detectors',label:'偵測器'}));
-btnDeletePaper.addEventListener('click',()=>handleDeleteAction({select:selDeletePaper,kind:'list',field:'papers',label:'CLPX紙帶'}));
-btnDeleteNote.addEventListener('click',()=>handleDeleteAction({select:selDeleteNote,kind:'note',label:'備註'}));
-
-function refreshDatalists(){
-  const gasList=document.getElementById('gasNames'); gasList.innerHTML='';
-  getAllGases().forEach(g=>{const o=document.createElement('option');o.value=g;gasList.appendChild(o);});
-  const paperList=document.getElementById('paperCodes'); paperList.innerHTML='';
-  getAllPapers().forEach(p=>{const o=document.createElement('option');o.value=p;paperList.appendChild(o);});
-  refreshOverviewEditDatalists();
-  renderDetectorPhotoSelect();
-  renderDeleteSelectors();
-}
-function fillDatalist(id,values){
-  const dl=document.getElementById(id);
-  if(!dl)return;
-  dl.innerHTML='';
-  const unique=[...new Set((values||[]).map(v=>(v||'').trim()).filter(Boolean))]
-    .sort((a,b)=>a.localeCompare(b,'zh-Hant',{sensitivity:'base'}));
-  unique.forEach(v=>{
-    const o=document.createElement('option');
-    o.value=v;
-    dl.appendChild(o);
+    if(wrap.classList.contains('open')){
+      closeQueryDropdown(wrap);
+      return;
+    }
+    focusInput();
+    openQueryDropdown(wrap,{preferAll:true});
   });
-}
-function refreshOverviewEditDatalists(){
-  fillDatalist('ovGasOptions',Object.keys(DB.gases||{}));
-  fillDatalist('ovDetectorOptions',getAllDetectors());
-  fillDatalist('ovPaperOptions',getAllPapers());
-  fillDatalist('ovNoteOptions',Object.values(DB.gases||{}).map(r=>r.note||''));
-}
-refreshDatalists();
 
-btnToggleOverview.onclick=()=>{
-  const hide=overviewBody.classList.toggle('hidden');
-  btnToggleOverview.setAttribute('aria-expanded',String(!hide));
-  btnToggleOverview.textContent=hide?'展開資料總覽':'收合資料總覽';
-};
+  panel.addEventListener('mousedown',e=>e.preventDefault());
+  panel.addEventListener('click',e=>{
+    const option=e.target.closest('.query-dropdown-option');
+    if(!option)return;
+    inp.value=option.dataset.value||'';
+    closeQueryDropdown(wrap);
+    runSearch();
+    focusInput();
+  });
 
-function renderImageManager(){
-  const det=selDetForImg.value;
-  if(!det){
-    imgManageGrid.innerHTML='<div class="small">目前沒有偵測器可管理照片。</div>';
-    return;
-  }
-  const imgs=DB.detectorImages?.[det]||[];
-  if(imgs.length===0){
-    imgManageGrid.innerHTML='<div class="small">目前無照片。</div>';
-    return;
-  }
-  imgManageGrid.innerHTML=imgs.map((src,i)=>`<figure class="img-manage-item"><img src="${src}" alt="${det}-${i+1}"><figcaption>${det} - 第 ${i+1} 張</figcaption><button type="button" class="img-del-btn" data-idx="${i}">刪除這張</button></figure>`).join('');
+  wrap.append(inp,btn,panel);
+  return wrap;
 }
-selDetForImg.addEventListener('change',renderImageManager);
-imgManageGrid.addEventListener('click',async e=>{
-  if(!e.target.classList.contains('img-del-btn'))return;
-  const det=selDetForImg.value;
-  const idx=Number(e.target.dataset.idx);
-  if(!det||!Number.isInteger(idx))return;
-  if(!confirm(`刪除「${det}」第 ${idx+1} 張照片？`))return;
-  const snapshot=cloneForStorage(DB);
-  DB.detectorImages[det]=(DB.detectorImages[det]||[]).filter((_,i)=>i!==idx);
-  if(!await saveDB()){
-    DB=normalizeDB(snapshot);
-    alert('儲存失敗：瀏覽器儲存空間不足或寫入失敗，已自動還原。');
-    return;
-  }
-  renderImageManager();
-  alert('已刪除指定照片');
+
+for(let i=1;i<=SEARCH_INPUT_COUNT;i++){
+  gasRow.appendChild(buildQueryInput(i));
+}
+syncMobileQueryUiMode();
+window.addEventListener('resize',syncMobileQueryUiMode);
+window.addEventListener('orientationchange',syncMobileQueryUiMode);
+
+document.addEventListener('click',e=>{
+  if(e.target.closest('.query-input-wrap'))return;
+  closeAllQueryDropdowns();
 });
 
-document.getElementById('btnSearch').onclick=runSearch;
-document.getElementById('btnReverse').onclick=runReverse;
-document.getElementById('btnResetSearch').onclick=resetSearchInputs;
-
-document.getElementById('btnSaveImgs').onclick=async ()=>{
-  const files=[...imgInput.files];
-  if(files.length===0){alert('請選擇圖片');return;}
-  const det=selDetForImg.value;
-  if(!det){alert('請先選擇偵測器');return;}
-  const limited=files.slice(0,MAX_IMAGES_PER_DETECTOR);
-  DB.detectorImages[det]=DB.detectorImages[det]||[];
-  for(const f of limited){
-    const b64=await fileToDataURL(f);
-    DB.detectorImages[det].push(b64);
-  }
-  DB.detectorImages[det]=DB.detectorImages[det].slice(-MAX_IMAGES_PER_DETECTOR);
-  if(!await saveDB()){
-    alert('儲存失敗：瀏覽器儲存空間不足或寫入失敗，請先整理部分照片後再試。');
-    return;
-  }
-  renderImageManager();
-  alert(`已為「${det}」保存 ${DB.detectorImages[det].length} 張（上限 ${MAX_IMAGES_PER_DETECTOR} 張）`);
-  imgInput.value='';
-};
-document.getElementById('btnClearImgs').onclick=async ()=>{
-  const det=selDetForImg.value;
-  if(!DB.detectorImages[det]||DB.detectorImages[det].length===0){alert('目前無照片');return;}
-  if(!confirm(`清除「${det}」的全部照片？`))return;
-  const snapshot=cloneForStorage(DB);
-  DB.detectorImages[det]=[];
-  if(!await saveDB()){
-    DB=normalizeDB(snapshot);
-    alert('儲存失敗：瀏覽器儲存空間不足或寫入失敗，已自動還原。');
-    return;
-  }
-  renderImageManager();
-  alert('已清除');
-};
-
-function normGasKeep(s){return (s||'').trim();}
-function normPaper(p){return (p||'').trim().toUpperCase();}
-function baseName(s){return (s||'').split('(')[0].trim().toUpperCase();}
-function findGasKeyInsensitive(input){
-  const target = (input||'').trim();
-  if(!target) return null;
-  const keys = Object.keys(DB.gases||{});
-  let hit = keys.find(k => k === target);
-  if(hit) return hit;
-  const upper = target.toUpperCase();
-  hit = keys.find(k => k.toUpperCase() === upper);
-  return hit || null;
+function sortZh(values){
+  return [...values].sort((a,b)=>String(a).localeCompare(String(b),'zh-Hant',{sensitivity:'base'}));
 }
-
-function runSearch(){
-  const list=[];
-  for(let i=1;i<=5;i++){const v=normGasKeep(document.getElementById(`q${i}`).value);if(v)list.push(v);}
-  const out=list.map(g=>describeGas(g)).join('');
-  document.getElementById('resultGas').innerHTML=out||'尚未輸入。';
+function normGasKeep(s){return String(s||'').trim();}
+function normPaper(s){return String(s||'').trim().toUpperCase();}
+function uniqClean(list){
+  return [...new Set((list||[]).map(v=>String(v??'').trim()).filter(Boolean))];
 }
-
-function resetSearchInputs(){
-  for(let i=1;i<=5;i++){
-    const el=document.getElementById(`q${i}`);
-    if(el)el.value='';
-  }
-  const rev=document.getElementById('revPaper');
-  if(rev)rev.value='';
-  runSearch();
-  runReverse();
-  const active=document.activeElement;
-  if(active && typeof active.blur==='function') active.blur();
-}
-
-function describeGas(inputName){
-  const key = findGasKeyInsensitive(inputName);
-  if(!key) return `<div class="card"><span class="badge">氣體：${inputName}</span> <span class="badge">查無資料</span></div>`;
-  const gas = key;
-  const rec=DB.gases[gas];
-  const dets=rec.detectors||[], papers=rec.papers||[];
-  const papersStr=papers.length?papers.join('、'):'-';
-  const detStr=dets.length?dets.join('、'):'-';
-  const note=rec.note||'-';
-
-  // 其它可量測
-  const otherSet=new Set();
-  if(papers.length){
-    papers.forEach(p=>(DB.paper2gas[p]||[]).forEach(g=>{
-      if(g!==gas) otherSet.add(g);    // 同紙帶，排除自己
-    }));
-  }else{
-    // 無紙帶時，僅在偵測器存在而且不包含 CLPX 才用偵測器交集推論
-    const detsNoCLPX = dets.filter(d=>d!=='CLPX');
-    if(detsNoCLPX.length){
-      Object.entries(DB.gases).forEach(([gname,grec])=>{
-        if(gname===gas) return;
-        if((grec.detectors||[]).some(d=>detsNoCLPX.includes(d))) otherSet.add(gname);
-      });
-    }
-  }
-  const othersStr=otherSet.size?[...otherSet].join('、'):'無';
-
-  // 照片縮圖
-  const imgBlocks=dets.map(d=>{
-    const imgs=(DB.detectorImages?.[d]||[]).slice(-MAX_IMAGES_PER_DETECTOR);
-    if(imgs.length===0)return '';
-    return imgs.map((src,i)=>`<figure><img src="${src}" alt="${d}-${i+1}"><figcaption>${d}</figcaption></figure>`).join('');
-  }).filter(Boolean).join('');
-  const imgGrid=imgBlocks?`<div class="img-grid">${imgBlocks}</div>`:'';
-
-  return `<div class="card">
-    <span class="badge">氣體：${gas}</span>
-    <span class="badge">偵測器：${detStr}</span>
-    <span class="badge">CLPX紙帶：${papersStr}</span>
-    <div class="small" style="margin-top:6px">
-      <span class="badge">可量測其他氣體：${othersStr}</span>
-      <span class="badge">備註：${note}</span>
-    </div>
-    ${imgGrid}
-  </div>`;
-}
-
-function runReverse(){
-  const q=normPaper(document.getElementById('revPaper').value);
-  if(!q){document.getElementById('resultPaper').textContent='尚未輸入。';return;}
-  const hits=getAllPapers().filter(p=>p.toUpperCase().includes(q)||q.includes(p.toUpperCase()));
-  if(hits.length===0){document.getElementById('resultPaper').textContent='查無紙帶。';return;}
-  const lines=hits.map(p=>{
-    const gs=DB.paper2gas[p]||[];
-    return `<div class="card"><span class="badge">${p}</span> <span class="badge">可量測：${gs.join('、')||'-'}</span></div>`;
-  }).join('');
-  document.getElementById('resultPaper').innerHTML=lines;
-}
-
 function escapeHtml(s){
   return String(s??'')
     .replace(/&/g,'&amp;')
@@ -1094,12 +1412,20 @@ function escapeHtml(s){
     .replace(/"/g,'&quot;')
     .replace(/'/g,'&#39;');
 }
-function uniqClean(list){
-  return [...new Set((list||[]).map(v=>(v||'').trim()).filter(Boolean))];
-}
+function union(a,b){return [...new Set([...(a||[]),...(b||[])])];}
+
 function parseDelimitedList(v,{allowSpace=false}={}){
   const rx = allowSpace ? /[、,，;\s]+/ : /[、,，;]+/;
-  return uniqClean((v||'').split(rx));
+  return uniqClean(String(v||'').split(rx));
+}
+function parseNamedList(v){
+  return parseDelimitedList(v,{allowSpace:false});
+}
+function parsePaperList(v){
+  return parseDelimitedList(v,{allowSpace:true}).map(normPaper).filter(Boolean);
+}
+function parseUnNumberList(v){
+  return parseNamedList(v).map(s=>s.toUpperCase());
 }
 function mergeDetectorFragments(list){
   let out=uniqClean(list);
@@ -1116,132 +1442,732 @@ function mergeDetectorFragments(list){
   return out;
 }
 function parseDetectorList(v){
-  return mergeDetectorFragments(parseDelimitedList(v,{allowSpace:false}));
+  return mergeDetectorFragments(parseNamedList(v));
 }
-function parsePaperList(v){
-  return parseDelimitedList(v,{allowSpace:true}).map(normPaper).filter(Boolean);
+
+function createEmptyGasRecord(){
+  return {
+    tlv:'',
+    waterReactive:'',
+    ignition:'',
+    detectors:[],
+    papers:[],
+    ppes:[],
+    sds:[],
+    unNumbers:[],
+    ghs:[],
+    hCard:[],
+    principles:[],
+    note:'',
+    customFields:{}
+  };
 }
+
+function normalizeNamedArray(v){
+  if(Array.isArray(v))return uniqClean(v);
+  if(typeof v==='string')return parseNamedList(v);
+  return [];
+}
+function normalizeUNArray(v){
+  if(Array.isArray(v))return uniqClean(v.map(x=>String(x||'').toUpperCase()));
+  if(typeof v==='string')return parseUnNumberList(v);
+  return [];
+}
+function normalizeImageMap(map){
+  const next={};
+  Object.keys(map||{}).forEach(rawKey=>{
+    const key=String(rawKey||'').trim();
+    if(!key)return;
+    const arr=Array.isArray(map[rawKey])?map[rawKey]:[];
+    next[key]=arr.filter(src=>typeof src==='string'&&src.trim()).slice(-MAX_IMAGES_PER_DETECTOR);
+  });
+  return next;
+}
+function normalizeGasRecord(rawRec){
+  const rec=rawRec||{};
+  const customRaw=(rec.customFields&&typeof rec.customFields==='object')?rec.customFields:
+    ((rec.extraFields&&typeof rec.extraFields==='object')?rec.extraFields:{});
+  const customFields={};
+  Object.keys(customRaw||{}).forEach(rawId=>{
+    const id=String(rawId||'').trim();
+    if(!id||isBuiltinFieldId(id))return;
+    const rawVal=customRaw[rawId];
+    if(Array.isArray(rawVal)){
+      const arr=uniqClean(rawVal);
+      if(arr.length)customFields[id]=arr;
+      return;
+    }
+    const text=String(rawVal??'').trim();
+    if(text)customFields[id]=text;
+  });
+
+  return {
+    tlv:String(rec.tlv??'').trim(),
+    waterReactive:String(rec.waterReactive??rec.water??'').trim(),
+    ignition:String(rec.ignition??rec.flammability??'').trim(),
+    detectors:mergeDetectorFragments(normalizeNamedArray(rec.detectors)),
+    papers:[...new Set(parsePaperList(rec.papers??[]))],
+    ppes:normalizeNamedArray(rec.ppes??rec.ppe),
+    sds:normalizeNamedArray(rec.sds),
+    unNumbers:normalizeUNArray(rec.unNumbers??rec.unNumber??rec.unNo),
+    ghs:normalizeNamedArray(rec.ghs),
+    hCard:normalizeNamedArray(rec.hCard??rec.hcard),
+    principles:normalizeNamedArray(rec.principles??rec.principle),
+    note:String(rec.note??'').trim(),
+    customFields
+  };
+}
+function mergeGasRecords(base,extra){
+  const out=createEmptyGasRecord();
+  out.tlv=String(base.tlv||extra.tlv||'').trim();
+  out.waterReactive=String(base.waterReactive||extra.waterReactive||'').trim();
+  out.ignition=String(base.ignition||extra.ignition||'').trim();
+  out.detectors=mergeDetectorFragments(union(base.detectors,extra.detectors));
+  out.papers=union(base.papers,extra.papers);
+  out.ppes=union(base.ppes,extra.ppes);
+  out.sds=union(base.sds,extra.sds);
+  out.unNumbers=union(base.unNumbers,extra.unNumbers);
+  out.ghs=union(base.ghs,extra.ghs);
+  out.hCard=union(base.hCard,extra.hCard);
+  out.principles=union(base.principles,extra.principles);
+  out.note=String(base.note||extra.note||'').trim();
+  const customIds=[...new Set([...Object.keys(base.customFields||{}),...Object.keys(extra.customFields||{})])];
+  customIds.forEach(id=>{
+    const left=base.customFields?.[id];
+    const right=extra.customFields?.[id];
+    if(Array.isArray(left)||Array.isArray(right)){
+      const merged=union(Array.isArray(left)?left:parseNamedList(left||''),Array.isArray(right)?right:parseNamedList(right||''));
+      if(merged.length)out.customFields[id]=merged;
+      return;
+    }
+    const val=String(left??right??'').trim();
+    if(val)out.customFields[id]=val;
+  });
+  return out;
+}
+
+function isBuiltinFieldId(id){
+  return Object.prototype.hasOwnProperty.call(BUILTIN_FIELD_META,id);
+}
+function normalizeFieldOrderInternal(incomingOrder,defs,hasIncomingOrder){
+  const seen=new Set();
+  const out=[];
+  const push=id=>{
+    if(!id||!defs[id]||seen.has(id))return;
+    seen.add(id);
+    out.push(id);
+  };
+
+  if(hasIncomingOrder){
+    incomingOrder.forEach(push);
+  }else{
+    DEFAULT_FIELD_ORDER.forEach(push);
+  }
+  if(!seen.has('gas'))push('gas');
+  Object.keys(defs).forEach(id=>{
+    if(hasIncomingOrder&&defs[id].builtin)return;
+    push(id);
+  });
+  return out;
+}
+function ensureFieldDefsShape(fieldDefs){
+  const defs={};
+  Object.entries(BUILTIN_FIELD_META).forEach(([id,meta])=>{
+    const incoming=fieldDefs?.[id]||{};
+    defs[id]={
+      id,
+      label:String(incoming.label||meta.label).trim()||meta.label,
+      multi:!!meta.multi,
+      builtin:true
+    };
+  });
+  Object.keys(fieldDefs||{}).forEach(rawId=>{
+    const id=String(rawId||'').trim();
+    if(!id||defs[id])return;
+    const incoming=fieldDefs[rawId]||{};
+    defs[id]={
+      id,
+      label:String(incoming.label||id).trim()||id,
+      multi:!!incoming.multi,
+      builtin:false
+    };
+  });
+  return defs;
+}
+function rebuildDerivedFromGasesRaw(db){
+  const nextPaper2gas={};
+  const detectorSet=new Set();
+  const paperSet=new Set();
+
+  Object.entries(db.gases||{}).forEach(([gas,rawRec])=>{
+    const rec=normalizeGasRecord(rawRec);
+    db.gases[gas]=rec;
+
+    rec.detectors.forEach(d=>detectorSet.add(d));
+    rec.papers.forEach(p=>{
+      paperSet.add(p);
+      if(!nextPaper2gas[p])nextPaper2gas[p]=[];
+      nextPaper2gas[p].push(gas);
+    });
+  });
+
+  db.paper2gas=nextPaper2gas;
+  db.detectors=sortZh([...detectorSet]);
+  db.paperCatalog=sortZh([...paperSet]);
+}
+function normalizeDB(db){
+  db=db||{};
+  db.gases=db.gases||{};
+  db.paper2gas=db.paper2gas||{};
+  db.detectors=db.detectors||[];
+  db.paperCatalog=db.paperCatalog||[];
+
+  const defs=ensureFieldDefsShape(db.fieldDefs||{});
+
+  const nextGases={};
+  Object.entries(db.gases||{}).forEach(([rawGas,rawRec])=>{
+    const gas=normGasKeep(rawGas);
+    if(!gas)return;
+    const rec=normalizeGasRecord(rawRec);
+
+    Object.keys(rec.customFields||{}).forEach(id=>{
+      if(!defs[id]){
+        defs[id]={id,label:id,multi:false,builtin:false};
+      }
+    });
+
+    if(!nextGases[gas]){
+      nextGases[gas]=rec;
+    }else{
+      nextGases[gas]=mergeGasRecords(nextGases[gas],rec);
+    }
+  });
+  db.gases=nextGases;
+
+  const incomingOrder=Array.isArray(db.fieldOrder)
+    ? db.fieldOrder.map(v=>String(v||'').trim()).filter(Boolean)
+    : [];
+  const hasIncomingOrder=incomingOrder.length>0;
+  db.fieldOrder=normalizeFieldOrderInternal(incomingOrder,defs,hasIncomingOrder);
+  db.fieldDefs=defs;
+
+  const srcFieldImages=(db.fieldImages&&typeof db.fieldImages==='object')?db.fieldImages:{};
+  const nextFieldImages={};
+  Object.keys(srcFieldImages).forEach(id=>{
+    nextFieldImages[id]=normalizeImageMap(srcFieldImages[id]);
+  });
+  Object.entries(LEGACY_FIELD_IMAGE_MAP).forEach(([fieldId,legacyKey])=>{
+    if(nextFieldImages[fieldId]&&Object.keys(nextFieldImages[fieldId]).length)return;
+    const legacy=db[legacyKey];
+    if(legacy&&typeof legacy==='object'){
+      nextFieldImages[fieldId]=normalizeImageMap(legacy);
+    }
+  });
+  db.fieldImages=nextFieldImages;
+
+  const nextPhotoDisplay={};
+  Object.keys(db.fieldDefs).forEach(id=>{
+    const mode=db.photoDisplay?.[id];
+    nextPhotoDisplay[id]=
+      (mode==='thumb'||mode==='a4'||mode==='none')
+        ? mode
+        : (DEFAULT_PHOTO_DISPLAY[id]||'none');
+  });
+  db.photoDisplay=nextPhotoDisplay;
+
+  const incomingQueryVisible=Array.isArray(db.queryDisplay?.visibleFields)
+    ? db.queryDisplay.visibleFields.map(v=>String(v||'').trim()).filter(Boolean)
+    : [];
+  const visibleSet=new Set(incomingQueryVisible.filter(id=>Object.prototype.hasOwnProperty.call(db.fieldDefs,id)));
+  if(visibleSet.size===0){
+    db.fieldOrder.forEach(id=>visibleSet.add(id));
+  }
+  visibleSet.add('gas');
+  const nextQueryVisible=db.fieldOrder.filter(id=>visibleSet.has(id));
+  db.queryDisplay={
+    visibleFields:nextQueryVisible,
+    fontScalePercent:clampQueryFontScale(db.queryDisplay?.fontScalePercent)
+  };
+
+  Object.values(LEGACY_FIELD_IMAGE_MAP).forEach(legacyKey=>{
+    db[legacyKey]={};
+  });
+
+  rebuildDerivedFromGasesRaw(db);
+  return db;
+}
+
+function getFieldOrder(){
+  return Array.isArray(DB.fieldOrder)?DB.fieldOrder.filter(Boolean):DEFAULT_FIELD_ORDER.slice();
+}
+function getQueryVisibleFieldIds(){
+  const order=getFieldOrder();
+  const set=new Set(Array.isArray(DB.queryDisplay?.visibleFields)?DB.queryDisplay.visibleFields:order);
+  set.add('gas');
+  return order.filter(id=>set.has(id));
+}
+function clampQueryFontScale(v){
+  const raw=Math.round(Number(v));
+  if(!Number.isFinite(raw))return DEFAULT_QUERY_FONT_SCALE_PERCENT;
+  return Math.max(MIN_QUERY_FONT_SCALE_PERCENT,Math.min(MAX_QUERY_FONT_SCALE_PERCENT,raw));
+}
+function getQueryFontScalePercent(){
+  return clampQueryFontScale(DB.queryDisplay?.fontScalePercent);
+}
+function applyQueryResultFontScale(percent=getQueryFontScalePercent()){
+  const pct=clampQueryFontScale(percent);
+  resultGas.style.setProperty('--query-font-scale',String(pct/100));
+  if(queryFontPct)queryFontPct.textContent=`${pct}%`;
+}
+function getFieldDef(fieldId){
+  if(DB.fieldDefs&&DB.fieldDefs[fieldId])return DB.fieldDefs[fieldId];
+  if(BUILTIN_FIELD_META[fieldId]){
+    return {
+      id:fieldId,
+      label:BUILTIN_FIELD_META[fieldId].label,
+      multi:!!BUILTIN_FIELD_META[fieldId].multi,
+      builtin:true
+    };
+  }
+  return {id:fieldId,label:fieldId,multi:false,builtin:false};
+}
+function getFieldLabel(fieldId){
+  return getFieldDef(fieldId).label;
+}
+function isFieldMulti(fieldId){
+  return !!getFieldDef(fieldId).multi;
+}
+function getPhotoMode(fieldId){
+  const mode=DB.photoDisplay?.[fieldId];
+  if(mode==='thumb'||mode==='a4'||mode==='none')return mode;
+  return DEFAULT_PHOTO_DISPLAY[fieldId]||'none';
+}
+function getFieldValue(rec,fieldId){
+  const r=normalizeGasRecord(rec);
+  switch(fieldId){
+    case 'gas': return '';
+    case 'tlv': return r.tlv;
+    case 'waterReactive': return r.waterReactive;
+    case 'ignition': return r.ignition;
+    case 'detectors': return r.detectors;
+    case 'papers': return r.papers;
+    case 'ppes': return r.ppes;
+    case 'sds': return r.sds;
+    case 'unNumbers': return r.unNumbers;
+    case 'ghs': return r.ghs;
+    case 'hCard': return r.hCard;
+    case 'principles': return r.principles;
+    case 'note': return r.note;
+    default:{
+      const raw=r.customFields?.[fieldId];
+      if(isFieldMulti(fieldId)){
+        return Array.isArray(raw)?uniqClean(raw):parseNamedList(raw||'');
+      }
+      return Array.isArray(raw)?raw.join('、'):String(raw??'').trim();
+    }
+  }
+}
+function setFieldValue(rec,fieldId,value){
+  const r=rec;
+  switch(fieldId){
+    case 'tlv': r.tlv=String(value??'').trim(); return;
+    case 'waterReactive': r.waterReactive=String(value??'').trim(); return;
+    case 'ignition': r.ignition=String(value??'').trim(); return;
+    case 'detectors': r.detectors=mergeDetectorFragments(Array.isArray(value)?uniqClean(value):parseDetectorList(value)); return;
+    case 'papers': r.papers=Array.isArray(value)?uniqClean(value).map(normPaper):parsePaperList(value); return;
+    case 'ppes': r.ppes=Array.isArray(value)?uniqClean(value):parseNamedList(value); return;
+    case 'sds': r.sds=Array.isArray(value)?uniqClean(value):parseNamedList(value); return;
+    case 'unNumbers': r.unNumbers=Array.isArray(value)?uniqClean(value.map(v=>String(v).toUpperCase())):parseUnNumberList(value); return;
+    case 'ghs': r.ghs=Array.isArray(value)?uniqClean(value):parseNamedList(value); return;
+    case 'hCard': r.hCard=Array.isArray(value)?uniqClean(value):parseNamedList(value); return;
+    case 'principles': r.principles=Array.isArray(value)?uniqClean(value):parseNamedList(value); return;
+    case 'note': r.note=String(value??'').trim(); return;
+    case 'gas': return;
+    default:{
+      r.customFields=r.customFields||{};
+      if(isFieldMulti(fieldId)){
+        r.customFields[fieldId]=Array.isArray(value)?uniqClean(value):parseNamedList(value);
+      }else{
+        r.customFields[fieldId]=Array.isArray(value)?value.join('、'):String(value??'').trim();
+      }
+    }
+  }
+}
+function formatFieldValueForDisplay(fieldId,value){
+  if(Array.isArray(value))return value.length?value.join('、'):'-';
+  const text=String(value??'').trim();
+  return text||'-';
+}
+function formatFieldValueForInput(fieldId,value){
+  if(Array.isArray(value))return value.join('、');
+  return String(value??'').trim();
+}
+function parseFieldInput(fieldId,raw){
+  const text=String(raw??'').trim();
+  if(fieldId==='detectors')return parseDetectorList(text);
+  if(fieldId==='papers')return parsePaperList(text);
+  if(fieldId==='unNumbers')return parseUnNumberList(text);
+  if(['ppes','sds','ghs','hCard','principles'].includes(fieldId))return parseNamedList(text);
+  if(isFieldMulti(fieldId))return parseNamedList(text);
+  return text;
+}
+function mergeFieldValue(existing,incoming,fieldId){
+  if(isFieldMulti(fieldId)){
+    if(fieldId==='detectors'){
+      return mergeDetectorFragments(union(Array.isArray(existing)?existing:parseDetectorList(existing),Array.isArray(incoming)?incoming:parseDetectorList(incoming)));
+    }
+    return union(Array.isArray(existing)?existing:parseNamedList(existing),Array.isArray(incoming)?incoming:parseNamedList(incoming));
+  }
+  const incomingText=Array.isArray(incoming)?incoming.join('、'):String(incoming??'').trim();
+  if(incomingText)return incomingText;
+  return Array.isArray(existing)?existing.join('、'):String(existing??'').trim();
+}
+
+function getAllGases(){
+  return sortZh(Object.keys(DB.gases||{}));
+}
+function getAllValuesForField(fieldId){
+  if(fieldId==='gas')return getAllGases();
+  const set=new Set();
+  Object.values(DB.gases||{}).forEach(raw=>{
+    const rec=normalizeGasRecord(raw);
+    const value=getFieldValue(rec,fieldId);
+    if(Array.isArray(value)){
+      value.forEach(v=>{if(v)set.add(v);});
+    }else{
+      const text=String(value??'').trim();
+      if(text)set.add(text);
+    }
+  });
+  return sortZh([...set]);
+}
+function getAllDetectors(){return getAllValuesForField('detectors');}
+function getAllPapers(){
+  const set=new Set([...(DB.paperCatalog||[])]);
+  getAllValuesForField('papers').forEach(v=>set.add(v));
+  return sortZh([...set]);
+}
+function getAllPPEs(){return getAllValuesForField('ppes');}
+function getAllSDS(){return getAllValuesForField('sds');}
+function getAllUNNumbers(){return getAllValuesForField('unNumbers');}
+function getAllPrinciples(){return getAllValuesForField('principles');}
+
+function getFieldImageMap(fieldId){
+  DB.fieldImages=DB.fieldImages||{};
+  DB.fieldImages[fieldId]=normalizeImageMap(DB.fieldImages[fieldId]||{});
+  return DB.fieldImages[fieldId];
+}
+function getPhotoEnabledFieldIds(){
+  return getFieldOrder().filter(id=>id!=='gas'&&getPhotoMode(id)!=='none');
+}
+
+function refreshOverviewEditDatalists(){
+  fillDatalist('ovGasOptions',getAllGases());
+  fillDatalist('ovDetectorOptions',getAllDetectors());
+  fillDatalist('ovPaperOptions',getAllPapers());
+  fillDatalist('ovPpeOptions',getAllPPEs());
+  fillDatalist('ovSdsOptions',getAllSDS());
+  fillDatalist('ovUnOptions',getAllUNNumbers());
+  fillDatalist('ovPrincipleOptions',getAllPrinciples());
+  fillDatalist('ovNoteOptions',getAllValuesForField('note'));
+  fillDatalist('ovGhsOptions',getAllValuesForField('ghs'));
+  fillDatalist('ovHCardOptions',getAllValuesForField('hCard'));
+}
+function fillDatalist(id,values){
+  const dl=document.getElementById(id);
+  if(!dl)return;
+  dl.innerHTML='';
+  sortZh(uniqClean(values||[])).forEach(v=>{
+    const o=document.createElement('option');
+    o.value=v;
+    dl.appendChild(o);
+  });
+}
+function refreshDatalists(){
+  fillDatalist('gasNames',getAllGases());
+  fillDatalist('paperCodes',getAllPapers());
+  refreshOverviewEditDatalists();
+  renderPhotoFieldSettings();
+  renderPhotoTypeOptions();
+  renderDeleteSelectors();
+  applyQueryResultFontScale();
+  if(!queryManagerModal.classList.contains('hidden')){
+    renderQueryManagerSettings();
+  }
+  closeAllQueryDropdowns();
+}
+
+function getFieldInputListId(fieldId){
+  const map={
+    gas:'ovGasOptions',
+    detectors:'ovDetectorOptions',
+    papers:'ovPaperOptions',
+    ppes:'ovPpeOptions',
+    sds:'ovSdsOptions',
+    unNumbers:'ovUnOptions',
+    principles:'ovPrincipleOptions',
+    note:'ovNoteOptions',
+    ghs:'ovGhsOptions',
+    hCard:'ovHCardOptions'
+  };
+  return map[fieldId]||'';
+}
+
+function buildOverviewEditRow(gas,rawRec){
+  const rec=normalizeGasRecord(rawRec);
+  const cells=getFieldOrder().map(fieldId=>{
+    if(fieldId==='gas'){
+      return `<td class="col-gas" data-field-id="gas"><input type="text" class="ov-gas" list="ovGasOptions" value="${escapeHtml(gas)}" placeholder="氣體"/></td>`;
+    }
+    const value=formatFieldValueForInput(fieldId,getFieldValue(rec,fieldId));
+    const label=getFieldLabel(fieldId);
+    const listId=getFieldInputListId(fieldId);
+    const listAttr=listId?` list="${listId}"`:'';
+    const hint=isFieldMulti(fieldId)?`${label}（多值用逗號或頓號）`:label;
+    return `<td class="field-col" data-field-id="${escapeHtml(fieldId)}"><input type="text" class="ov-field" data-field-id="${escapeHtml(fieldId)}" value="${escapeHtml(value)}" placeholder="${escapeHtml(hint)}"${listAttr}/></td>`;
+  }).join('');
+
+  return `<tr data-edit-row="1">${cells}<td class="col-op"><button type="button" class="row-del">刪除</button></td></tr>`;
+}
+
+function renderTable(){
+  const wrap=document.getElementById('tableWrap');
+  const order=getFieldOrder();
+
+  if(!isOverviewEditing){
+    const rows=getAllGases().map(gas=>{
+      const rec=normalizeGasRecord(DB.gases[gas]);
+      const cells=order.map(fieldId=>{
+        if(fieldId==='gas')return `<td class="col-gas" data-field-id="gas">${escapeHtml(gas)}</td>`;
+        const value=formatFieldValueForDisplay(fieldId,getFieldValue(rec,fieldId));
+        return `<td class="field-col" data-field-id="${escapeHtml(fieldId)}">${escapeHtml(value)}</td>`;
+      }).join('');
+      return `<tr>${cells}</tr>`;
+    }).join('');
+
+    const bodyRows=(rows||`<tr><td colspan="${order.length}" class="small">無資料</td></tr>`)+
+      `<tr class="tail-space" aria-hidden="true"><td colspan="${order.length}"></td></tr>`;
+    const head=order.map(fieldId=>`<th class="${fieldId==='gas'?'col-gas':'field-col'}" data-field-id="${escapeHtml(fieldId)}">${escapeHtml(getFieldLabel(fieldId))}</th>`).join('');
+
+    wrap.innerHTML=`<div class="table-scroll"><table class="table overview-view"><thead><tr>${head}</tr></thead><tbody>${bodyRows}</tbody></table></div>`;
+    return;
+  }
+
+  const rows=getAllGases().map(gas=>buildOverviewEditRow(gas,DB.gases[gas])).join('');
+  const bodyRows=rows+`<tr class="tail-space" aria-hidden="true"><td colspan="${order.length+1}"></td></tr>`;
+  const head=order.map(fieldId=>`<th class="${fieldId==='gas'?'col-gas':'field-col'}" data-field-id="${escapeHtml(fieldId)}">${escapeHtml(getFieldLabel(fieldId))}</th>`).join('');
+
+  wrap.innerHTML=`<div class="table-scroll"><table class="table overview-edit"><thead><tr>${head}<th class="col-op">操作</th></tr></thead><tbody>${bodyRows}</tbody></table></div>
+    <div class="overview-edit-tools">
+      <button class="btn" id="btnAddOverviewRow" type="button">新增空白列</button>
+      <span class="small">提示：多值欄位可用逗號或頓號分隔；紙帶可用逗號、頓號或空白分隔。</span>
+    </div>`;
+}
+
 function setOverviewEditButtons(){
   btnEditOverview.classList.toggle('hidden',isOverviewEditing);
   btnFieldDelete.classList.toggle('hidden',isOverviewEditing);
   btnSaveOverview.classList.toggle('hidden',!isOverviewEditing);
   btnCancelOverview.classList.toggle('hidden',!isOverviewEditing);
 }
-function buildOverviewEditRow(gas,rec){
-  const det=(rec.detectors||[]).join('、');
-  const papers=(rec.papers||[]).join('、');
-  const note=rec.note||'';
-  return `<tr data-edit-row="1">
-    <td class="col-gas"><input type="text" class="ov-gas" list="ovGasOptions" value="${escapeHtml(gas)}" placeholder="氣體（可輸入關鍵字挑選）"/></td>
-    <td class="col-det"><input type="text" class="ov-det" list="ovDetectorOptions" value="${escapeHtml(det)}" placeholder="偵測器，多值用逗號或頓號"/></td>
-    <td class="col-paper"><input type="text" class="ov-paper" list="ovPaperOptions" value="${escapeHtml(papers)}" placeholder="CLPX紙帶，多值用逗號或空白"/></td>
-    <td class="col-note"><input type="text" class="ov-note" list="ovNoteOptions" value="${escapeHtml(note)}" placeholder="備註（可輸入關鍵字挑選）"/></td>
-    <td class="col-op"><button type="button" class="row-del">刪除</button></td>
-  </tr>`;
-}
-function renderTable(){
-  const wrap=document.getElementById('tableWrap');
-  if(!isOverviewEditing){
-    const rows=Object.keys(DB.gases).sort().map(g=>{
-      const rec=DB.gases[g];
-      return `<tr>
-        <td class="col-gas">${escapeHtml(g)}</td>
-        <td class="col-det">${escapeHtml((rec.detectors||[]).join('、')||'-')}</td>
-        <td class="col-paper">${escapeHtml((rec.papers||[]).join('、')||'-')}</td>
-        <td class="col-note">${escapeHtml(rec.note||'-')}</td>
-      </tr>`;
-    }).join('');
-    const bodyRows=(rows||'<tr><td colspan="4" class="small">無資料</td></tr>')+'<tr class="tail-space" aria-hidden="true"><td colspan="4"></td></tr>';
-    wrap.innerHTML=`<div class="table-scroll"><table class="table">
-      <thead><tr><th class="col-gas">氣體</th><th class="col-det">偵測器</th><th class="col-paper">CLPX紙帶</th><th class="col-note">備註</th></tr></thead>
-      <tbody>${bodyRows}</tbody>
-    </table></div>`;
-    return;
-  }
-  const rows=Object.keys(DB.gases).sort().map(g=>buildOverviewEditRow(g,DB.gases[g])).join('');
-  const bodyRows=rows+'<tr class="tail-space" aria-hidden="true"><td colspan="5"></td></tr>';
-  wrap.innerHTML=`<div class="table-scroll"><table class="table overview-edit">
-    <thead><tr><th class="col-gas">氣體</th><th class="col-det">偵測器</th><th class="col-paper">CLPX紙帶</th><th class="col-note">備註</th><th class="col-op">操作</th></tr></thead>
-    <tbody>${bodyRows}</tbody>
-  </table></div>
-  <div class="overview-edit-tools">
-    <button class="btn" id="btnAddOverviewRow" type="button">新增空白列</button>
-    <span class="small">提示：偵測器多值請用逗號或頓號；紙帶可用逗號、頓號或空白分隔。</span>
-  </div>`;
-}
-renderTable();
-setOverviewEditButtons();
-bootstrapPersistentStorage();
-
-document.getElementById('tableWrap').addEventListener('click',e=>{
-  if(!isOverviewEditing)return;
-  if(e.target.classList.contains('row-del')){
-    const tr=e.target.closest('tr[data-edit-row]');
-    if(tr)tr.remove();
-    return;
-  }
-  if(e.target.id==='btnAddOverviewRow'){
-    const tbody=document.querySelector('#tableWrap tbody');
-    if(!tbody)return;
-    const tailRow=tbody.querySelector('tr.tail-space');
-    if(tailRow){
-      tailRow.insertAdjacentHTML('beforebegin',buildOverviewEditRow('',{detectors:[],papers:[],note:''}));
-    }else{
-      tbody.insertAdjacentHTML('beforeend',buildOverviewEditRow('',{detectors:[],papers:[],note:''}));
-    }
-  }
-});
 
 function rebuildDerivedFromGases(){
-  const nextPaper2gas={};
-  const detectorSet=new Set();
-  const paperSet=new Set();
-  Object.entries(DB.gases).forEach(([gas,rec])=>{
-    rec.detectors=mergeDetectorFragments(rec.detectors||[]);
-    (rec.detectors||[]).forEach(d=>detectorSet.add(d));
-    (rec.papers||[]).forEach(p=>{
-      paperSet.add(p);
-      if(!nextPaper2gas[p])nextPaper2gas[p]=[];
-      nextPaper2gas[p].push(gas);
-    });
-  });
-  DB.paper2gas=nextPaper2gas;
-  DB.detectors=[...detectorSet].sort();
-  DB.paperCatalog=[...paperSet].sort();
+  rebuildDerivedFromGasesRaw(DB);
 }
 
-btnEditOverview.onclick=()=>{
-  closeFieldDeleteModal();
-  overviewEditSnapshot=JSON.parse(JSON.stringify(DB));
-  isOverviewEditing=true;
-  refreshOverviewEditDatalists();
-  setOverviewEditButtons();
-  renderTable();
-};
-btnCancelOverview.onclick=()=>{
-  if(overviewEditSnapshot)DB=normalizeDB(overviewEditSnapshot);
-  isOverviewEditing=false;
-  setOverviewEditButtons();
+function buildFieldLayoutDraft(){
+  fieldLayoutDraft=getFieldOrder().map(fieldId=>{
+    const def=getFieldDef(fieldId);
+    return {
+      id:fieldId,
+      label:def.label,
+      multi:!!def.multi,
+      builtin:!!def.builtin
+    };
+  });
+}
+function renderFieldManagerDraft(){
+  if(!fieldLayoutDraft){
+    fieldManagerList.innerHTML='';
+    return;
+  }
+
+  fieldManagerList.innerHTML=fieldLayoutDraft.map((item,idx)=>{
+    const isGas=item.id==='gas';
+    return `<div class="field-manager-row" data-field-id="${escapeHtml(item.id)}">
+      <input type="text" class="field-title" data-role="label" value="${escapeHtml(item.label)}" ${isGas?'readonly':''}/>
+      <button type="button" class="btn" data-role="up" ${idx===0?'disabled':''}>上移</button>
+      <button type="button" class="btn" data-role="down" ${idx===fieldLayoutDraft.length-1?'disabled':''}>下移</button>
+      <button type="button" class="btn danger" data-role="remove" ${isGas?'disabled':''}>刪除</button>
+    </div>`;
+  }).join('');
+}
+function moveFieldInDraft(index,delta){
+  const target=index+delta;
+  if(index<0||index>=fieldLayoutDraft.length)return;
+  if(target<0||target>=fieldLayoutDraft.length)return;
+  const [picked]=fieldLayoutDraft.splice(index,1);
+  fieldLayoutDraft.splice(target,0,picked);
+}
+function makeFieldId(label){
+  let base=String(label||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+  if(!base)base='field';
+  const exists=id=>{
+    const inDb=DB.fieldDefs&&DB.fieldDefs[id];
+    const inDraft=(fieldLayoutDraft||[]).some(item=>item.id===id);
+    return !!(inDb||inDraft);
+  };
+  let id=base;
+  let serial=2;
+  while(exists(id)){
+    id=`${base}_${serial}`;
+    serial+=1;
+  }
+  return id;
+}
+async function applyFieldLayoutDraft(){
+  if(!fieldLayoutDraft||fieldLayoutDraft.length===0)return;
+
+  const cleaned=[];
+  const seen=new Set();
+  fieldLayoutDraft.forEach(item=>{
+    const id=String(item.id||'').trim();
+    if(!id||seen.has(id))return;
+    seen.add(id);
+    const label=String(item.label||'').trim();
+    cleaned.push({
+      id,
+      label:label||id,
+      multi:!!item.multi,
+      builtin:isBuiltinFieldId(id)
+    });
+  });
+
+  if(!cleaned.some(item=>item.id==='gas')){
+    cleaned.unshift({id:'gas',label:getFieldLabel('gas'),multi:false,builtin:true});
+  }
+
+  const newOrder=cleaned.map(item=>item.id);
+  const newDefs={...DB.fieldDefs};
+
+  Object.entries(BUILTIN_FIELD_META).forEach(([id,meta])=>{
+    newDefs[id]={
+      id,
+      label:newDefs[id]?.label||meta.label,
+      multi:!!meta.multi,
+      builtin:true
+    };
+  });
+
+  cleaned.forEach(item=>{
+    newDefs[item.id]={
+      id:item.id,
+      label:item.label,
+      multi:item.builtin?!!BUILTIN_FIELD_META[item.id]?.multi:!!item.multi,
+      builtin:item.builtin
+    };
+  });
+
+  Object.keys(newDefs).forEach(id=>{
+    if(id==='gas')return;
+    if(isBuiltinFieldId(id))return;
+    if(newOrder.includes(id))return;
+    delete newDefs[id];
+    if(DB.photoDisplay)delete DB.photoDisplay[id];
+    if(DB.fieldImages)delete DB.fieldImages[id];
+    Object.keys(DB.gases||{}).forEach(gas=>{
+      const rec=normalizeGasRecord(DB.gases[gas]);
+      if(rec.customFields&&Object.prototype.hasOwnProperty.call(rec.customFields,id)){
+        delete rec.customFields[id];
+      }
+      DB.gases[gas]=rec;
+    });
+  });
+
+  DB.fieldDefs=newDefs;
+  DB.fieldOrder=newOrder;
+  DB=normalizeDB(DB);
+
+  if(!await saveDB()){
+    alert('儲存失敗：欄位設定未成功寫入。');
+    return;
+  }
+
+  buildFieldLayoutDraft();
+  renderFieldManagerDraft();
   refreshDatalists();
   renderTable();
-};
-btnSaveOverview.onclick=async ()=>{
-  const rows=[...document.querySelectorAll('#tableWrap tbody tr[data-edit-row]')];
-  const nextGases={};
-  rows.forEach(row=>{
-    const gas=normGasKeep(row.querySelector('.ov-gas')?.value);
-    if(!gas)return;
-    const det=parseDetectorList(row.querySelector('.ov-det')?.value);
-    const papers=parsePaperList(row.querySelector('.ov-paper')?.value);
-    const note=(row.querySelector('.ov-note')?.value||'').trim();
-    if(!nextGases[gas])nextGases[gas]={detectors:[],papers:[],note:''};
-    nextGases[gas].detectors=mergeDetectorFragments(union(nextGases[gas].detectors,det));
-    nextGases[gas].papers=union(nextGases[gas].papers,papers);
-    if(note)nextGases[gas].note=note;
-  });
-  if(Object.keys(nextGases).length===0){alert('請至少保留一筆有效資料');return;}
+  runSearch();
+  alert('欄位設定已更新');
+}
+
+function renderDeleteFieldPreview(){
+  const pieces=getFieldOrder().map(fieldId=>`${getFieldLabel(fieldId)} ${getAllValuesForField(fieldId).length}`);
+  deleteFieldPreview.textContent=`目前可刪除項目數：${pieces.join('、')}。`;
+}
+function renderDeleteSelectors(){
+  const rows=getFieldOrder().map(fieldId=>{
+    const values=getAllValuesForField(fieldId);
+    const options=values.length
+      ? values.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('')
+      : '<option value="">（無可刪除項目）</option>';
+    const label=getFieldLabel(fieldId);
+    const btnText=fieldId==='gas'?'刪除氣體':`刪除${label}內容`;
+    return `<div>
+      <label>${escapeHtml(label)}</label>
+      <div class="delete-row">
+        <select data-delete-field="${escapeHtml(fieldId)}" ${values.length===0?'disabled':''}>${options}</select>
+        <button class="btn danger btn-delete-value" type="button" data-delete-field="${escapeHtml(fieldId)}" ${values.length===0?'disabled':''}>${escapeHtml(btnText)}</button>
+      </div>
+    </div>`;
+  }).join('');
+  deleteFieldRows.innerHTML=rows;
+  renderDeleteFieldPreview();
+}
+async function deleteFieldValue(fieldId,value){
+  const target=String(value||'').trim();
+  if(!target)return;
+
   const snapshot=cloneForStorage(DB);
-  DB.gases=nextGases;
+  let changed=false;
+
+  if(fieldId==='gas'){
+    if(DB.gases[target]){
+      delete DB.gases[target];
+      changed=true;
+    }
+  }else{
+    Object.keys(DB.gases||{}).forEach(gas=>{
+      const rec=normalizeGasRecord(DB.gases[gas]);
+      const oldValue=getFieldValue(rec,fieldId);
+      if(Array.isArray(oldValue)){
+        const next=oldValue.filter(v=>v!==target);
+        if(next.length!==oldValue.length){
+          setFieldValue(rec,fieldId,next);
+          changed=true;
+        }
+      }else{
+        const text=String(oldValue||'').trim();
+        if(text===target){
+          setFieldValue(rec,fieldId,'');
+          changed=true;
+        }
+      }
+      DB.gases[gas]=rec;
+    });
+
+    const imageMap=getFieldImageMap(fieldId);
+    if(Object.prototype.hasOwnProperty.call(imageMap,target)){
+      delete imageMap[target];
+      changed=true;
+    }
+  }
+
+  if(!changed){
+    alert('找不到可刪除的對應項目。');
+    return;
+  }
+
   rebuildDerivedFromGases();
   DB=normalizeDB(DB);
   if(!await saveDB()){
@@ -1249,79 +2175,478 @@ btnSaveOverview.onclick=async ()=>{
     alert('儲存失敗：瀏覽器儲存空間不足或寫入失敗，已自動還原。');
     return;
   }
-  isOverviewEditing=false;
-  overviewEditSnapshot=null;
-  setOverviewEditButtons();
+
   refreshDatalists();
   renderTable();
-  alert('資料總覽已更新');
-};
-
-document.getElementById('btnExportFull').onclick=()=>{
-  const payload={
-    type:'gas_lookup_full_config',
-    version:1,
-    exportedAt:new Date().toISOString(),
-    db:DB
-  };
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='gas_lookup_full_config.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
-};
-document.getElementById('btnImport').onclick=()=>document.getElementById('fileIn').click();
-document.getElementById('fileIn').addEventListener('change',(e)=>{
-  const f=e.target.files[0]; if(!f)return;
-  const r=new FileReader();
-  r.onload=async ()=>{
-    try{
-      const rawIncoming=JSON.parse(r.result);
-      const incoming=(rawIncoming&&rawIncoming.type==='gas_lookup_full_config'&&rawIncoming.db)?rawIncoming.db:rawIncoming;
-      DB=normalizeDB(incoming);
-      const ok=await saveDB();
-      refreshDatalists(); renderTable();
-      if(ok){
-        alert('已匯入並覆蓋');
-      }else{
-        alert('已匯入到目前頁面，但儲存失敗，重新整理後可能遺失。');
-      }
-    }catch(err){alert('匯入失敗：'+err);}
-  };
-  r.readAsText(f);
-});
-document.getElementById('btnPreset').onclick=async ()=>{
-  if(!confirm('還原內建預設？將覆蓋目前本機資料。'))return;
-  DB=JSON.parse(JSON.stringify(PRESET));
-  const ok=await saveDB();
-  refreshDatalists(); renderTable();
-  if(ok){
-    alert('已還原預設');
-  }else{
-    alert('已還原到目前頁面，但儲存失敗，重新整理後可能遺失。');
-  }
-};
-
-function union(a,b){return [...new Set([...(a||[]),...(b||[])])];}
-function getAllGases(){return Object.keys(DB.gases).sort();}
-function getAllDetectors(){return [...new Set(DB.detectors||[])].sort();}
-function getAllPapers(){
-  const all=new Set([...(DB.paperCatalog||[])]);
-  Object.keys(DB.paper2gas).forEach(p=>all.add(p));
-  Object.values(DB.gases).forEach(r=>(r.papers||[]).forEach(p=>all.add(p)));
-  return [...all].sort();
+  runSearch();
+  alert(`已刪除「${getFieldLabel(fieldId)}：${target}」。`);
 }
+
+function renderPhotoFieldSettings(){
+  const rows=getFieldOrder()
+    .filter(fieldId=>fieldId!=='gas')
+    .map(fieldId=>{
+      const current=getPhotoMode(fieldId);
+      const opts=['none','thumb','a4']
+        .map(mode=>`<option value="${mode}" ${current===mode?'selected':''}>${PHOTO_MODE_LABELS[mode]}</option>`)
+        .join('');
+      return `<div class="photo-setting-row">
+        <div class="small">${escapeHtml(getFieldLabel(fieldId))}</div>
+        <select data-photo-field="${escapeHtml(fieldId)}">${opts}</select>
+      </div>`;
+    });
+
+  photoFieldSettingList.innerHTML=rows.length
+    ? rows.join('')
+    : '<div class="small">目前沒有可設定的欄位。</div>';
+}
+function renderPhotoTypeOptions(){
+  const enabled=getPhotoEnabledFieldIds();
+  const prev=selPhotoType.value;
+  selPhotoType.innerHTML=enabled.map(fieldId=>
+    `<option value="${escapeHtml(fieldId)}">${escapeHtml(getFieldLabel(fieldId))}</option>`
+  ).join('');
+
+  if(prev&&enabled.includes(prev)){
+    selPhotoType.value=prev;
+  }
+  if(!selPhotoType.value&&enabled.length){
+    selPhotoType.value=enabled[0];
+  }
+  renderPhotoTargetSelect();
+}
+function getCurrentPhotoFieldId(){
+  const fieldId=String(selPhotoType.value||'').trim();
+  if(!fieldId)return '';
+  if(!getPhotoEnabledFieldIds().includes(fieldId))return '';
+  return fieldId;
+}
+function getCurrentPhotoTarget(){
+  return String(selPhotoTarget.value||'').trim();
+}
+function renderPhotoTargetSelect(){
+  const fieldId=getCurrentPhotoFieldId();
+  if(!fieldId){
+    photoTargetLabel.textContent='目前沒有啟用照片顯示的欄位';
+    selPhotoTarget.innerHTML='';
+    imgManageGrid.innerHTML='<div class="small">請先在「照片顯示欄位設定」將欄位設為縮圖或 A4。</div>';
+    return;
+  }
+
+  const options=getAllValuesForField(fieldId);
+  const prev=selPhotoTarget.value;
+  photoTargetLabel.textContent=`${getFieldLabel(fieldId)}（來自上方「資料總覽編輯」）`;
+  selPhotoTarget.innerHTML=options.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  if(prev&&options.includes(prev)){
+    selPhotoTarget.value=prev;
+  }
+  if(!selPhotoTarget.value&&options.length){
+    selPhotoTarget.value=options[0];
+  }
+  renderImageManager();
+}
+function renderImageManager(){
+  const fieldId=getCurrentPhotoFieldId();
+  const target=getCurrentPhotoTarget();
+  if(!fieldId){
+    imgManageGrid.innerHTML='<div class="small">目前無可管理的照片欄位。</div>';
+    return;
+  }
+  if(!target){
+    imgManageGrid.innerHTML='<div class="small">此欄位目前沒有可管理的值。</div>';
+    return;
+  }
+
+  const map=getFieldImageMap(fieldId);
+  const imgs=map[target]||[];
+  if(imgs.length===0){
+    imgManageGrid.innerHTML='<div class="small">目前無照片。</div>';
+    return;
+  }
+
+  imgManageGrid.innerHTML=imgs.map((src,idx)=>
+    `<figure class="img-manage-item"><img src="${src}" alt="${escapeHtml(target)}-${idx+1}"><figcaption>${escapeHtml(getFieldLabel(fieldId))}｜${escapeHtml(target)} - 第 ${idx+1} 張</figcaption><button type="button" class="img-del-btn" data-idx="${idx}">刪除這張</button></figure>`
+  ).join('');
+}
+
+function fieldValuesAsList(rec,fieldId){
+  const value=getFieldValue(rec,fieldId);
+  if(Array.isArray(value))return uniqClean(value);
+  const text=String(value??'').trim();
+  return text?[text]:[];
+}
+function buildPhotoSectionsForRecord(rec){
+  const thumbFigures=[];
+  const a4Figures=[];
+  const thumbLabels=[];
+  const a4Labels=[];
+
+  getFieldOrder().forEach(fieldId=>{
+    const mode=getPhotoMode(fieldId);
+    if(mode==='none')return;
+
+    const values=fieldValuesAsList(rec,fieldId);
+    if(values.length===0)return;
+
+    const map=getFieldImageMap(fieldId);
+    const fieldLabel=getFieldLabel(fieldId);
+
+    values.forEach(value=>{
+      const imgs=(map[value]||[]).slice(-MAX_IMAGES_PER_DETECTOR);
+      imgs.forEach((src,idx)=>{
+        const caption=`${fieldLabel}｜${value}｜第 ${idx+1} 張`;
+        if(mode==='thumb'){
+          thumbFigures.push(`<figure><img src="${src}" alt="${escapeHtml(caption)}" data-viewer-caption="${escapeHtml(caption)}"><figcaption>${escapeHtml(fieldLabel)}｜${escapeHtml(value)}</figcaption></figure>`);
+        }else if(mode==='a4'){
+          a4Figures.push(`<figure class="doc-page"><img src="${src}" alt="${escapeHtml(caption)}" data-viewer-caption="${escapeHtml(caption)}"><figcaption>${escapeHtml(caption)}</figcaption></figure>`);
+        }
+      });
+    });
+
+    if(mode==='thumb'&&!thumbLabels.includes(fieldLabel))thumbLabels.push(fieldLabel);
+    if(mode==='a4'&&!a4Labels.includes(fieldLabel))a4Labels.push(fieldLabel);
+  });
+
+  const out=[];
+  if(thumbFigures.length){
+    out.push(`<div class="img-group-title">${escapeHtml(thumbLabels.join(' / '))}（縮圖）</div><div class="img-grid">${thumbFigures.join('')}</div>`);
+  }
+  if(a4Figures.length){
+    out.push(`<div class="img-group-title">${escapeHtml(a4Labels.join(' / '))}（A4 顯示）</div><div class="doc-pages">${a4Figures.join('')}</div>`);
+  }
+  return out.join('');
+}
+
+function findGasKeyInsensitive(input){
+  const target=normGasKeep(input);
+  if(!target)return null;
+  const keys=Object.keys(DB.gases||{});
+  let hit=keys.find(k=>k===target);
+  if(hit)return hit;
+  const upper=target.toUpperCase();
+  hit=keys.find(k=>k.toUpperCase()===upper);
+  return hit||null;
+}
+function computeOtherGases(gas,rec){
+  const otherSet=new Set();
+  const papers=rec.papers||[];
+  const dets=rec.detectors||[];
+
+  if(papers.length){
+    papers.forEach(p=>(DB.paper2gas[p]||[]).forEach(g=>{if(g!==gas)otherSet.add(g);}));
+  }else{
+    const detsNoCLPX=dets.filter(d=>d!=='CLPX');
+    if(detsNoCLPX.length){
+      Object.entries(DB.gases||{}).forEach(([gname,grec])=>{
+        if(gname===gas)return;
+        const rec2=normalizeGasRecord(grec);
+        if(rec2.detectors.some(d=>detsNoCLPX.includes(d))){
+          otherSet.add(gname);
+        }
+      });
+    }
+  }
+  return otherSet.size?sortZh([...otherSet]).join('、'):'無';
+}
+function getGasesForPaperCode(paper){
+  const key=normPaper(paper);
+  if(!key)return [];
+  const set=new Set();
+
+  (DB.paper2gas?.[key]||[]).forEach(g=>{
+    const gas=normGasKeep(g);
+    if(gas)set.add(gas);
+  });
+
+  Object.entries(DB.gases||{}).forEach(([gas,rawRec])=>{
+    const rec=normalizeGasRecord(rawRec);
+    if((rec.papers||[]).some(p=>normPaper(p)===key)){
+      set.add(gas);
+    }
+  });
+
+  return sortZh([...set]);
+}
+function runReverse(){
+  if(!resultPaper)return;
+
+  const q=normPaper(revPaperInput?.value||'');
+  if(!q){
+    resultPaper.textContent='尚未輸入。';
+    return;
+  }
+
+  const hits=getAllPapers().filter(p=>{
+    const paper=normPaper(p);
+    return paper.includes(q)||q.includes(paper);
+  });
+
+  if(hits.length===0){
+    resultPaper.textContent='查無紙帶。';
+    return;
+  }
+
+  resultPaper.innerHTML=hits.map(p=>{
+    const gases=getGasesForPaperCode(p);
+    return `<div class="card"><span class="badge">${escapeHtml(p)}</span> <span class="badge">可量測：${escapeHtml(gases.join('、')||'-')}</span></div>`;
+  }).join('');
+}
+function describeGas(inputName){
+  const key=findGasKeyInsensitive(inputName);
+  if(!key){
+    return `<div class="card result-card"><span class="badge">氣體：${escapeHtml(inputName)}</span><span class="badge">查無資料</span></div>`;
+  }
+
+  const gas=key;
+  const rec=normalizeGasRecord(DB.gases[gas]);
+  const badges=getQueryVisibleFieldIds().map(fieldId=>{
+    if(fieldId==='gas'){
+      return `<span class="badge">${escapeHtml(getFieldLabel(fieldId))}：${escapeHtml(gas)}</span>`;
+    }
+    const value=formatFieldValueForDisplay(fieldId,getFieldValue(rec,fieldId));
+    return `<span class="badge">${escapeHtml(getFieldLabel(fieldId))}：${escapeHtml(value)}</span>`;
+  }).join('');
+
+  const others=computeOtherGases(gas,rec);
+  const imgSections=buildPhotoSectionsForRecord(rec);
+
+  return `<div class="card result-card">${badges}
+    <details class="other-gas"><summary>可量測其他氣體</summary><div class="other-gas-content">${escapeHtml(others)}</div></details>
+    ${imgSections}
+  </div>`;
+}
+function runSearch(){
+  const list=[];
+  for(let i=1;i<=getActiveSearchInputCount();i++){
+    const input=document.getElementById(`q${i}`);
+    if(!input)continue;
+    const v=normGasKeep(input.value);
+    if(v)list.push(v);
+  }
+  const out=list.map(g=>describeGas(g)).join('');
+  resultGas.innerHTML=out||'尚未輸入。';
+  runReverse();
+}
+function resetSearchInputs(){
+  for(let i=1;i<=getActiveSearchInputCount();i++){
+    const input=document.getElementById(`q${i}`);
+    if(input)input.value='';
+  }
+  closeAllQueryDropdowns();
+  if(revPaperInput)revPaperInput.value='';
+  runSearch();
+  const active=document.activeElement;
+  if(active&&typeof active.blur==='function')active.blur();
+}
+
+function renderQueryManagerSettings(){
+  const visibleSet=new Set(getQueryVisibleFieldIds());
+  queryFieldSettingList.innerHTML=getFieldOrder().map(fieldId=>{
+    const label=getFieldLabel(fieldId);
+    if(fieldId==='gas'){
+      return `<label class="query-manager-row"><span>${escapeHtml(label)}</span><span class="small">固定顯示</span></label>`;
+    }
+    const checked=visibleSet.has(fieldId)?'checked':'';
+    return `<label class="query-manager-row"><span>${escapeHtml(label)}</span><input type="checkbox" data-query-field="${escapeHtml(fieldId)}" ${checked}/></label>`;
+  }).join('');
+  const pct=getQueryFontScalePercent();
+  queryFontRange.value=String(pct);
+  queryFontPct.textContent=`${pct}%`;
+  applyQueryResultFontScale(pct);
+}
+function openQueryManagerModal(){
+  renderQueryManagerSettings();
+  queryManagerModal.classList.remove('hidden');
+  syncModalOpenState();
+}
+function closeQueryManagerModal(){
+  queryManagerModal.classList.add('hidden');
+  syncModalOpenState();
+}
+
+function syncModalOpenState(){
+  const hasOpenModal=
+    !photoModal.classList.contains('hidden')||
+    !fieldDeleteModal.classList.contains('hidden')||
+    !queryManagerModal.classList.contains('hidden')||
+    !imageViewerModal.classList.contains('hidden');
+  document.body.classList.toggle('modal-open',hasOpenModal);
+}
+function openPhotoModal(){
+  photoModal.classList.remove('hidden');
+  renderPhotoFieldSettings();
+  renderPhotoTypeOptions();
+  syncModalOpenState();
+}
+function closePhotoModal(){
+  photoModal.classList.add('hidden');
+  syncModalOpenState();
+}
+function openFieldDeleteModal(){
+  if(isOverviewEditing){
+    alert('目前在「資料總覽編輯」模式，請先儲存或取消編輯後再開啟欄位管理。');
+    return;
+  }
+  buildFieldLayoutDraft();
+  renderFieldManagerDraft();
+  renderDeleteSelectors();
+  fieldDeleteModal.classList.remove('hidden');
+  syncModalOpenState();
+}
+function closeFieldDeleteModal(){
+  fieldDeleteModal.classList.add('hidden');
+  syncModalOpenState();
+}
+function clampViewerZoom(v){
+  return Math.max(50,Math.min(300,Math.round((Number(v)||100)/10)*10));
+}
+function getViewerFitBaseSize(){
+  const bodyRect=imageViewerBody.getBoundingClientRect();
+  const naturalW=imageViewerImg.naturalWidth||0;
+  const naturalH=imageViewerImg.naturalHeight||0;
+  if(!bodyRect.width||!bodyRect.height||!naturalW||!naturalH){
+    return {w:0,h:0};
+  }
+  const fitScale=Math.min(bodyRect.width/naturalW,bodyRect.height/naturalH);
+  return {w:naturalW*fitScale,h:naturalH*fitScale};
+}
+function clampViewerPan(){
+  if(viewerZoom<=100){
+    viewerPanX=0;
+    viewerPanY=0;
+    return;
+  }
+  const base=getViewerFitBaseSize();
+  if(!base.w||!base.h){
+    viewerPanX=0;
+    viewerPanY=0;
+    return;
+  }
+  const scaledW=base.w*(viewerZoom/100);
+  const scaledH=base.h*(viewerZoom/100);
+  const maxX=Math.max(0,(scaledW-base.w)/2);
+  const maxY=Math.max(0,(scaledH-base.h)/2);
+  viewerPanX=Math.max(-maxX,Math.min(maxX,viewerPanX));
+  viewerPanY=Math.max(-maxY,Math.min(maxY,viewerPanY));
+}
+function applyViewerTransform(){
+  imageViewerImg.style.transform=`translate(${viewerPanX}px,${viewerPanY}px) scale(${viewerZoom/100})`;
+  imageViewerImg.style.cursor=viewerZoom>100?(viewerDragging?'grabbing':'grab'):'default';
+}
+function applyViewerZoom(percent){
+  viewerZoom=clampViewerZoom(percent);
+  if(viewerZoom<=100){
+    viewerPanX=0;
+    viewerPanY=0;
+  }else{
+    clampViewerPan();
+  }
+  applyViewerTransform();
+  viewerZoomRange.value=String(viewerZoom);
+  viewerZoomPct.textContent=`${viewerZoom}%`;
+}
+function renderViewer(){
+  if(!viewerItems.length)return;
+  const item=viewerItems[viewerIndex];
+  imageViewerImg.src=item.src;
+  imageViewerCaption.textContent=item.caption;
+  imageViewerIndex.textContent=`${viewerIndex+1} / ${viewerItems.length}`;
+  viewerPanX=0;
+  viewerPanY=0;
+  applyViewerTransform();
+}
+function openImageViewer(items,startIndex){
+  if(!items.length)return;
+  viewerItems=items;
+  viewerIndex=Math.max(0,Math.min(items.length-1,startIndex));
+  applyViewerZoom(100);
+  renderViewer();
+  imageViewerModal.classList.remove('hidden');
+  syncModalOpenState();
+}
+function closeImageViewer(){
+  imageViewerModal.classList.add('hidden');
+  viewerItems=[];
+  viewerIndex=0;
+  viewerDragging=false;
+  viewerPanX=0;
+  viewerPanY=0;
+  applyViewerZoom(100);
+  syncModalOpenState();
+}
+function stepImageViewer(delta){
+  if(!viewerItems.length)return;
+  const len=viewerItems.length;
+  viewerIndex=(viewerIndex+delta+len)%len;
+  renderViewer();
+}
+
+async function uploadSelectedImages(){
+  const files=[...imgInput.files];
+  if(files.length===0)return;
+
+  const fieldId=getCurrentPhotoFieldId();
+  const target=getCurrentPhotoTarget();
+  if(!fieldId){
+    alert('請先設定可管理照片的欄位。');
+    imgInput.value='';
+    return;
+  }
+  if(!target){
+    alert('請先選擇項目。');
+    imgInput.value='';
+    return;
+  }
+
+  const mode=getPhotoMode(fieldId);
+  const limited=files.slice(0,MAX_IMAGES_PER_DETECTOR);
+  const map=getFieldImageMap(fieldId);
+  const prev=[...(map[target]||[])];
+  const prepared=[];
+
+  for(const file of limited){
+    try{
+      const b64=await fileToOptimizedDataURL(file,{doc:mode==='a4'});
+      prepared.push(b64);
+    }catch(err){
+      alert(`圖片處理失敗：${file.name}\n${err}`);
+      imgInput.value='';
+      return;
+    }
+  }
+
+  map[target]=[...prev,...prepared].slice(-MAX_IMAGES_PER_DETECTOR);
+  DB=normalizeDB(DB);
+  if(!await saveDB()){
+    map[target]=prev;
+    alert('儲存失敗：瀏覽器儲存空間不足或寫入失敗。已取消本次新增。');
+    imgInput.value='';
+    return;
+  }
+
+  renderImageManager();
+  runSearch();
+  alert(`已為「${target}」保存 ${map[target].length} 張（上限 ${MAX_IMAGES_PER_DETECTOR} 張）`);
+  imgInput.value='';
+}
+
 function cloneForStorage(v){
   if(typeof structuredClone==='function'){
-    try{return structuredClone(v);}catch(_){}
+    try{return structuredClone(v);}catch(_){/* noop */}
   }
   return JSON.parse(JSON.stringify(v));
 }
 function buildLiteSnapshot(db){
   return {
     ...db,
-    detectorImages:{}
+    fieldImages:{},
+    detectorImages:{},
+    ppeImages:{},
+    sdsImages:{},
+    unNumberImages:{},
+    principleImages:{},
+    ghsImages:{},
+    hCardImages:{}
   };
 }
 function saveLiteSnapshotToLocalStorage(db){
@@ -1351,9 +2676,7 @@ function openIndexedDB(){
       const req=indexedDB.open(IDB_NAME,1);
       req.onupgradeneeded=()=>{
         const db=req.result;
-        if(!db.objectStoreNames.contains(IDB_STORE)){
-          db.createObjectStore(IDB_STORE);
-        }
+        if(!db.objectStoreNames.contains(IDB_STORE))db.createObjectStore(IDB_STORE);
       };
       req.onsuccess=()=>{
         const db=req.result;
@@ -1406,11 +2729,12 @@ async function loadDBFromIndexedDB(){
 async function saveDB({silent=false}={}){
   const snapshot=cloneForStorage(DB);
   saveLiteSnapshotToLocalStorage(snapshot);
-  if(!('indexedDB' in window)){
-    return saveFullSnapshotToLocalStorage(snapshot);
-  }
+
+  if(!('indexedDB' in window))return saveFullSnapshotToLocalStorage(snapshot);
+
   const idbOk=await queueSaveToIndexedDB(snapshot);
   if(idbOk)return true;
+
   const fallbackOk=saveFullSnapshotToLocalStorage(snapshot);
   if(!fallbackOk&&!silent){
     console.warn('儲存失敗：IndexedDB 與 LocalStorage 皆無法完成寫入。');
@@ -1425,13 +2749,32 @@ async function bootstrapPersistentStorage(){
     refreshDatalists();
     renderTable();
     runSearch();
-    runReverse();
     return;
   }
   await saveDB({silent:true});
 }
+
+function clampZoom(v){
+  return Math.max(70,Math.min(130,Math.round(v/5)*5));
+}
+function applyPageZoom(percent,{persist=true}={}){
+  const next=clampZoom(Number(percent)||100);
+  document.documentElement.style.zoom=String(next/100);
+  zoomRange.value=String(next);
+  zoomPct.textContent=`${next}%`;
+  if(persist){
+    try{localStorage.setItem(LS_PAGE_ZOOM_KEY,String(next));}catch(_){/* noop */}
+  }
+}
+function adjustPageZoom(delta){
+  applyPageZoom(Number(zoomRange.value)+delta);
+}
+
 function unwrapStoredDB(obj){
-  if(obj&&obj.type==='gas_lookup_full_config'&&obj.db)return obj.db;
+  if(obj&&obj.db&&(
+    obj.type==='gas_leak_response_full_config'||
+    obj.type==='gas_lookup_full_config'
+  ))return obj.db;
   return obj;
 }
 function loadDB(){
@@ -1441,9 +2784,7 @@ function loadDB(){
       const raw=localStorage.getItem(key);
       if(!raw)continue;
       const db=normalizeDB(unwrapStoredDB(JSON.parse(raw)));
-      if(key!==LS_KEY){
-        saveLiteSnapshotToLocalStorage(db);
-      }
+      if(key!==LS_KEY)saveLiteSnapshotToLocalStorage(db);
       return db;
     }catch(err){
       console.warn(`LocalStorage 讀取失敗（${key}）：`,err);
@@ -1451,56 +2792,657 @@ function loadDB(){
   }
   return normalizeDB(JSON.parse(JSON.stringify(PRESET)));
 }
-function mergeDetectorImageKeys(db){
-  db.detectorImages=db.detectorImages||{};
-  DETECTOR_FRAGMENT_RULES.forEach(rule=>{
-    const merged=Array.isArray(db.detectorImages[rule.merged])?db.detectorImages[rule.merged]:[];
-    const moved=[];
-    rule.parts.forEach(p=>{
-      const part=Array.isArray(db.detectorImages[p])?db.detectorImages[p]:[];
-      if(part.length)moved.push(...part);
-      delete db.detectorImages[p];
-    });
-    if(merged.length||moved.length){
-      db.detectorImages[rule.merged]=[...merged,...moved].slice(-MAX_IMAGES_PER_DETECTOR);
+
+function loadImageElementFromFile(file){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{URL.revokeObjectURL(url);resolve(img);};
+    img.onerror=(e)=>{URL.revokeObjectURL(url);reject(e);};
+    img.src=url;
+  });
+}
+async function fileToOptimizedDataURL(file,{doc=false}={}){
+  const img=await loadImageElementFromFile(file);
+  const maxW=doc?2000:1600;
+  const maxH=doc?2000:1600;
+  const ratio=Math.min(1,maxW/img.naturalWidth,maxH/img.naturalHeight);
+  const w=Math.max(1,Math.round(img.naturalWidth*ratio));
+  const h=Math.max(1,Math.round(img.naturalHeight*ratio));
+
+  const canvas=document.createElement('canvas');
+  canvas.width=w;
+  canvas.height=h;
+  const ctx=canvas.getContext('2d');
+  if(!ctx)throw new Error('無法建立圖片處理畫布');
+
+  ctx.fillStyle='#ffffff';
+  ctx.fillRect(0,0,w,h);
+  ctx.drawImage(img,0,0,w,h);
+
+  let out=canvas.toDataURL('image/jpeg',doc?0.9:0.82);
+  if(out.length>2_000_000){
+    out=canvas.toDataURL('image/jpeg',doc?0.78:0.7);
+  }
+  return out;
+}
+function formatBytes(bytes){
+  const n=Math.max(0,Number(bytes)||0);
+  if(n<1024)return `${n} B`;
+  if(n<1024*1024)return `${(n/1024).toFixed(1)} KB`;
+  return `${(n/1024/1024).toFixed(2)} MB`;
+}
+function arrayBufferToBase64(bufferLike){
+  const bytes=bufferLike instanceof Uint8Array
+    ? bufferLike
+    : new Uint8Array(bufferLike instanceof ArrayBuffer?bufferLike:bufferLike?.buffer||[]);
+  let binary='';
+  const chunkSize=0x8000;
+  for(let i=0;i<bytes.length;i+=chunkSize){
+    binary+=String.fromCharCode(...bytes.subarray(i,i+chunkSize));
+  }
+  return btoa(binary);
+}
+function base64ToUint8Array(base64){
+  const cleaned=String(base64||'').replace(/\s+/g,'');
+  const binary=atob(cleaned);
+  const out=new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++){
+    out[i]=binary.charCodeAt(i);
+  }
+  return out;
+}
+async function gzipTextToBase64(text){
+  if(typeof CompressionStream!=='function'){
+    throw new Error('此瀏覽器不支援 CompressionStream，無法建立壓縮匯出檔。');
+  }
+  const bytes=new TextEncoder().encode(String(text||''));
+  const stream=new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'));
+  const compressed=await new Response(stream).arrayBuffer();
+  return arrayBufferToBase64(compressed);
+}
+async function ungzipBase64ToText(base64){
+  if(typeof DecompressionStream!=='function'){
+    throw new Error('此瀏覽器不支援 DecompressionStream，無法匯入壓縮匯出檔。');
+  }
+  const compressedBytes=base64ToUint8Array(base64);
+  const stream=new Blob([compressedBytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  const buffer=await new Response(stream).arrayBuffer();
+  return new TextDecoder('utf-8').decode(buffer);
+}
+async function parsePossiblyCompressedImportJson(rawText){
+  const parsed=JSON.parse(String(rawText||''));
+  if(
+    parsed&&typeof parsed==='object'&&
+    parsed.type===COMPRESSED_EXPORT_BUNDLE_TYPE&&
+    parsed.encoding===COMPRESSED_EXPORT_ENCODING
+  ){
+    const payloadBase64=String(parsed.payloadBase64||'').trim();
+    if(!payloadBase64){
+      throw new Error('壓縮匯入檔缺少 payloadBase64 內容。');
+    }
+    const innerText=await ungzipBase64ToText(payloadBase64);
+    return JSON.parse(innerText);
+  }
+  return parsed;
+}
+
+btnPhotoManager.addEventListener('click',openPhotoModal);
+btnClosePhotoModal.addEventListener('click',closePhotoModal);
+btnFieldDelete.addEventListener('click',openFieldDeleteModal);
+btnCloseFieldDeleteModal.addEventListener('click',closeFieldDeleteModal);
+btnQueryManager.addEventListener('click',openQueryManagerModal);
+btnCloseQueryManagerModal.addEventListener('click',closeQueryManagerModal);
+
+photoModal.addEventListener('click',e=>{
+  if(e.target===photoModal)closePhotoModal();
+});
+fieldDeleteModal.addEventListener('click',e=>{
+  if(e.target===fieldDeleteModal)closeFieldDeleteModal();
+});
+queryManagerModal.addEventListener('click',e=>{
+  if(e.target===queryManagerModal)closeQueryManagerModal();
+});
+imageViewerModal.addEventListener('click',e=>{
+  const target=e.target;
+  if(!(target instanceof HTMLElement))return;
+  if(Date.now()<viewerSuppressCloseUntil)return;
+  if(
+    target===imageViewerModal ||
+    target.classList.contains('viewer-body')
+  ){
+    closeImageViewer();
+  }
+});
+
+btnCloseImageViewer.addEventListener('click',closeImageViewer);
+imageViewerImg.addEventListener('load',()=>{
+  clampViewerPan();
+  applyViewerTransform();
+});
+imageViewerImg.addEventListener('mousedown',e=>{
+  if(viewerZoom<=100)return;
+  viewerDragging=true;
+  viewerPanStartX=viewerPanX;
+  viewerPanStartY=viewerPanY;
+  viewerDragStartX=e.clientX-viewerPanX;
+  viewerDragStartY=e.clientY-viewerPanY;
+  applyViewerTransform();
+  e.preventDefault();
+});
+window.addEventListener('mousemove',e=>{
+  if(!viewerDragging)return;
+  viewerPanX=e.clientX-viewerDragStartX;
+  viewerPanY=e.clientY-viewerDragStartY;
+  clampViewerPan();
+  applyViewerTransform();
+});
+window.addEventListener('mouseup',()=>{
+  if(!viewerDragging)return;
+  const moved=Math.abs(viewerPanX-viewerPanStartX)+Math.abs(viewerPanY-viewerPanStartY);
+  if(moved>2)viewerSuppressCloseUntil=Date.now()+220;
+  viewerDragging=false;
+  applyViewerTransform();
+});
+viewerZoomRange.addEventListener('input',()=>applyViewerZoom(viewerZoomRange.value));
+btnViewerZoomOut.addEventListener('click',()=>applyViewerZoom(viewerZoom-10));
+btnViewerZoomIn.addEventListener('click',()=>applyViewerZoom(viewerZoom+10));
+btnViewerZoomReset.addEventListener('click',()=>applyViewerZoom(100));
+imageViewerModal.addEventListener('wheel',e=>{
+  if(imageViewerModal.classList.contains('hidden'))return;
+  e.preventDefault();
+  const now=Date.now();
+  if(now<viewerWheelLockUntil)return;
+  viewerWheelLockUntil=now+160;
+  if(e.deltaY>0)stepImageViewer(1);
+  if(e.deltaY<0)stepImageViewer(-1);
+},{passive:false});
+
+photoFieldSettingList.addEventListener('change',async e=>{
+  const sel=e.target.closest('select[data-photo-field]');
+  if(!sel)return;
+  const fieldId=sel.dataset.photoField;
+  const mode=sel.value;
+  if(!['none','thumb','a4'].includes(mode))return;
+
+  DB.photoDisplay=DB.photoDisplay||{};
+  DB.photoDisplay[fieldId]=mode;
+  DB=normalizeDB(DB);
+  if(!await saveDB()){
+    alert('儲存失敗：照片欄位設定未成功寫入。');
+    return;
+  }
+
+  renderPhotoFieldSettings();
+  renderPhotoTypeOptions();
+  runSearch();
+});
+
+selPhotoType.addEventListener('change',renderPhotoTargetSelect);
+selPhotoTarget.addEventListener('change',renderImageManager);
+imgInput.addEventListener('change',()=>{uploadSelectedImages();});
+
+queryFieldSettingList.addEventListener('change',async e=>{
+  const input=e.target.closest('input[data-query-field]');
+  if(!input)return;
+  const fieldId=String(input.dataset.queryField||'').trim();
+  if(!fieldId)return;
+
+  const prev=cloneForStorage(DB.queryDisplay||{});
+  const visibleSet=new Set(getQueryVisibleFieldIds());
+  if(input.checked){
+    visibleSet.add(fieldId);
+  }else{
+    visibleSet.delete(fieldId);
+  }
+  visibleSet.add('gas');
+  DB.queryDisplay=DB.queryDisplay||{};
+  DB.queryDisplay.visibleFields=getFieldOrder().filter(id=>visibleSet.has(id));
+  DB=normalizeDB(DB);
+
+  if(!await saveDB()){
+    DB.queryDisplay=prev;
+    DB=normalizeDB(DB);
+    renderQueryManagerSettings();
+    alert('儲存失敗：查詢欄位設定未成功寫入。');
+    return;
+  }
+
+  renderQueryManagerSettings();
+  runSearch();
+});
+
+queryFontRange.addEventListener('input',()=>{
+  const pct=clampQueryFontScale(queryFontRange.value);
+  queryFontPct.textContent=`${pct}%`;
+  applyQueryResultFontScale(pct);
+});
+queryFontRange.addEventListener('change',async ()=>{
+  const prev=getQueryFontScalePercent();
+  const next=clampQueryFontScale(queryFontRange.value);
+  DB.queryDisplay=DB.queryDisplay||{};
+  DB.queryDisplay.fontScalePercent=next;
+  DB=normalizeDB(DB);
+  if(!await saveDB()){
+    DB.queryDisplay=DB.queryDisplay||{};
+    DB.queryDisplay.fontScalePercent=prev;
+    DB=normalizeDB(DB);
+    queryFontRange.value=String(prev);
+    queryFontPct.textContent=`${prev}%`;
+    applyQueryResultFontScale(prev);
+    alert('儲存失敗：查詢字體大小未成功寫入。');
+    return;
+  }
+  applyQueryResultFontScale(next);
+});
+btnQueryFontReset.addEventListener('click',()=>{
+  queryFontRange.value=String(DEFAULT_QUERY_FONT_SCALE_PERCENT);
+  queryFontRange.dispatchEvent(new Event('input'));
+  queryFontRange.dispatchEvent(new Event('change'));
+});
+
+imgManageGrid.addEventListener('click',async e=>{
+  const btn=e.target.closest('.img-del-btn');
+  if(!btn)return;
+  const idx=Number(btn.dataset.idx);
+  if(!Number.isInteger(idx))return;
+
+  const fieldId=getCurrentPhotoFieldId();
+  const target=getCurrentPhotoTarget();
+  if(!fieldId||!target)return;
+
+  if(!confirm(`刪除「${target}」第 ${idx+1} 張照片？`))return;
+  const map=getFieldImageMap(fieldId);
+  const prev=[...(map[target]||[])];
+  map[target]=(map[target]||[]).filter((_,i)=>i!==idx);
+  DB=normalizeDB(DB);
+
+  if(!await saveDB()){
+    map[target]=prev;
+    alert('儲存失敗：瀏覽器儲存空間不足或寫入失敗，無法刪除後寫入。');
+    return;
+  }
+
+  renderImageManager();
+  runSearch();
+  alert('已刪除指定照片');
+});
+
+btnClearImgs.addEventListener('click',async ()=>{
+  const fieldId=getCurrentPhotoFieldId();
+  const target=getCurrentPhotoTarget();
+  if(!fieldId||!target){
+    alert('請先選擇管理欄位與項目。');
+    return;
+  }
+
+  const map=getFieldImageMap(fieldId);
+  if(!map[target]||map[target].length===0){
+    alert('目前無照片');
+    return;
+  }
+
+  if(!confirm(`清除「${target}」的全部照片？`))return;
+
+  const prev=[...(map[target]||[])];
+  map[target]=[];
+  DB=normalizeDB(DB);
+  if(!await saveDB()){
+    map[target]=prev;
+    alert('儲存失敗：瀏覽器儲存空間不足或寫入失敗，無法清除後寫入。');
+    return;
+  }
+
+  renderImageManager();
+  runSearch();
+  alert('已清除');
+});
+
+fieldManagerList.addEventListener('input',e=>{
+  const input=e.target.closest('input[data-role="label"]');
+  if(!input||!fieldLayoutDraft)return;
+  const row=input.closest('.field-manager-row');
+  if(!row)return;
+  const fieldId=row.dataset.fieldId;
+  const hit=fieldLayoutDraft.find(item=>item.id===fieldId);
+  if(hit)hit.label=input.value;
+});
+fieldManagerList.addEventListener('click',e=>{
+  const btn=e.target.closest('button[data-role]');
+  if(!btn||!fieldLayoutDraft)return;
+  const row=btn.closest('.field-manager-row');
+  if(!row)return;
+  const fieldId=row.dataset.fieldId;
+  const idx=fieldLayoutDraft.findIndex(item=>item.id===fieldId);
+  if(idx<0)return;
+
+  const role=btn.dataset.role;
+  if(role==='up')moveFieldInDraft(idx,-1);
+  if(role==='down')moveFieldInDraft(idx,1);
+  if(role==='remove'){
+    if(fieldId==='gas')return;
+    fieldLayoutDraft=fieldLayoutDraft.filter(item=>item.id!==fieldId);
+  }
+  renderFieldManagerDraft();
+});
+
+btnAddField.addEventListener('click',()=>{
+  const label=String(newFieldName.value||'').trim();
+  if(!label){
+    alert('請先輸入欄位名稱。');
+    return;
+  }
+  if(!fieldLayoutDraft)buildFieldLayoutDraft();
+  const id=makeFieldId(label);
+  fieldLayoutDraft.push({id,label,multi:false,builtin:false});
+  newFieldName.value='';
+  renderFieldManagerDraft();
+});
+
+btnSaveFieldLayout.addEventListener('click',()=>{applyFieldLayoutDraft();});
+
+deleteFieldRows.addEventListener('click',e=>{
+  const btn=e.target.closest('.btn-delete-value');
+  if(!btn)return;
+  const fieldId=btn.dataset.deleteField;
+  const select=[...deleteFieldRows.querySelectorAll('select[data-delete-field]')]
+    .find(sel=>sel.dataset.deleteField===fieldId);
+  if(!select)return;
+  const value=String(select.value||'').trim();
+  if(!value){
+    alert('目前沒有可刪除項目。');
+    return;
+  }
+
+  const label=getFieldLabel(fieldId);
+  const msg=fieldId==='gas'
+    ? `確定刪除氣體「${value}」整筆資料？`
+    : `確定刪除「${label}：${value}」？\n此動作會連動整份資料總覽。`;
+  if(!confirm(msg))return;
+
+  deleteFieldValue(fieldId,value);
+});
+
+document.getElementById('btnSearch').addEventListener('click',runSearch);
+document.getElementById('btnResetSearch').addEventListener('click',resetSearchInputs);
+if(btnReverse)btnReverse.addEventListener('click',runReverse);
+if(revPaperInput){
+  revPaperInput.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      e.preventDefault();
+      runReverse();
     }
   });
 }
-function normalizeDB(db){
-  db=db||{}; db.gases=db.gases||{}; db.paper2gas=db.paper2gas||{};
-  db.detectors=db.detectors||[]; db.paperCatalog=db.paperCatalog||[]; db.detectorImages=db.detectorImages||{};
-  Object.keys(db.gases).forEach(k=>{
-    const r=db.gases[k]||{};
-    r.detectors=mergeDetectorFragments(r.detectors||[]);
-    r.papers=[...new Set((r.papers||[]).map(normPaper).filter(Boolean))];
-    r.note=(r.note||'').trim();
-    db.gases[k]=r;
-  });
-  db.detectors=mergeDetectorFragments(db.detectors||[]);
-  db.paperCatalog=[...new Set((db.paperCatalog||[]).map(normPaper).filter(Boolean))];
-  const nextPaper2gas={};
-  Object.keys(db.paper2gas||{}).forEach(p=>{
-    const key=normPaper(p);
-    if(!key)return;
-    nextPaper2gas[key]=union(nextPaper2gas[key],uniqClean(db.paper2gas[p]||[]));
-  });
-  db.paper2gas=nextPaper2gas;
-  mergeDetectorImageKeys(db);
-  Object.keys(db.detectorImages).forEach(k=>{ if(!Array.isArray(db.detectorImages[k])) db.detectorImages[k]=[]; db.detectorImages[k]=db.detectorImages[k].slice(-MAX_IMAGES_PER_DETECTOR); });
-  return db;
-}
-function fileToDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});}
-</script>
-<script src="./mobile-datalist.js"></script>
 
-<script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", function () {
-    navigator.serviceWorker.register("./sw.js").catch(function (err) {
-      console.warn("Service Worker 註冊失敗:", err);
+btnToggleOverview.addEventListener('click',()=>{
+  const hide=overviewBody.classList.toggle('hidden');
+  btnToggleOverview.setAttribute('aria-expanded',String(!hide));
+  btnToggleOverview.textContent=hide?'展開資料總覽':'收合資料總覽';
+});
+
+btnEditOverview.addEventListener('click',()=>{
+  closeFieldDeleteModal();
+  overviewEditSnapshot=cloneForStorage(DB);
+  isOverviewEditing=true;
+  refreshOverviewEditDatalists();
+  setOverviewEditButtons();
+  renderTable();
+});
+btnCancelOverview.addEventListener('click',()=>{
+  if(overviewEditSnapshot)DB=normalizeDB(overviewEditSnapshot);
+  isOverviewEditing=false;
+  setOverviewEditButtons();
+  refreshDatalists();
+  renderTable();
+});
+btnSaveOverview.addEventListener('click',async ()=>{
+  const rows=[...document.querySelectorAll('#tableWrap tbody tr[data-edit-row]')];
+  const nextGases={};
+
+  rows.forEach(row=>{
+    const gas=normGasKeep(row.querySelector('.ov-gas')?.value);
+    if(!gas)return;
+
+    const rowValues={};
+    [...row.querySelectorAll('.ov-field[data-field-id]')].forEach(input=>{
+      const fieldId=input.dataset.fieldId;
+      rowValues[fieldId]=parseFieldInput(fieldId,input.value);
+    });
+
+    if(!nextGases[gas]){
+      const base=normalizeGasRecord(DB.gases[gas]||createEmptyGasRecord());
+      Object.keys(rowValues).forEach(fieldId=>{
+        setFieldValue(base,fieldId,rowValues[fieldId]);
+      });
+      nextGases[gas]=base;
+      return;
+    }
+
+    Object.keys(rowValues).forEach(fieldId=>{
+      const merged=mergeFieldValue(getFieldValue(nextGases[gas],fieldId),rowValues[fieldId],fieldId);
+      setFieldValue(nextGases[gas],fieldId,merged);
     });
   });
-}
+
+  if(Object.keys(nextGases).length===0){
+    alert('請至少保留一筆有效資料');
+    return;
+  }
+
+  DB.gases=nextGases;
+  rebuildDerivedFromGases();
+  DB=normalizeDB(DB);
+  if(!await saveDB()){
+    alert('儲存失敗：瀏覽器儲存空間不足或寫入失敗，請先整理部分照片後再試。');
+    return;
+  }
+
+  isOverviewEditing=false;
+  overviewEditSnapshot=null;
+  setOverviewEditButtons();
+  refreshDatalists();
+  renderTable();
+  runSearch();
+  alert('資料總覽已更新');
+});
+
+document.getElementById('tableWrap').addEventListener('click',e=>{
+  if(!isOverviewEditing)return;
+
+  if(e.target.classList.contains('row-del')){
+    const tr=e.target.closest('tr[data-edit-row]');
+    if(tr)tr.remove();
+    return;
+  }
+
+  if(e.target.id==='btnAddOverviewRow'){
+    const tbody=document.querySelector('#tableWrap tbody');
+    if(!tbody)return;
+    const tailRow=tbody.querySelector('tr.tail-space');
+    if(tailRow){
+      tailRow.insertAdjacentHTML('beforebegin',buildOverviewEditRow('',createEmptyGasRecord()));
+    }else{
+      tbody.insertAdjacentHTML('beforeend',buildOverviewEditRow('',createEmptyGasRecord()));
+    }
+  }
+});
+
+document.getElementById('btnExportFull').addEventListener('click',async ()=>{
+  const exportBtn=document.getElementById('btnExportFull');
+  const defaultText=String(exportBtn.textContent||'匯出完整設定(JSON)');
+  exportBtn.disabled=true;
+  exportBtn.textContent='匯出壓縮中...';
+  try{
+    const exportedAt=new Date().toISOString();
+    const payload={
+      type:'gas_lookup_full_config',
+      version:4,
+      exportedAt,
+      db:cloneForStorage(DB)
+    };
+    const plainText=JSON.stringify(payload);
+    const plainBytes=new Blob([plainText],{type:'application/json'}).size;
+
+    let downloadText=plainText;
+    let downloadName='gas_lookup_full_config.json';
+    let compressed=false;
+
+    if(typeof CompressionStream==='function'){
+      const payloadBase64=await gzipTextToBase64(plainText);
+      const wrapped={
+        type:COMPRESSED_EXPORT_BUNDLE_TYPE,
+        formatVersion:1,
+        encoding:COMPRESSED_EXPORT_ENCODING,
+        schemaType:payload.type,
+        schemaVersion:payload.version,
+        exportedAt,
+        payloadBase64
+      };
+      downloadText=JSON.stringify(wrapped);
+      downloadName='gas_lookup_full_config.compressed.json';
+      compressed=true;
+    }
+
+    const blob=new Blob([downloadText],{type:'application/json'});
+    const a=document.createElement('a');
+    const url=URL.createObjectURL(blob);
+    a.href=url;
+    a.download=downloadName;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    const savedBytes=Math.max(0,plainBytes-blob.size);
+    const reducedPct=plainBytes>0?(savedBytes/plainBytes)*100:0;
+    if(compressed){
+      alert(
+        `已完成無損壓縮匯出。\n`+
+        `檔案大小約 ${formatBytes(plainBytes)} -> ${formatBytes(blob.size)}，`+
+        `減少 ${formatBytes(savedBytes)}（約 ${reducedPct.toFixed(1)}%）。\n`+
+        `照片資料保持原樣，不會影響畫質。`
+      );
+    }else{
+      alert('已匯出（目前瀏覽器不支援 CompressionStream，改用一般 JSON 匯出）。');
+    }
+  }catch(err){
+    alert('匯出失敗：'+(err&&err.message?err.message:String(err||'未知錯誤')));
+  }finally{
+    exportBtn.disabled=false;
+    exportBtn.textContent=defaultText;
+  }
+});
+
+document.getElementById('btnImport').addEventListener('click',()=>document.getElementById('fileIn').click());
+document.getElementById('fileIn').addEventListener('change',e=>{
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async ()=>{
+    try{
+      const rawIncoming=await parsePossiblyCompressedImportJson(reader.result);
+      const incoming=(rawIncoming&&rawIncoming.db&&(
+        rawIncoming.type==='gas_leak_response_full_config'||
+        rawIncoming.type==='gas_lookup_full_config'
+      ))?rawIncoming.db:rawIncoming;
+
+      DB=normalizeDB(incoming);
+      const ok=await saveDB();
+      refreshDatalists();
+      renderTable();
+      runSearch();
+      if(ok){
+        alert('已匯入並覆蓋');
+      }else{
+        alert('已匯入到目前頁面，但儲存失敗，重新整理後可能遺失。');
+      }
+    }catch(err){
+      alert('匯入失敗：'+err);
+    }
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('btnPreset').addEventListener('click',async ()=>{
+  if(!confirm('還原內建預設？將覆蓋目前本機資料。'))return;
+  DB=normalizeDB(JSON.parse(JSON.stringify(PRESET)));
+  const ok=await saveDB();
+  refreshDatalists();
+  renderTable();
+  runSearch();
+  if(ok){
+    alert('已還原預設');
+  }else{
+    alert('已還原到目前頁面，但儲存失敗，重新整理後可能遺失。');
+  }
+});
+
+zoomRange.addEventListener('input',()=>applyPageZoom(zoomRange.value));
+btnZoomOut.addEventListener('click',()=>adjustPageZoom(-5));
+btnZoomIn.addEventListener('click',()=>adjustPageZoom(5));
+btnZoomReset.addEventListener('click',()=>applyPageZoom(100));
+(function initPageZoom(){
+  applyPageZoom(100,{persist:false});
+  try{localStorage.setItem(LS_PAGE_ZOOM_KEY,'100');}catch(_){/* noop */}
+})();
+
+resultGas.addEventListener('click',e=>{
+  const img=e.target.closest('img[data-viewer-caption]');
+  if(!img)return;
+
+  const all=[...resultGas.querySelectorAll('img[data-viewer-caption]')];
+  if(all.length===0)return;
+  const idx=all.indexOf(img);
+  if(idx<0)return;
+  const items=all.map(node=>({
+    src:node.getAttribute('src')||'',
+    caption:node.dataset.viewerCaption||''
+  })).filter(item=>item.src);
+
+  openImageViewer(items,idx);
+});
+
+document.addEventListener('keydown',e=>{
+  if(!imageViewerModal.classList.contains('hidden')){
+    if(e.key==='ArrowDown'){
+      e.preventDefault();
+      stepImageViewer(1);
+      return;
+    }
+    if(e.key==='ArrowUp'){
+      e.preventDefault();
+      stepImageViewer(-1);
+      return;
+    }
+  }
+
+  if(e.key!=='Escape')return;
+
+  if(!imageViewerModal.classList.contains('hidden')){
+    closeImageViewer();
+    return;
+  }
+  if(!fieldDeleteModal.classList.contains('hidden')){
+    closeFieldDeleteModal();
+    return;
+  }
+  if(!queryManagerModal.classList.contains('hidden')){
+    closeQueryManagerModal();
+    return;
+  }
+  if(!photoModal.classList.contains('hidden')){
+    closePhotoModal();
+    return;
+  }
+  closeAllQueryDropdowns();
+});
+
+refreshDatalists();
+renderTable();
+setOverviewEditButtons();
+runSearch();
+bootstrapPersistentStorage();
+
 </script>
+
 </body>
 </html>
