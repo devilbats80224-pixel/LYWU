@@ -1,0 +1,1541 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>F20緊急應變資訊整合系統</title>
+  <style>
+    :root {
+      --bg: #eef2f8;
+      --panel: #ffffff;
+      --border: #ccd3df;
+      --text: #1a2333;
+      --muted: #5e6b81;
+      --tab: #dce3ee;
+      --tab-active: #ffffff;
+      --accent: #0f5fcf;
+      --danger: #b62828;
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #f5f8ff 0%, #ecf1f8 100%);
+    }
+
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+    }
+
+    .top-bar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      padding: 14px 16px 10px;
+      gap: 10px;
+    }
+
+    .title {
+      grid-column: 2;
+      justify-self: center;
+      text-align: center;
+      margin: 0;
+      font-size: clamp(20px, 2.6vw, 30px);
+      letter-spacing: 0.5px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .settings-btn {
+      grid-column: 3;
+      justify-self: end;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .settings-btn:hover {
+      border-color: var(--accent);
+    }
+
+    .tabs-wrap {
+      padding: 0 16px;
+      display: flex;
+      align-items: flex-end;
+      min-height: 44px;
+    }
+
+    .tab-bar {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+      overflow-x: auto;
+      padding-bottom: 0;
+      scrollbar-width: thin;
+    }
+
+    .tab {
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 12px 12px 0 0;
+      background: var(--tab);
+      min-width: 130px;
+      max-width: 230px;
+      padding: 9px 12px;
+      font-size: 14px;
+      color: #213049;
+      text-align: left;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tab.active {
+      background: var(--tab-active);
+      font-weight: 700;
+      position: relative;
+      top: 1px;
+    }
+
+    .viewer {
+      margin: 0 16px 16px;
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 0 12px 12px 12px;
+      background: var(--panel);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+
+    .viewer-frame {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #fff;
+    }
+
+    .external-hint {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 10px;
+      border: 1px solid #c7d3ea;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.96);
+      z-index: 3;
+      font-size: 13px;
+      color: var(--muted);
+      backdrop-filter: blur(2px);
+    }
+
+    .external-hint.warning {
+      border-color: #dfbe76;
+      background: #fff9e8;
+      color: #6f4f14;
+    }
+
+    .external-hint-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .external-open-btn {
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      background: #fff;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .external-open-btn:hover {
+      background: #f1f7ff;
+    }
+
+    .empty-state {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-content: center;
+      text-align: center;
+      padding: 24px;
+      color: var(--muted);
+      background: #f8fbff;
+      gap: 10px;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .hint {
+      font-size: 13px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 40, 0.5);
+      display: grid;
+      place-content: center;
+      z-index: 1000;
+      padding: 18px;
+    }
+
+    .modal-card {
+      width: min(820px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      background: var(--panel);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .modal-title {
+      margin: 0 0 14px;
+      font-size: 20px;
+    }
+
+    .row-group {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    input[type="text"],
+    input[type="url"] {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+    }
+
+    input:focus {
+      outline: 2px solid rgba(15, 95, 207, 0.22);
+      border-color: var(--accent);
+    }
+
+    .tab-editor-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .tab-editor-item {
+      border: 1px solid var(--border);
+      background: #f9fbff;
+      border-radius: 10px;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .tab-editor-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .tab-index {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .remove-btn,
+    .secondary-btn,
+    .primary-btn {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      background: #fff;
+      color: var(--text);
+    }
+
+    .remove-btn {
+      color: var(--danger);
+      border-color: #d9b2b2;
+    }
+
+    .remove-btn:hover {
+      background: #fff1f1;
+    }
+
+    .secondary-btn:hover {
+      border-color: var(--accent);
+    }
+
+    .primary-btn {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .primary-btn:hover {
+      filter: brightness(0.95);
+    }
+
+    .inline-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .upload-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .upload-info {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .check-result {
+      width: 100%;
+      border: 1px solid #cfd7e7;
+      background: #f6f9ff;
+      color: #33445f;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .check-result.warning {
+      border-color: #e1b96a;
+      background: #fff8e6;
+      color: #735219;
+    }
+
+    .check-result.good {
+      border-color: #9cc8a8;
+      background: #f1fbf4;
+      color: #255432;
+    }
+
+    .clear-upload-btn {
+      border: 1px solid #d9b2b2;
+      color: var(--danger);
+      background: #fff;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .clear-upload-btn:hover {
+      background: #fff1f1;
+    }
+
+    .foot-note {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .modal-tools {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .modal-actions-right {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 720px) {
+      .top-bar {
+        padding-top: 12px;
+      }
+
+      .viewer {
+        margin: 0 10px 10px;
+      }
+
+      .tabs-wrap {
+        padding: 0 10px;
+      }
+
+      .modal {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-bar">
+      <h1 id="appTitle" class="title">F20緊急應變資訊整合系統</h1>
+      <button id="openSettingsBtn" class="settings-btn" type="button">設定</button>
+    </header>
+
+    <div class="tabs-wrap">
+      <div id="tabBar" class="tab-bar" role="tablist" aria-label="分頁列"></div>
+    </div>
+
+    <section class="viewer">
+      <iframe id="viewerFrame" class="viewer-frame" title="分頁內容顯示區"></iframe>
+      <div id="externalHint" class="external-hint hidden">
+        <div id="externalHintText" class="external-hint-text"></div>
+        <button id="openExternalBtn" class="external-open-btn" type="button">在新分頁開啟</button>
+      </div>
+      <div id="emptyState" class="empty-state">
+        <div>目前分頁尚未設定內容來源。</div>
+        <div class="hint">請按右上角「設定」，填入本機 HTML 路徑或網頁連結。</div>
+      </div>
+    </section>
+  </div>
+
+  <div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal-card">
+      <h2 id="settingsTitle" class="modal-title">系統設定</h2>
+
+      <div class="row-group">
+        <label for="titleInput">頁面標題</label>
+        <input id="titleInput" type="text" placeholder="請輸入系統標題">
+      </div>
+
+      <div class="row-group">
+        <label>分頁管理</label>
+        <div id="tabEditorList" class="tab-editor-list"></div>
+      </div>
+
+      <div class="foot-note">
+        本頁面無任何外部套件與自動連網行為。若你在分頁來源欄位填入 `https://` 網址，僅會在你主動使用該分頁時嘗試載入。支援 YouTube/Google Maps 常見網址自動轉換為可內嵌格式；也會對已知不可內嵌網址顯示紅色提示，並可用「內嵌檢查」按鈕查看處理建議。
+      </div>
+
+      <div class="modal-tools">
+        <button id="exportSettingsBtn" class="secondary-btn" type="button">匯出設定</button>
+        <button id="importSettingsBtn" class="secondary-btn" type="button">匯入設定</button>
+        <button id="resetDefaultsBtn" class="remove-btn" type="button">還原預設</button>
+        <input id="importSettingsInput" class="hidden" type="file" accept=".json,application/json">
+      </div>
+
+      <div class="modal-actions">
+        <button id="addTabBtn" class="secondary-btn" type="button">新增分頁</button>
+        <div class="modal-actions-right">
+          <button id="cancelSettingsBtn" class="secondary-btn" type="button">取消</button>
+          <button id="saveSettingsBtn" class="primary-btn" type="button">儲存套用</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var STORAGE_KEY = "f20_emergency_hub_config_v1";
+      var DEFAULT_TITLE = "F20緊急應變資訊整合系統";
+
+      var state = loadState();
+
+      var appTitle = document.getElementById("appTitle");
+      var tabBar = document.getElementById("tabBar");
+      var viewerFrame = document.getElementById("viewerFrame");
+      var externalHint = document.getElementById("externalHint");
+      var externalHintText = document.getElementById("externalHintText");
+      var openExternalBtn = document.getElementById("openExternalBtn");
+      var emptyState = document.getElementById("emptyState");
+
+      var settingsModal = document.getElementById("settingsModal");
+      var titleInput = document.getElementById("titleInput");
+      var tabEditorList = document.getElementById("tabEditorList");
+
+      var openSettingsBtn = document.getElementById("openSettingsBtn");
+      var addTabBtn = document.getElementById("addTabBtn");
+      var cancelSettingsBtn = document.getElementById("cancelSettingsBtn");
+      var saveSettingsBtn = document.getElementById("saveSettingsBtn");
+      var exportSettingsBtn = document.getElementById("exportSettingsBtn");
+      var importSettingsBtn = document.getElementById("importSettingsBtn");
+      var resetDefaultsBtn = document.getElementById("resetDefaultsBtn");
+      var importSettingsInput = document.getElementById("importSettingsInput");
+
+      var editorTabs = [];
+      var externalSourceToOpen = "";
+      var embedCheckTimer = null;
+      var importedActiveTabId = null;
+
+      openSettingsBtn.addEventListener("click", openSettings);
+      cancelSettingsBtn.addEventListener("click", closeSettings);
+      addTabBtn.addEventListener("click", onAddEditorTab);
+      saveSettingsBtn.addEventListener("click", onSaveSettings);
+      openExternalBtn.addEventListener("click", openExternalSource);
+      exportSettingsBtn.addEventListener("click", onExportSettings);
+      importSettingsBtn.addEventListener("click", onImportSettings);
+      resetDefaultsBtn.addEventListener("click", onResetDefaults);
+      importSettingsInput.addEventListener("change", onImportSettingsFileChange);
+
+      settingsModal.addEventListener("click", function (event) {
+        if (event.target === settingsModal) {
+          closeSettings();
+        }
+      });
+
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && !settingsModal.classList.contains("hidden")) {
+          closeSettings();
+        }
+      });
+
+      render();
+
+      function loadState() {
+        var parsed = null;
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          parsed = raw ? JSON.parse(raw) : null;
+        } catch (error) {
+          parsed = null;
+        }
+
+        if (!parsed || !Array.isArray(parsed.tabs) || parsed.tabs.length === 0) {
+          return buildDefaultState();
+        }
+
+        var normalizedTabs = parsed.tabs.map(function (tab, index) {
+          return {
+            id: typeof tab.id === "string" && tab.id ? tab.id : createTabId(),
+            name: normalizeName(tab.name, index + 1),
+            source: typeof tab.source === "string" ? tab.source.trim() : "",
+            uploadedHtml: typeof tab.uploadedHtml === "string" ? tab.uploadedHtml : "",
+            uploadedFileName: typeof tab.uploadedFileName === "string" ? tab.uploadedFileName : ""
+          };
+        });
+
+        var activeExists = normalizedTabs.some(function (tab) {
+          return tab.id === parsed.activeTabId;
+        });
+
+        return {
+          title: typeof parsed.title === "string" && parsed.title.trim() ? parsed.title.trim() : DEFAULT_TITLE,
+          activeTabId: activeExists ? parsed.activeTabId : normalizedTabs[0].id,
+          tabs: normalizedTabs
+        };
+      }
+
+      function buildDefaultState() {
+        var tab1 = { id: createTabId(), name: "分頁 1", source: "", uploadedHtml: "", uploadedFileName: "" };
+        var tab2 = { id: createTabId(), name: "分頁 2", source: "", uploadedHtml: "", uploadedFileName: "" };
+        return {
+          title: DEFAULT_TITLE,
+          activeTabId: tab1.id,
+          tabs: [tab1, tab2]
+        };
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          return true;
+        } catch (error) {
+          console.warn("無法寫入 localStorage，設定不會持久保存。", error);
+          return false;
+        }
+      }
+
+      function createTabId() {
+        return "tab-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
+      }
+
+      function normalizeName(name, fallbackIndex) {
+        if (typeof name === "string" && name.trim()) {
+          return name.trim();
+        }
+        return "分頁 " + fallbackIndex;
+      }
+
+      function render() {
+        appTitle.textContent = state.title || DEFAULT_TITLE;
+        document.title = appTitle.textContent;
+        renderTabs();
+        renderViewer();
+      }
+
+      function renderTabs() {
+        tabBar.innerHTML = "";
+        state.tabs.forEach(function (tab) {
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "tab" + (tab.id === state.activeTabId ? " active" : "");
+          btn.textContent = tab.name;
+          btn.setAttribute("role", "tab");
+          btn.setAttribute("aria-selected", tab.id === state.activeTabId ? "true" : "false");
+          btn.setAttribute("title", tab.name);
+          btn.addEventListener("click", function () {
+            state.activeTabId = tab.id;
+            saveState();
+            render();
+          });
+          tabBar.appendChild(btn);
+        });
+      }
+
+      function renderViewer() {
+        var activeTab = state.tabs.find(function (tab) {
+          return tab.id === state.activeTabId;
+        });
+        clearEmbedCheckTimer();
+
+        if (!activeTab) {
+          clearFrameToBlank();
+          hideExternalHint();
+          emptyState.classList.remove("hidden");
+          return;
+        }
+
+        if (activeTab.source && activeTab.source.trim()) {
+          var parsedSource = parseSourceInput(activeTab.source);
+
+          if (parsedSource.kind === "url") {
+            var resolvedUrl = resolveUrlForEmbed(parsedSource.value);
+            var blockedReason = detectKnownNonEmbeddableUrl(parsedSource.value, resolvedUrl);
+            emptyState.classList.add("hidden");
+            loadFrameUrl(resolvedUrl);
+            if (isWebUrl(resolvedUrl)) {
+              if (blockedReason) {
+                showExternalHint(
+                  parsedSource.value,
+                  true,
+                  blockedReason + " 建議按右側按鈕改用新分頁開啟。"
+                );
+              } else if (resolvedUrl !== parsedSource.value) {
+                showExternalHint(
+                  parsedSource.value,
+                  false,
+                  "已自動轉換為可內嵌網址。若畫面空白，可按右側按鈕開啟原始網址：" + parsedSource.value
+                );
+              } else {
+                showExternalHint(parsedSource.value, false);
+              }
+              if (!blockedReason) {
+                scheduleEmbedCheck(parsedSource.value);
+              }
+            } else {
+              hideExternalHint();
+            }
+            return;
+          }
+
+          if (parsedSource.kind === "html") {
+            emptyState.classList.add("hidden");
+            hideExternalHint();
+            clearFrameToBlank();
+            viewerFrame.srcdoc = buildHtmlSourceDoc(parsedSource.value);
+            return;
+          }
+        }
+
+        if (activeTab.uploadedHtml && activeTab.uploadedHtml.trim()) {
+          emptyState.classList.add("hidden");
+          hideExternalHint();
+          clearFrameToBlank();
+          viewerFrame.srcdoc = activeTab.uploadedHtml;
+          return;
+        }
+
+        clearFrameToBlank();
+        hideExternalHint();
+        emptyState.classList.remove("hidden");
+      }
+
+      function clearFrameToBlank() {
+        viewerFrame.removeAttribute("srcdoc");
+        viewerFrame.src = "about:blank";
+      }
+
+      function loadFrameUrl(url) {
+        // srcdoc 存在時會優先於 src，必須先移除才不會整個空白
+        viewerFrame.removeAttribute("srcdoc");
+        viewerFrame.src = url;
+      }
+
+      function isWebUrl(value) {
+        return /^https?:\/\//i.test(value);
+      }
+
+      function clearEmbedCheckTimer() {
+        if (embedCheckTimer) {
+          window.clearTimeout(embedCheckTimer);
+          embedCheckTimer = null;
+        }
+      }
+
+      function showExternalHint(source, warningMode, customText) {
+        externalSourceToOpen = source;
+        externalHint.classList.remove("hidden");
+        externalHint.classList.toggle("warning", !!warningMode);
+        if (typeof customText === "string" && customText) {
+          externalHintText.textContent = customText;
+          return;
+        }
+        if (warningMode) {
+          externalHintText.textContent = "此網站可能禁止 iframe 內嵌，請改用右側按鈕直接開啟。";
+          return;
+        }
+        externalHintText.textContent = "外部網站可能限制內嵌。若畫面空白，可按右側按鈕開啟：" + source;
+      }
+
+      function hideExternalHint() {
+        externalSourceToOpen = "";
+        externalHintText.textContent = "";
+        externalHint.classList.remove("warning");
+        externalHint.classList.add("hidden");
+      }
+
+      function openExternalSource() {
+        if (!externalSourceToOpen) {
+          return;
+        }
+        var opened = window.open(externalSourceToOpen, "_blank");
+        if (opened) {
+          try {
+            opened.opener = null;
+          } catch (error) {
+            // ignore
+          }
+          return;
+        }
+        alert("瀏覽器可能阻擋了新分頁，請允許此頁面的彈出式視窗後再試。");
+      }
+
+      function scheduleEmbedCheck(source) {
+        embedCheckTimer = window.setTimeout(function () {
+          try {
+            var current = viewerFrame.contentWindow && viewerFrame.contentWindow.location
+              ? viewerFrame.contentWindow.location.href
+              : "";
+            if (current === "about:blank") {
+              showExternalHint(source, true);
+            }
+          } catch (error) {
+            // Cross-origin 成功載入時無法直接讀取，保留一般提示。
+          }
+        }, 1500);
+      }
+
+      function isLikelyHtml(file) {
+        var name = file && typeof file.name === "string" ? file.name.toLowerCase() : "";
+        var type = file && typeof file.type === "string" ? file.type.toLowerCase() : "";
+        return name.endsWith(".html") || name.endsWith(".htm") || type.indexOf("text/html") === 0;
+      }
+
+      function readFileAsText(file) {
+        return new Promise(function (resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function () {
+            resolve(typeof reader.result === "string" ? reader.result : "");
+          };
+          reader.onerror = function () {
+            reject(new Error("讀取檔案失敗"));
+          };
+          reader.readAsText(file, "utf-8");
+        });
+      }
+
+      function getUploadInfoText(tab) {
+        if (tab.uploadedFileName) {
+          return "已上傳 HTML：" + tab.uploadedFileName;
+        }
+        if (tab.uploadedHtml) {
+          return "已上傳 HTML（未命名）";
+        }
+        return "尚未上傳 HTML 檔案";
+      }
+
+      function onChooseHtmlFile(tab, sourceInput, uploadInfo, clearUploadBtn, fileInput) {
+        var file = fileInput.files && fileInput.files[0];
+        if (!file) {
+          return;
+        }
+
+        if (!isLikelyHtml(file)) {
+          alert("請選擇 .html 或 .htm 檔案。");
+          fileInput.value = "";
+          return;
+        }
+
+        readFileAsText(file)
+          .then(function (content) {
+            tab.uploadedHtml = content;
+            tab.uploadedFileName = file.name || "";
+            tab.source = "";
+            sourceInput.value = "";
+            uploadInfo.textContent = getUploadInfoText(tab);
+            clearUploadBtn.classList.remove("hidden");
+          })
+          .catch(function () {
+            alert("檔案讀取失敗，請重新選擇檔案。");
+          })
+          .finally(function () {
+            fileInput.value = "";
+          });
+      }
+
+      function clearUploadedHtml(tab, uploadInfo, clearUploadBtn) {
+        tab.uploadedHtml = "";
+        tab.uploadedFileName = "";
+        uploadInfo.textContent = getUploadInfoText(tab);
+        clearUploadBtn.classList.add("hidden");
+      }
+
+      function openFilePicker(fileInput) {
+        fileInput.click();
+      }
+
+      function normalizeSource(source) {
+        var trimmed = source.trim();
+        if (!trimmed) {
+          return "";
+        }
+        return trimmed.replace(/\\/g, "/");
+      }
+
+      function parseSourceInput(source) {
+        var normalized = normalizeSource(source);
+        if (!normalized) {
+          return { kind: "empty", value: "" };
+        }
+
+        var iframeSrc = extractIframeSrc(normalized);
+        if (iframeSrc) {
+          return {
+            kind: "url",
+            value: normalizeSource(iframeSrc)
+          };
+        }
+
+        if (isHtmlSnippet(normalized)) {
+          return {
+            kind: "html",
+            value: normalized
+          };
+        }
+
+        return {
+          kind: "url",
+          value: normalized
+        };
+      }
+
+      function resolveUrlForEmbed(urlText) {
+        var normalized = normalizeSource(urlText);
+        var converted = tryConvertYouTubeEmbedUrl(normalized);
+        if (converted) {
+          return converted;
+        }
+
+        converted = tryConvertGoogleMapsEmbedUrl(normalized);
+        if (converted) {
+          return converted;
+        }
+
+        return normalized;
+      }
+
+      function detectKnownNonEmbeddableUrl(originalUrlText, resolvedUrlText) {
+        var originalUrl = parseAbsoluteUrl(originalUrlText);
+        if (!originalUrl) {
+          return "";
+        }
+
+        var originalHost = originalUrl.hostname.toLowerCase();
+        if (originalHost === "maps.app.goo.gl" || originalHost.endsWith(".maps.app.goo.gl")) {
+          return "這是 Google Maps 短網址，通常會被 iframe 拒絕。";
+        }
+
+        if (isGoogleDomainHost(originalHost)) {
+          var originalPath = originalUrl.pathname || "/";
+          if (originalPath === "/" || /^\/(?:search|webhp|imghp)(?:\/|$)/i.test(originalPath)) {
+            return "Google 一般搜尋/首頁屬於 sameorigin 頁面，瀏覽器會阻擋 iframe。";
+          }
+
+          var resolvedUrl = parseAbsoluteUrl(resolvedUrlText);
+          if (resolvedUrl && isGoogleDomainHost(resolvedUrl.hostname.toLowerCase())) {
+            var resolvedPath = resolvedUrl.pathname || "/";
+            var isEmbedPath = /^\/maps\/embed(?:\/|$)/i.test(resolvedPath);
+            var isEmbedOutput = resolvedUrl.searchParams.get("output") === "embed";
+            if (/^\/maps(?:\/|$)/i.test(resolvedPath) && !isEmbedPath && !isEmbedOutput) {
+              return "目前不是 Google Maps 的 embed 端點，通常無法直接內嵌。";
+            }
+          }
+        }
+
+        return "";
+      }
+
+      function isGoogleDomainHost(host) {
+        return host === "google.com" || host.endsWith(".google.com");
+      }
+
+      function looksLikeLoginRequiredUrl(urlText) {
+        var url = parseAbsoluteUrl(urlText);
+        if (!url) {
+          return false;
+        }
+        var markerText = (url.hostname + url.pathname + url.search).toLowerCase();
+        return /(login|signin|sign-in|auth|oauth|sso|account|session|passport|token)/i.test(markerText);
+      }
+
+      function buildEmbedChecklist(sourceText) {
+        var parsed = parseSourceInput(sourceText || "");
+        if (parsed.kind === "empty") {
+          return {
+            level: "warning",
+            text: "尚未輸入來源。請先貼上網址或 iframe 代碼。"
+          };
+        }
+
+        if (parsed.kind === "html") {
+          var iframeSrc = extractIframeSrc(parsed.value);
+          if (iframeSrc) {
+            return {
+              level: "good",
+              text: "已偵測到 iframe 代碼，系統會改用其中的 src 來載入。"
+            };
+          }
+          return {
+            level: "warning",
+            text: "這段 HTML 沒有偵測到 iframe src。請確認貼入內容是否真的包含 iframe。"
+          };
+        }
+
+        var resolvedUrl = resolveUrlForEmbed(parsed.value);
+        var blockedReason = detectKnownNonEmbeddableUrl(parsed.value, resolvedUrl);
+        var chunks = [];
+
+        if (resolvedUrl !== parsed.value) {
+          chunks.push("系統可自動轉換為較適合內嵌的網址。");
+        } else {
+          chunks.push("系統沒有找到可自動轉換規則，將直接嘗試原網址。");
+        }
+
+        if (blockedReason) {
+          chunks.push("已知限制：" + blockedReason);
+          chunks.push("建議改用右側「在新分頁開啟」。");
+          return {
+            level: "warning",
+            text: chunks.join(" ")
+          };
+        }
+
+        if (looksLikeLoginRequiredUrl(parsed.value)) {
+          chunks.push("網址看起來可能需要登入。若先在新分頁完成登入，再回來可能可顯示。");
+        }
+
+        chunks.push("若仍顯示拒絕連線，多半是目標站的 X-Frame-Options/CSP 所致，前端無法繞過。");
+        return {
+          level: "good",
+          text: chunks.join(" ")
+        };
+      }
+
+      function applyChecklistResult(element, report) {
+        element.className = "check-result";
+        if (report && report.level === "warning") {
+          element.classList.add("warning");
+        } else if (report && report.level === "good") {
+          element.classList.add("good");
+        }
+        element.textContent = report && report.text ? report.text : "尚未檢查。";
+      }
+
+      function tryConvertYouTubeEmbedUrl(urlText) {
+        var url = parseAbsoluteUrl(urlText);
+        if (!url) {
+          return "";
+        }
+
+        var host = url.hostname.toLowerCase();
+        var isYouTubeHost =
+          host === "youtu.be" ||
+          host.endsWith(".youtu.be") ||
+          host === "youtube.com" ||
+          host.endsWith(".youtube.com") ||
+          host === "youtube-nocookie.com" ||
+          host.endsWith(".youtube-nocookie.com");
+        if (!isYouTubeHost) {
+          return "";
+        }
+
+        if (/^\/embed\//i.test(url.pathname)) {
+          return url.toString();
+        }
+
+        var videoId = "";
+        if (host.indexOf("youtu.be") !== -1) {
+          var shortSegments = url.pathname.split("/").filter(Boolean);
+          videoId = shortSegments[0] || "";
+        } else if (url.pathname === "/watch") {
+          videoId = url.searchParams.get("v") || "";
+        } else {
+          var pathMatch = url.pathname.match(/^\/(?:shorts|live|v)\/([^/?#]+)/i);
+          if (pathMatch) {
+            videoId = pathMatch[1] || "";
+          }
+        }
+
+        if (!videoId) {
+          return "";
+        }
+
+        var embed = new URL("https://www.youtube.com/embed/" + encodeURIComponent(videoId));
+        var playlistId = url.searchParams.get("list");
+        if (playlistId) {
+          embed.searchParams.set("list", playlistId);
+        }
+
+        var startSeconds = parseYouTubeStartSeconds(url.searchParams.get("t") || url.searchParams.get("start"));
+        if (startSeconds > 0) {
+          embed.searchParams.set("start", String(startSeconds));
+        }
+
+        var shareInfo = url.searchParams.get("si");
+        if (shareInfo) {
+          embed.searchParams.set("si", shareInfo);
+        }
+
+        return embed.toString();
+      }
+
+      function parseYouTubeStartSeconds(rawValue) {
+        if (!rawValue) {
+          return 0;
+        }
+        var value = String(rawValue).trim().toLowerCase();
+        if (!value) {
+          return 0;
+        }
+        if (/^\d+$/.test(value)) {
+          return parseInt(value, 10);
+        }
+
+        var tokenMatch = value.match(/(\d+)(h|m|s)/g);
+        if (!tokenMatch) {
+          return 0;
+        }
+
+        var seconds = 0;
+        for (var i = 0; i < tokenMatch.length; i += 1) {
+          var token = tokenMatch[i];
+          var number = parseInt(token, 10);
+          if (token.endsWith("h")) {
+            seconds += number * 3600;
+          } else if (token.endsWith("m")) {
+            seconds += number * 60;
+          } else if (token.endsWith("s")) {
+            seconds += number;
+          }
+        }
+        return seconds;
+      }
+
+      function tryConvertGoogleMapsEmbedUrl(urlText) {
+        var url = parseAbsoluteUrl(urlText);
+        if (!url) {
+          return "";
+        }
+
+        var host = url.hostname.toLowerCase();
+        var isGoogleHost = host === "google.com" || host.endsWith(".google.com");
+        if (!isGoogleHost || url.pathname.indexOf("/maps") !== 0) {
+          return "";
+        }
+
+        if (url.pathname.indexOf("/maps/embed") === 0) {
+          return url.toString();
+        }
+
+        var embed = new URL("https://www.google.com/maps");
+        embed.searchParams.set("output", "embed");
+
+        var query = url.searchParams.get("q") || url.searchParams.get("query") || "";
+        if (!query) {
+          var placeMatch = url.pathname.match(/\/maps\/place\/([^/]+)/i);
+          if (placeMatch && placeMatch[1]) {
+            query = safeDecodeURIComponent(placeMatch[1].replace(/\+/g, " "));
+          }
+        }
+        if (!query) {
+          var coordMatch = url.pathname.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)(?:,(\d+(?:\.\d+)?)z)?/i);
+          if (coordMatch) {
+            query = coordMatch[1] + "," + coordMatch[2];
+            if (coordMatch[3]) {
+              embed.searchParams.set("z", coordMatch[3]);
+            }
+          }
+        }
+        if (!query) {
+          return "";
+        }
+
+        embed.searchParams.set("q", query);
+        return embed.toString();
+      }
+
+      function safeDecodeURIComponent(value) {
+        try {
+          return decodeURIComponent(value);
+        } catch (error) {
+          return value;
+        }
+      }
+
+      function parseAbsoluteUrl(value) {
+        try {
+          return new URL(value);
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function extractIframeSrc(input) {
+        var match = input.match(/<iframe\b[^>]*\bsrc\s*=\s*(?:\"([^\"]+)\"|'([^']+)'|([^\s>]+))/i);
+        if (!match) {
+          return "";
+        }
+        var rawSrc = match[1] || match[2] || match[3] || "";
+        var decodedSrc = decodeHtmlEntities(rawSrc).trim();
+        if (!decodedSrc) {
+          return "";
+        }
+        if (decodedSrc.indexOf("//") === 0) {
+          return "https:" + decodedSrc;
+        }
+        return decodedSrc;
+      }
+
+      function decodeHtmlEntities(text) {
+        var textarea = document.createElement("textarea");
+        textarea.innerHTML = text;
+        return textarea.value;
+      }
+
+      function isHtmlSnippet(value) {
+        return /<[^>]+>/.test(value);
+      }
+
+      function buildHtmlSourceDoc(htmlSnippet) {
+        return (
+          "<!doctype html><html><head><meta charset=\"utf-8\">" +
+          "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></head>" +
+          "<body style=\"margin:0;min-height:100vh;\">" +
+          htmlSnippet +
+          "</body></html>"
+        );
+      }
+
+      function toEditorTab(tab) {
+        return {
+          id: tab.id,
+          name: tab.name,
+          source: tab.source,
+          uploadedHtml: typeof tab.uploadedHtml === "string" ? tab.uploadedHtml : "",
+          uploadedFileName: typeof tab.uploadedFileName === "string" ? tab.uploadedFileName : "",
+          checkReport: "",
+          checkLevel: ""
+        };
+      }
+
+      function normalizeTabsForState(rawTabs) {
+        var tabs = Array.isArray(rawTabs) ? rawTabs : [];
+        var normalized = tabs.map(function (tab, index) {
+          return {
+            id: typeof tab.id === "string" && tab.id ? tab.id : createTabId(),
+            name: normalizeName(tab.name, index + 1),
+            source: typeof tab.source === "string" ? tab.source.trim() : "",
+            uploadedHtml: typeof tab.uploadedHtml === "string" ? tab.uploadedHtml : "",
+            uploadedFileName: typeof tab.uploadedFileName === "string" ? tab.uploadedFileName.trim() : ""
+          };
+        });
+
+        if (normalized.length === 0) {
+          normalized.push({
+            id: createTabId(),
+            name: "分頁 1",
+            source: "",
+            uploadedHtml: "",
+            uploadedFileName: ""
+          });
+        }
+        return normalized;
+      }
+
+      function buildStateFromEditor() {
+        var normalizedTabs = normalizeTabsForState(editorTabs);
+        var preferredActiveId = importedActiveTabId || state.activeTabId;
+        var activeExists = normalizedTabs.some(function (tab) {
+          return tab.id === preferredActiveId;
+        });
+        return {
+          title: titleInput.value.trim() || DEFAULT_TITLE,
+          tabs: normalizedTabs,
+          activeTabId: activeExists ? preferredActiveId : normalizedTabs[0].id
+        };
+      }
+
+      function buildExportPayload(config) {
+        return {
+          schema: "f20_emergency_hub_config",
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          config: {
+            title: config.title,
+            activeTabId: config.activeTabId,
+            tabs: normalizeTabsForState(config.tabs)
+          }
+        };
+      }
+
+      function formatExportTime() {
+        var d = new Date();
+        var yyyy = String(d.getFullYear());
+        var mm = String(d.getMonth() + 1).padStart(2, "0");
+        var dd = String(d.getDate()).padStart(2, "0");
+        var hh = String(d.getHours()).padStart(2, "0");
+        var mi = String(d.getMinutes()).padStart(2, "0");
+        var ss = String(d.getSeconds()).padStart(2, "0");
+        return yyyy + mm + dd + "_" + hh + mi + ss;
+      }
+
+      function downloadJsonFile(filename, payload) {
+        var text = JSON.stringify(payload, null, 2);
+        var blob = new Blob([text], { type: "application/json;charset=utf-8" });
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function () {
+          URL.revokeObjectURL(url);
+        }, 0);
+      }
+
+      function onExportSettings() {
+        var config = settingsModal.classList.contains("hidden")
+          ? state
+          : buildStateFromEditor();
+        var payload = buildExportPayload(config);
+        downloadJsonFile("F20_設定匯出_" + formatExportTime() + ".json", payload);
+      }
+
+      function onImportSettings() {
+        importSettingsInput.value = "";
+        importSettingsInput.click();
+      }
+
+      function parseImportedSettings(rawText) {
+        var parsed;
+        try {
+          parsed = JSON.parse(rawText);
+        } catch (error) {
+          throw new Error("JSON 格式錯誤，請確認匯入檔案內容。");
+        }
+
+        var config = parsed;
+        if (parsed && parsed.schema === "f20_emergency_hub_config" && parsed.config) {
+          config = parsed.config;
+        }
+
+        if (!config || typeof config !== "object") {
+          throw new Error("設定內容格式錯誤。");
+        }
+
+        var normalizedTabs = normalizeTabsForState(config.tabs);
+        var importedActiveId = typeof config.activeTabId === "string" ? config.activeTabId : "";
+        var activeExists = normalizedTabs.some(function (tab) {
+          return tab.id === importedActiveId;
+        });
+
+        return {
+          title: typeof config.title === "string" && config.title.trim() ? config.title.trim() : DEFAULT_TITLE,
+          tabs: normalizedTabs,
+          activeTabId: activeExists ? importedActiveId : normalizedTabs[0].id
+        };
+      }
+
+      function applyConfigToEditor(config) {
+        titleInput.value = config.title || DEFAULT_TITLE;
+        editorTabs = normalizeTabsForState(config.tabs).map(function (tab) {
+          return toEditorTab(tab);
+        });
+        importedActiveTabId = config.activeTabId || editorTabs[0].id;
+        renderEditorTabs();
+      }
+
+      function onImportSettingsFileChange() {
+        var file = importSettingsInput.files && importSettingsInput.files[0];
+        if (!file) {
+          return;
+        }
+
+        readFileAsText(file)
+          .then(function (text) {
+            var imported = parseImportedSettings(text);
+            applyConfigToEditor(imported);
+            alert("設定已匯入到編輯區，請按「儲存套用」生效。");
+          })
+          .catch(function (error) {
+            alert("匯入失敗：" + (error && error.message ? error.message : "未知錯誤"));
+          })
+          .finally(function () {
+            importSettingsInput.value = "";
+          });
+      }
+
+      function onResetDefaults() {
+        var confirmed = window.confirm("確定要還原預設設定嗎？目前編輯中的內容會被覆蓋。");
+        if (!confirmed) {
+          return;
+        }
+        applyConfigToEditor(buildDefaultState());
+        alert("已載入預設設定，請按「儲存套用」生效。");
+      }
+
+      function openSettings() {
+        titleInput.value = state.title || DEFAULT_TITLE;
+        importedActiveTabId = null;
+        editorTabs = state.tabs.map(function (tab) {
+          return toEditorTab(tab);
+        });
+        renderEditorTabs();
+        settingsModal.classList.remove("hidden");
+      }
+
+      function closeSettings() {
+        importedActiveTabId = null;
+        settingsModal.classList.add("hidden");
+      }
+
+      function renderEditorTabs() {
+        tabEditorList.innerHTML = "";
+
+        editorTabs.forEach(function (tab, index) {
+          var item = document.createElement("div");
+          item.className = "tab-editor-item";
+          item.dataset.id = tab.id;
+
+          var head = document.createElement("div");
+          head.className = "tab-editor-head";
+
+          var indexLabel = document.createElement("div");
+          indexLabel.className = "tab-index";
+          indexLabel.textContent = "分頁 #" + (index + 1);
+          head.appendChild(indexLabel);
+
+          var removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "remove-btn";
+          removeBtn.textContent = "刪除";
+          removeBtn.addEventListener("click", function () {
+            editorTabs = editorTabs.filter(function (it) {
+              return it.id !== tab.id;
+            });
+            if (editorTabs.length === 0) {
+              editorTabs.push({
+                id: createTabId(),
+                name: "分頁 1",
+                source: "",
+                uploadedHtml: "",
+                uploadedFileName: "",
+                checkReport: "",
+                checkLevel: ""
+              });
+            }
+            renderEditorTabs();
+          });
+          head.appendChild(removeBtn);
+          item.appendChild(head);
+
+          var fields = document.createElement("div");
+          fields.className = "inline-grid";
+
+          var nameInput = document.createElement("input");
+          nameInput.type = "text";
+          nameInput.placeholder = "分頁名稱";
+          nameInput.value = tab.name;
+          nameInput.addEventListener("input", function () {
+            tab.name = nameInput.value;
+          });
+
+          var sourceInput = document.createElement("input");
+          sourceInput.type = "text";
+          sourceInput.placeholder = "來源：本機路徑 / https://網址 / 或整段 iframe 代碼";
+          sourceInput.value = tab.source;
+          sourceInput.addEventListener("input", function () {
+            tab.source = sourceInput.value;
+            tab.checkReport = "";
+            tab.checkLevel = "";
+            applyChecklistResult(checkResult, {
+              level: "",
+              text: "來源已變更，請按「內嵌檢查」重新分析。"
+            });
+          });
+
+          var checkRow = document.createElement("div");
+          checkRow.className = "check-row";
+
+          var checkBtn = document.createElement("button");
+          checkBtn.type = "button";
+          checkBtn.className = "secondary-btn";
+          checkBtn.textContent = "內嵌檢查";
+
+          var checkResult = document.createElement("div");
+          applyChecklistResult(checkResult, {
+            level: tab.checkLevel || "",
+            text: tab.checkReport || "可先按「內嵌檢查」判斷此網址是否適合放在分頁內。"
+          });
+
+          checkBtn.addEventListener("click", function () {
+            var report = buildEmbedChecklist(sourceInput.value);
+            tab.checkLevel = report.level;
+            tab.checkReport = report.text;
+            applyChecklistResult(checkResult, report);
+          });
+
+          checkRow.appendChild(checkBtn);
+          checkRow.appendChild(checkResult);
+
+          var uploadRow = document.createElement("div");
+          uploadRow.className = "upload-row";
+
+          var uploadBtn = document.createElement("button");
+          uploadBtn.type = "button";
+          uploadBtn.className = "secondary-btn";
+          uploadBtn.textContent = "上傳 HTML";
+
+          var clearUploadBtn = document.createElement("button");
+          clearUploadBtn.type = "button";
+          clearUploadBtn.className = "clear-upload-btn";
+          clearUploadBtn.textContent = "清除上傳";
+          if (!tab.uploadedHtml) {
+            clearUploadBtn.classList.add("hidden");
+          }
+
+          var fileInput = document.createElement("input");
+          fileInput.type = "file";
+          fileInput.accept = ".html,.htm,text/html";
+          fileInput.className = "hidden";
+
+          var uploadInfo = document.createElement("div");
+          uploadInfo.className = "upload-info";
+          uploadInfo.textContent = getUploadInfoText(tab);
+
+          uploadBtn.addEventListener("click", function () {
+            openFilePicker(fileInput);
+          });
+
+          fileInput.addEventListener("change", function () {
+            onChooseHtmlFile(tab, sourceInput, uploadInfo, clearUploadBtn, fileInput);
+          });
+
+          clearUploadBtn.addEventListener("click", function () {
+            clearUploadedHtml(tab, uploadInfo, clearUploadBtn);
+          });
+
+          uploadRow.appendChild(uploadBtn);
+          uploadRow.appendChild(clearUploadBtn);
+          uploadRow.appendChild(uploadInfo);
+          uploadRow.appendChild(fileInput);
+
+          fields.appendChild(nameInput);
+          fields.appendChild(sourceInput);
+          fields.appendChild(checkRow);
+          fields.appendChild(uploadRow);
+          item.appendChild(fields);
+          tabEditorList.appendChild(item);
+        });
+      }
+
+      function onAddEditorTab() {
+        var nextIndex = editorTabs.length + 1;
+        editorTabs.push({
+          id: createTabId(),
+          name: "分頁 " + nextIndex,
+          source: "",
+          uploadedHtml: "",
+          uploadedFileName: "",
+          checkReport: "",
+          checkLevel: ""
+        });
+        renderEditorTabs();
+      }
+
+      function onSaveSettings() {
+        state = buildStateFromEditor();
+        importedActiveTabId = null;
+
+        var saved = saveState();
+        if (!saved) {
+          alert("設定已套用於目前頁面，但儲存空間不足，重新整理後可能不會保留上傳檔案。");
+        }
+        closeSettings();
+        render();
+      }
+
+    })();
+  </script>
+</body>
+</html>
