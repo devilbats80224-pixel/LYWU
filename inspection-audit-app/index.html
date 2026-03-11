@@ -522,9 +522,49 @@ t.sheetStubs=true}if(t.type=="array"){t.type="binary";var a=xk(e,t);t.type="arra
       };
     }
 
+    function buildReadErrorMessage(file, err) {
+      const fileName = text(file && file.name ? file.name : "未知檔案");
+      const raw = text(err && err.message ? err.message : err || "未知錯誤");
+      const lower = raw.toLowerCase();
+
+      if (fileName.startsWith("~$")) {
+        return `你選到 Excel 暫存鎖定檔「${fileName}」，請改選正式報表檔（不要選 ~$ 開頭檔案）。`;
+      }
+
+      if (
+        lower.includes("encrypted file missing /encryptioninfo") ||
+        lower.includes("encryped file missing /encryptioninfo") ||
+        lower.includes("password-protected") ||
+        lower.includes("encrypted file") ||
+        lower.includes("encryped file")
+      ) {
+        return `檔案「${fileName}」疑似受公司敏感度標籤/IRM 保護（即使你沒設密碼也可能被加密），或檔案容器不完整。請在 Excel 內移除保護後另存新檔為 .xlsx（不要加密、不要設密碼）再上傳。`;
+      }
+
+      if (lower.includes("cannot find workbook") || lower.includes("unsupported file")) {
+        return `檔案「${fileName}」不是可讀取的 Excel 活頁簿，請確認檔案可在 Excel 正常開啟後再上傳。`;
+      }
+
+      return `檔案「${fileName}」讀取失敗：${raw}`;
+    }
+
     async function readWorkbook(file) {
+      const fileName = text(file && file.name ? file.name : "");
+
+      if (fileName.startsWith("~$")) {
+        throw new Error(buildReadErrorMessage(file, ""));
+      }
+
+      if (file && typeof file.size === "number" && file.size < 1024) {
+        throw new Error(`檔案「${fileName || "未知檔案"}」容量過小，可能是暫存檔或損毀檔。`);
+      }
+
       const buffer = await file.arrayBuffer();
-      return XLSX.read(buffer, { type: "array" });
+      try {
+        return XLSX.read(buffer, { type: "array" });
+      } catch (err) {
+        throw new Error(buildReadErrorMessage(file, err));
+      }
     }
 
     function renderSheetOptions(selectEl, names, preferredIndex) {
