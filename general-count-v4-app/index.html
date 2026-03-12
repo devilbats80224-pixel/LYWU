@@ -223,6 +223,16 @@ button:hover { border-color: var(--brand); }
 .erc-night-filter-btn{border:1px solid #94a3b8;background:#f8fafc;color:#0f172a;padding:6px 10px;border-radius:8px;cursor:pointer;}
 .erc-night-filter-btn:hover{border-color:#64748b;}
 .erc-night-filter-btn.is-active{background:#e2e8f0;border-color:#64748b;box-shadow:0 0 0 2px rgba(100,116,139,0.2);}
+.erc-trace-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.erc-trace-tools button{padding:6px 10px;border-radius:8px;}
+#btnErcTraceStart{border:1px solid #86efac;background:#ecfdf5;color:#166534;}
+#btnErcTraceStart:hover{border-color:#4ade80;}
+#btnErcTraceStop{border:1px solid #f9a8d4;background:#fff1f2;color:#9f1239;}
+#btnErcTraceStop:hover{border-color:#fb7185;}
+.erc-trace-status{font-size:12px;color:#6b7280;min-width:150px;}
+.erc-trace-status.is-running{color:#166534;font-weight:600;}
+.erc-trace-status.is-saved{color:#1d4ed8;}
+.erc-trace-status.is-error{color:#b91c1c;}
 .erc-dept-group-card{border:1px solid #e5e7eb;border-radius:10px;padding:10px;margin-bottom:10px;background:#fff;}
 .erc-dept-group-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .erc-dept-group-head input{flex:1;min-width:180px;padding:6px 8px;border:1px solid #d1d5db;border-radius:8px;}
@@ -281,18 +291,27 @@ button:hover { border-color: var(--brand); }
 /* permit cell should not clip chips */
 .tabulator .tabulator-cell[tabulator-field="危險性作業施工許可"]{overflow:visible;}
 
-.tabulator .tabulator-cell.erc-vertical-cell{display:flex;justify-content:center;align-items:center;}
+/* Restore default visual alignment for normal cells. */
+.tabulator .tabulator-row .tabulator-cell{
+  vertical-align:middle !important;
+}
+.tabulator .tabulator-cell.erc-vertical-cell{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding-top:0;
+}
 
 /* === Header 垂直置中 + 加高：upright 標題 & 放大鏡不被切 === */
 .tabulator .tabulator-header{
-  min-height:72px;
-  height:var(--erc-header-height, auto);
+  min-height:170px !important;
+  height:var(--erc-header-height, 170px) !important;
   overflow-x:hidden;
   overflow-y:hidden;
 }
 .tabulator .tabulator-header .tabulator-col{
-  min-height:72px;
-  height:var(--erc-header-height, auto);
+  min-height:170px !important;
+  height:var(--erc-header-height, 170px) !important;
   overflow:hidden;
 }
 .tabulator .tabulator-header .tabulator-header-contents,
@@ -301,7 +320,13 @@ button:hover { border-color: var(--brand); }
   height:100% !important;
   min-height:100% !important;
 }
-.tabulator .tabulator-header .tabulator-col-content{display:flex !important; flex-direction:column !important; height:100% !important; overflow:hidden !important;}
+.tabulator .tabulator-header .tabulator-col-content{
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:space-between !important;
+  height:100% !important;
+  overflow:hidden !important;
+}
 .tabulator .tabulator-header::-webkit-scrollbar,
 .tabulator .tabulator-header .tabulator-header-contents::-webkit-scrollbar,
 .tabulator .tabulator-header .tabulator-headers::-webkit-scrollbar{
@@ -313,10 +338,16 @@ button:hover { border-color: var(--brand); }
 .tabulator .tabulator-header .tabulator-headers{
   scrollbar-width:none;
 }
-.tabulator .tabulator-header .tabulator-col-title-holder{flex:1 1 auto !important; display:flex !important; align-items:center !important; justify-content:center !important; padding:0 2px !important;}
+.tabulator .tabulator-header .tabulator-col-title-holder{
+  flex:1 1 auto !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  padding:2px !important;
+}
 .tabulator .tabulator-header .tabulator-col-title{width:100%; text-align:center !important;}
 .tabulator .tabulator-header .tabulator-header-filter{flex:0 0 auto !important; display:flex !important; align-items:center !important; justify-content:center !important; padding:0 0 4px 0 !important; overflow:visible !important;
-  min-height:24px !important;
+  min-height:28px !important;
 }
 .tabulator .tabulator-cell.erc-wrap-cell{white-space:normal !important;line-height:1.25 !important;padding-top:4px !important;padding-bottom:4px !important;}
 .tabulator .tabulator-cell.erc-wrap-cell .erc-multiline-clip{height:100%;overflow:hidden;white-space:pre-wrap;word-break:break-word;}
@@ -329,10 +360,12 @@ button:hover { border-color: var(--brand); }
   right:0;
   bottom:0;
   height:6px;
-  cursor:ns-resize;
+  cursor:default;
   z-index:60;
   background:transparent;
   touch-action:none;
+  display:none !important;
+  pointer-events:none !important;
 }
 .tabulator .erc-header-resize-handle::after{
   content:"";
@@ -357,7 +390,8 @@ button:hover { border-color: var(--brand); }
   text-overflow: ellipsis;
   padding: 4px; 
   display: inline-flex; /* Use inline-flex for cell content alignment */
-  align-items: center;
+  /* 避免首列高度被撐大時內容垂直置中，看起來像表頭下方有空白帶 */
+  align-items: flex-start;
   height: 100%;
 }
 #table .tabulator-row{
@@ -480,7 +514,7 @@ button:hover { border-color: var(--brand); }
   }
 
   /* ✅ 工程名稱及內容 / 施工位置：不撐高列（列高由 Permit 決定）
-     預設置中；若內容溢出，JS 會加上 .erc-top -> 靠上並從開頭顯示 */
+     由 JS 依內容是否裁切決定置中或靠上 */
   .tabulator .tabulator-cell[tabulator-field="工程名稱及內容"],
   .tabulator .tabulator-cell[tabulator-field="施工位置"]{
     overflow:hidden !important;
@@ -712,6 +746,11 @@ button:hover { border-color: var(--brand); }
       </div>
       <button id="btnNightShift" type="button" class="erc-night-filter-btn">夜間施工</button>
       <button id="btnUnclassifiedSite" type="button">尚未分類Site</button>
+      <div class="erc-trace-tools" aria-label="空白帶偵測">
+        <button id="btnErcTraceStart" type="button">開始偵測</button>
+        <button id="btnErcTraceStop" type="button" disabled>結束偵測</button>
+        <span id="ercTraceStatus" class="erc-trace-status" aria-live="polite">未開始</span>
+      </div>
     </div>
   </section>
 
@@ -1885,10 +1924,13 @@ function renderTable(data){
               var txt = wrap && wrap.querySelector ? wrap.querySelector(".erc-txt") : null;
               if(!wrap || !txt) return;
 
-              wrap.classList.remove("erc-top"); // default center
-              var overflow = false;
-              try{ overflow = (txt.scrollHeight - wrap.clientHeight) > 2; }catch(_){}
-              if(overflow) wrap.classList.add("erc-top");
+              var cs = window.getComputedStyle ? window.getComputedStyle(wrap) : null;
+              var pt = cs ? (parseFloat(cs.paddingTop) || 0) : 0;
+              var pb = cs ? (parseFloat(cs.paddingBottom) || 0) : 0;
+              var usable = Math.max(0, wrap.clientHeight - pt - pb);
+              var need = txt.scrollHeight || 0;
+              if(usable > 0 && need > usable + 1) wrap.classList.add("erc-top");
+              else wrap.classList.remove("erc-top");
             });
           }catch(_){}
         });
@@ -1941,17 +1983,40 @@ function renderTable(data){
     function setColumnWidthsDirect(){
         try {
             if (!table) return;
+            var changed = false;
             
             // 設置特定欄位寬度
             var col1 = table.getColumn("工程名稱及內容");
             var col2 = table.getColumn("施工位置");
             
-            if(col1 && col1.setWidth) col1.setWidth(360, true);
-            if(col2 && col2.setWidth) col2.setWidth(240, true);
-            
-            // 重新應用高亮規則 (黃底)
-            // 觸發重繪
-            table.redraw(true);
+            if(col1 && col1.setWidth){
+              try{
+                var w1 = col1.getWidth ? col1.getWidth() : 0;
+                if(!w1 || Math.abs(w1 - 360) > 1){
+                  col1.setWidth(360, true);
+                  changed = true;
+                }
+              }catch(_){
+                col1.setWidth(360, true);
+                changed = true;
+              }
+            }
+            if(col2 && col2.setWidth){
+              try{
+                var w2 = col2.getWidth ? col2.getWidth() : 0;
+                if(!w2 || Math.abs(w2 - 240) > 1){
+                  col2.setWidth(240, true);
+                  changed = true;
+                }
+              }catch(_){
+                col2.setWidth(240, true);
+                changed = true;
+              }
+            }
+            // 只在有實際寬度變動時做 soft redraw，避免 renderComplete/redraw 循環
+            if(changed && table && typeof table.redraw === "function"){
+              table.redraw(false);
+            }
             
         } catch(e) {}
     }
@@ -1992,13 +2057,12 @@ function renderTable(data){
     }, 400);
   });
   
-  // 在渲染完成後也設置
+  // renderComplete 僅做一次保底，避免觸發 setWidth/redraw 迴圈
+  var __ercRenderWidthOnce = false;
   table.on("renderComplete", function(){
-    console.log("renderComplete 事件觸發");
-    setTimeout(function(){
-      setColumnWidthsDirect();
-      setTimeout(setColumnWidthsDirect, 400);
-    }, 300);
+    if(__ercRenderWidthOnce) return;
+    __ercRenderWidthOnce = true;
+    setTimeout(setColumnWidthsDirect, 120);
   });
   
   // 立即嘗試設定欄位寬度（在事件觸發前作為備用，使用更長的延遲確保表格完全構建）
@@ -9635,89 +9699,50 @@ function multiSelectMatch(cellValue, selected){
     }catch(e){}
     return null;
   }
-  function redraw(t){
+  function recalcRow(row){
     try{
-      if (t && t.redraw) t.redraw(true);
-    }catch(e){}
+      if (row && row.recalcHeight) row.recalcHeight();
+      if (row && row.normalizeHeight) row.normalizeHeight();
+    }catch(_){}
   }
   function hook(t){
-    if (!t) return;
-    // 當該欄位編輯後，強制重算高度
+    if (!t || !t.on || t._ercWrapAuto2Bound) return;
+    t._ercWrapAuto2Bound = true;
     t.on("cellEdited", function(cell){
       try{
         if (cell && cell.getField && cell.getField()==="危險性作業施工許可"){
           var r = cell.getRow && cell.getRow();
-          if (r && r.recalcHeight) r.recalcHeight();
-          if (r && r.normalizeHeight) r.normalizeHeight();
-          redraw(t);
-          setTimeout(function(){ redraw(t); }, 0);
+          recalcRow(r);
+          setTimeout(function(){ recalcRow(r); }, 0);
         }
-      }catch(e){}
+      }catch(_){}
     });
-    // 初始與資料載入後也重算一次
-    t.on("dataProcessed", function(){ redraw(t); });
-    t.on("tableBuilt", function(){ redraw(t); });
   }
 
-  // 監看 DOM 變化：只要該欄內容改變就重算高度（保底）
-  function observe(){
-    try{
-      var holder = document.querySelector(".tabulator-table");
-      if (!holder) return;
-      var mo = new MutationObserver(function(muts){
-        for (var i=0;i<muts.length;i++){
-          var n = muts[i].target;
-          if (n && n.closest){
-            var cell = n.closest('.tabulator-cell');
-            if (cell && cell.getAttribute('tabulator-field') === "危險性作業施工許可"){
-              var t = getTable();
-              redraw(t);
-              break;
-            }
-          }
-        }
-      });
-      mo.observe(holder, {subtree:true, characterData:true, childList:true});
-    }catch(e){}
-  }
-
-  var t = getTable();
-  if (t) hook(t);
-  observe();
+  hook(getTable());
   // 若表格稍後才建立，延遲重試
-  setTimeout(function(){ var t2=getTable(); if (t2){ hook(t2); redraw(t2);} }, 800);
+  setTimeout(function(){ hook(getTable()); }, 800);
 })();
 </script>
 
 <script>
-// --- recalc row height on cell edit & after redraw ---
+// --- lightweight row-height recalc on permit cell edits ---
 (function(){
-  function recalcAll(table){
-    try{ table.redraw(true); }catch(e){}
-    try{
-      (table.getRows?table.getRows():[]).forEach(function(r){
-        if (r && typeof r.recalcHeight === 'function'){ try{ r.recalcHeight(); }catch(e){} }
-      });
-    }catch(e){}
-  }
-  function onReady(){
+  function bind(){
     var tab = (window.table) || (window.Tabulator && Tabulator.findTable && (Tabulator.findTable('.tabulator')[0]));
-    if(!tab) return;
-    try{ tab.on('cellEdited', function(){ recalcAll(tab); }); }catch(e){}
-    try{ tab.on('tableBuilt', function(){ recalcAll(tab); }); }catch(e){}
-    try{ tab.on('dataProcessed', function(){ recalcAll(tab); }); }catch(e){}
-    // Mutation observer for the danger-permit column cells
-    try{
-      var grid = document.querySelector('.tabulator');
-      if(grid){
-        var mo = new MutationObserver(function(){ recalcAll(tab); });
-        mo.observe(grid, {subtree:true, childList:true, characterData:true});
-        window.__tabulator_mo = mo;
-      }
-    }catch(e){}
+    if(!tab || !tab.on || tab._ercPermitRecalcBound) return;
+    tab._ercPermitRecalcBound = true;
+    tab.on('cellEdited', function(cell){
+      try{
+        if(!cell || !cell.getField || cell.getField() !== "危險性作業施工許可") return;
+        var row = cell.getRow && cell.getRow();
+        if (row && typeof row.recalcHeight === 'function') row.recalcHeight();
+      }catch(_){}
+    });
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', onReady);
-  else onReady();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, {once:true});
+  else bind();
+  setTimeout(bind, 600);
 })();
 </script>
 <script>
@@ -9758,11 +9783,17 @@ function multiSelectMatch(cellValue, selected){
 })();</script>
 <script>
 // ensure row height recalculates when cell content changes
-if (window.table && typeof window.table.redraw === 'function') {
-  window.table.on('cellEdited', function(){ tbl.redraw(true); });
-  window.table.on('dataLoaded', function(){ tbl.redraw(true); });
-  window.table.on('dataChanged', function(){ window.table.redraw(true); });
-}
+(function(){
+  var tbl = window.table;
+  if (!tbl || typeof tbl.on !== 'function' || tbl._ercSafeRedrawBound) return;
+  tbl._ercSafeRedrawBound = true;
+  tbl.on('cellEdited', function(cell){
+    try{
+      if(!cell || !cell.getField || cell.getField() !== "危險性作業施工許可") return;
+      if(typeof tbl.redraw === "function") tbl.redraw(false);
+    }catch(_){}
+  });
+})();
 </script>
 <script>
 // Inject extra options 23-27 into the multi-select popup if the library didn't pick them up.
@@ -10983,12 +11014,8 @@ body{padding-bottom:64px}
                  // Soft redraw to preserve focus
                  window.table.redraw();
                  
-                 // Explicitly scroll to the first active row
-                 // This forces Tabulator to align the virtual DOM correctly
-                 var activeRows = window.table.getRows("active");
-                 if(activeRows.length > 0){
-                     window.table.scrollToRow(activeRows[0], "top", false);
-                 }
+                 // 不使用 scrollToRow：在 virtual render + filter / search 組合下，
+                 // 容易殘留 table top 偏移，改由後續 normalize 流程歸零。
              }
              
              // 3. 在重繪完成後，觸發 Zoom 佈局更新
@@ -11064,7 +11091,11 @@ body{padding-bottom:64px}
 <script id="erc-header-overlap-fix">
 (function(){
   var boundTable = null;
-  var onTableLayout = function(){ setTimeout(fixHeaderOverlap, 0); };
+  var onTableLayout = function(){
+    setTimeout(fixHeaderOverlap, 0);
+    setTimeout(fixHeaderOverlap, 120);
+    setTimeout(fixHeaderOverlap, 320);
+  };
 
   function getZoomFactor(){
     var wrap = document.getElementById('tableWrap');
@@ -11074,86 +11105,67 @@ body{padding-bottom:64px}
     return (!isNaN(v) && v > 0) ? v : 1;
   }
 
+  function setStyleIfDiff(el, prop, val){
+    if(!el) return;
+    if(el.style[prop] !== val) el.style[prop] = val;
+  }
+
+  function resetTopSpacing(root){
+    if(!root) return;
+    var holder = root.querySelector('.tabulator-tableholder');
+    var tableEl = root.querySelector('.tabulator-table');
+    var viewport = document.querySelector('.erc-viewport');
+    if(!holder) return;
+
+    setStyleIfDiff(holder, 'paddingTop', '0px');
+    setStyleIfDiff(holder, 'marginTop', '0px');
+    setStyleIfDiff(holder, 'scrollPaddingTop', '0px');
+    setStyleIfDiff(holder, 'boxSizing', 'border-box');
+
+    if(viewport){
+      setStyleIfDiff(viewport, 'paddingTop', '0px');
+      setStyleIfDiff(viewport, 'marginTop', '0px');
+      setStyleIfDiff(viewport, 'scrollPaddingTop', '0px');
+      setStyleIfDiff(viewport, 'boxSizing', 'border-box');
+    }
+
+    try{
+      holder.scrollTop = 0;
+      if(viewport) viewport.scrollTop = 0;
+    }catch(_){}
+    if(!tableEl) return;
+
+    var gap = null;
+    try{
+      var header = root.querySelector('.tabulator-header');
+      var firstRow = tableEl.querySelector('.tabulator-row');
+      if(firstRow && header){
+        gap = firstRow.getBoundingClientRect().top - header.getBoundingClientRect().bottom;
+      }
+    }catch(_){}
+    var atTop = holder.scrollTop <= 2;
+    if(!atTop && !(gap != null && gap > 2)) return;
+
+    var pTop = parseFloat(tableEl.style.paddingTop || '0');
+    var mTop = parseFloat(tableEl.style.marginTop || '0');
+    var topV = parseFloat(tableEl.style.top || '0');
+    if(isFinite(pTop) && pTop > 0.5) tableEl.style.paddingTop = '0px';
+    if(isFinite(mTop) && mTop > 0.5) tableEl.style.marginTop = '0px';
+    if(isFinite(topV) && Math.abs(topV) > 0.5) tableEl.style.top = '0px';
+
+    var tf = tableEl.style.transform || '';
+    var m = tf.match(/translateY\(([-\d.]+)px\)/);
+    if(m && isFinite(parseFloat(m[1])) && Math.abs(parseFloat(m[1])) > 0.5){
+      tableEl.style.transform = tf.replace(/translateY\([^)]+\)/, 'translateY(0px)');
+    }
+  }
+
   function fixHeaderOverlap(){
     var root = document.querySelector('#tableWrap .tabulator') ||
                document.querySelector('#table .tabulator') ||
                document.querySelector('.tabulator');
     if(!root) return;
-    var header = root.querySelector('.tabulator-header');
-    var holder = root.querySelector('.tabulator-tableholder');
-    if(!header || !holder) return;
-    var sticky = document.querySelector('.erc-sticky-header');
-    var viewport = document.querySelector('.erc-viewport');
-    if(sticky && viewport){
-      holder.style.paddingTop = '0px';
-      holder.style.boxSizing = 'border-box';
-      holder.style.scrollPaddingTop = '0px';
-      viewport.style.paddingTop = '0px';
-      viewport.style.scrollPaddingTop = '0px';
-      return;
-    }
-    if(!sticky && !viewport){
-      holder.style.paddingTop = '';
-      holder.style.boxSizing = '';
-      holder.style.scrollPaddingTop = '';
-      return;
-    }
-
-    var headerPos = '';
-    try{
-      headerPos = window.getComputedStyle ? getComputedStyle(header).position : header.style.position;
-    }catch(_){ }
-    if(headerPos && headerPos !== 'sticky' && headerPos !== 'fixed' && headerPos !== 'absolute'){
-      holder.style.paddingTop = '0px';
-      holder.style.boxSizing = 'border-box';
-      holder.style.scrollPaddingTop = '0px';
-      if(viewport){
-        viewport.style.paddingTop = '0px';
-        viewport.style.scrollPaddingTop = '0px';
-      }
-      return;
-    }
-
-    var overlap = 0;
-    var overlapFromRect = false;
-    var headerHeight = header.offsetHeight || 0;
-    var holderTop = holder.offsetTop || 0;
-    if(headerHeight){
-      overlap = headerHeight - holderTop;
-    }
-    if(overlap <= 1){
-      var headerRect = header.getBoundingClientRect();
-      var holderRect = holder.getBoundingClientRect();
-      overlap = headerRect.bottom - holderRect.top;
-      overlapFromRect = true;
-    }
-    var zoom = getZoomFactor();
-    var pad = overlap > 1 ? (overlapFromRect ? (overlap / zoom) : overlap) : 0;
-
-    if(pad > 0){
-      holder.style.paddingTop = pad + 'px';
-      holder.style.boxSizing = 'border-box';
-      holder.style.scrollPaddingTop = pad + 'px';
-    }else{
-      holder.style.paddingTop = '';
-      holder.style.scrollPaddingTop = '';
-    }
-
-    // If a custom sticky header wrapper is present, keep its viewport padded too.
-    if(sticky && viewport && viewport.querySelector('.tabulator')){
-      var sh = sticky.offsetHeight || 0;
-      var stickyPos = "";
-      try{
-        stickyPos = window.getComputedStyle ? getComputedStyle(sticky).position : sticky.style.position;
-      }catch(_){}
-      if(sh > 0 && (stickyPos === "fixed" || stickyPos === "absolute")){
-        viewport.style.paddingTop = sh + 'px';
-        viewport.style.scrollPaddingTop = sh + 'px';
-      }else{
-        viewport.style.paddingTop = '0px';
-        viewport.style.scrollPaddingTop = '0px';
-      }
-    }
+    resetTopSpacing(root);
   }
 
   function bindTableEvents(){
@@ -11301,9 +11313,10 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
 (function(){
   var STORAGE_KEY = "erc_header_height_px";
   var USER_KEY = "erc_header_height_user";
+  var DEFAULT_H = 170;
   var MIN_H = 52;
   var MAX_H = 420;
-  var AUTO_PAD = 4;
+  var AUTO_PAD = 2;
   var AUTO_TOL = 2;
   var AUTO_CAP = 4;
   var boundTable = null;
@@ -11323,7 +11336,22 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
            document.querySelector('.tabulator');
   }
 
-  function applyHeaderHeight(px){
+  function clearHeaderHeightLock(){
+    var root = getRoot();
+    if(root) root.style.setProperty('--erc-header-height', DEFAULT_H + 'px');
+    document.querySelectorAll('.tabulator-header').forEach(function(header){
+      header.style.height = '';
+      header.style.minHeight = '';
+    });
+    document.querySelectorAll('.tabulator-header .tabulator-col').forEach(function(col){
+      col.style.height = '';
+      col.style.minHeight = '';
+    });
+    if(window.__ercFixHeaderOverlap) window.__ercFixHeaderOverlap();
+  }
+
+  function applyHeaderHeight(px, opts){
+    opts = opts || {};
     var h = Math.max(MIN_H, Math.min(MAX_H, px));
     var root = getRoot();
     if(root) root.style.setProperty('--erc-header-height', h + 'px');
@@ -11339,33 +11367,15 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
       col.style.minHeight = h + 'px';
     });
 
-    try{ localStorage.setItem(STORAGE_KEY, String(h)); }catch(_){}
     if(window.__ercFixHeaderOverlap) window.__ercFixHeaderOverlap();
   }
 
   function loadSavedHeight(){
-    try{
-      var raw = localStorage.getItem(STORAGE_KEY);
-      var h = parseInt(raw, 10);
-      if(!isNaN(h)){
-        var isUser = localStorage.getItem(USER_KEY) === "1";
-        if(isUser) userResized = true;
-        var needed = getHeaderNeededHeight();
-        if(isUser){
-          if(needed && needed > h + AUTO_TOL){
-            applyHeaderHeight(Math.round(needed + AUTO_PAD));
-          }else{
-            applyHeaderHeight(h);
-          }
-          return;
-        }
-        if(needed && Math.abs(h - needed) > AUTO_TOL){
-          applyHeaderHeight(Math.round(needed + AUTO_PAD));
-        }else{
-          applyHeaderHeight(h);
-        }
-      }
-    }catch(_){}
+    userResized = false;
+    // 不再使用 localStorage 記憶 header 高度，避免舊值在篩選後重新把標題列撐高造成空白帶。
+    try{ localStorage.removeItem(STORAGE_KEY); }catch(_){}
+    try{ localStorage.removeItem(USER_KEY); }catch(_){}
+    clearHeaderHeightLock();
   }
 
   function ensureHandle(){
@@ -11386,14 +11396,13 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
         e.preventDefault();
         e.stopPropagation();
         userResized = true;
-        try{ localStorage.setItem(USER_KEY, "1"); }catch(_){}
         var zoom = getZoomFactor();
         var startY = e.clientY;
         var startH = header.getBoundingClientRect().height / zoom;
 
         function onMove(ev){
           var delta = (ev.clientY - startY) / zoom;
-          applyHeaderHeight(Math.round(startH + delta));
+          applyHeaderHeight(Math.round(startH + delta), { persist: true });
         }
         function onUp(){
           document.removeEventListener('mousemove', onMove);
@@ -11408,7 +11417,6 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
         e.preventDefault();
         e.stopPropagation();
         userResized = true;
-        try{ localStorage.setItem(USER_KEY, "1"); }catch(_){}
         var zoom = getZoomFactor();
         var startY = e.touches[0].clientY;
         var startH = header.getBoundingClientRect().height / zoom;
@@ -11416,7 +11424,7 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
         function onMove(ev){
           if(!ev.touches || !ev.touches.length) return;
           var delta = (ev.touches[0].clientY - startY) / zoom;
-          applyHeaderHeight(Math.round(startH + delta));
+          applyHeaderHeight(Math.round(startH + delta), { persist: true });
         }
         function onUp(){
           document.removeEventListener('touchmove', onMove);
@@ -11433,36 +11441,52 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
   function getHeaderNeededHeight(){
     var header = document.querySelector('.tabulator-header');
     if(!header) return 0;
-    var zoom = getZoomFactor();
-    var pad = 8;
-    var headerRect = header.getBoundingClientRect();
-    if(!headerRect || !headerRect.height) return 0;
+    var pad = 2;
+    var root = getRoot();
 
-    var maxBottom = 0;
-    header.querySelectorAll('.tabulator-col').forEach(function(col){
-      if(!col) return;
-      var titleEl = col.querySelector('.erc-header-upright') || col.querySelector('.tabulator-col-title');
-      var filterEl = col.querySelector('.tabulator-header-filter');
-      [titleEl, filterEl].forEach(function(el){
-        if(!el || typeof el.getBoundingClientRect !== 'function') return;
-        var rect = el.getBoundingClientRect();
-        if(!rect || rect.height <= 0) return;
-        var bottom = rect.bottom - headerRect.top;
-        if(bottom > maxBottom) maxBottom = bottom;
-      });
+    var headers = Array.prototype.slice.call(document.querySelectorAll('.tabulator-header'));
+    var cols = Array.prototype.slice.call(header.querySelectorAll('.tabulator-col'));
+    var prevHeader = headers.map(function(el){
+      return { el: el, h: el.style.height, mh: el.style.minHeight };
     });
+    var prevCol = cols.map(function(el){
+      return { el: el, h: el.style.height, mh: el.style.minHeight };
+    });
+    var prevVar = root ? root.style.getPropertyValue('--erc-header-height') : "";
 
-    if(maxBottom <= 0){
+    var maxNeed = 0;
+    try{
+      if(root) root.style.removeProperty('--erc-header-height');
+      prevHeader.forEach(function(x){ x.el.style.height = ""; x.el.style.minHeight = ""; });
+      prevCol.forEach(function(x){ x.el.style.height = ""; x.el.style.minHeight = ""; });
+
+      // force layout after switching back to auto sizing
+      header.getBoundingClientRect();
+
+      cols.forEach(function(col){
+        var contentEl = col.querySelector('.tabulator-col-content') || col;
+        if(!contentEl) return;
+        var h = Math.max(contentEl.offsetHeight || 0, contentEl.scrollHeight || 0);
+        if(h > maxNeed) maxNeed = h;
+      });
+    }finally{
+      prevHeader.forEach(function(x){ x.el.style.height = x.h; x.el.style.minHeight = x.mh; });
+      prevCol.forEach(function(x){ x.el.style.height = x.h; x.el.style.minHeight = x.mh; });
+      if(root){
+        if(prevVar) root.style.setProperty('--erc-header-height', prevVar);
+        else root.style.removeProperty('--erc-header-height');
+      }
+    }
+
+    if(maxNeed <= 0){
       return 0;
     }
-    var needed = maxBottom + pad;
-    if(zoom && zoom > 0){
-      needed = needed / zoom;
-    }
+    var needed = maxNeed + pad;
     return Math.max(0, Math.round(needed));
   }
 
   function autoTightenHeader(){
+    if(!userResized) return;
     var header = document.querySelector('.tabulator-header');
     if(!header) return;
     var needed = getHeaderNeededHeight();
@@ -11470,19 +11494,20 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
     var zoom = getZoomFactor();
     var current = header.getBoundingClientRect().height / zoom;
     if(current > needed + AUTO_CAP){
-      applyHeaderHeight(Math.round(needed + AUTO_PAD));
-      return;
+      applyHeaderHeight(Math.round(needed + AUTO_PAD), { persist: false });
     }
-    if(userResized && current >= needed - AUTO_TOL){
-      return;
-    }
-    if(needed > current + AUTO_TOL){
-      applyHeaderHeight(Math.round(needed + AUTO_PAD));
-      return;
-    }
-    if(userResized) return;
-    if(Math.abs(current - needed) > AUTO_TOL){
-      applyHeaderHeight(Math.round(needed + AUTO_PAD));
+  }
+
+  function clampHeaderIfOversized(){
+    if(!userResized) return;
+    var header = document.querySelector('.tabulator-header');
+    if(!header) return;
+    var needed = getHeaderNeededHeight();
+    if(!needed) return;
+    var zoom = getZoomFactor();
+    var current = header.getBoundingClientRect().height / zoom;
+    if(current > needed + AUTO_CAP){
+      applyHeaderHeight(Math.round(needed + AUTO_PAD), { persist: false });
     }
   }
 
@@ -11492,26 +11517,32 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
     if(boundTable === t) return;
     if(boundTable && boundTable.off){
       boundTable.off('tableBuilt', onTableBuilt);
+      boundTable.off('dataLoaded', onTableDataLoaded);
       boundTable.off('renderComplete', onTableRender);
     }
     boundTable = t;
     t.on('tableBuilt', onTableBuilt);
+    t.on('dataLoaded', onTableDataLoaded);
     t.on('renderComplete', onTableRender);
     setTimeout(function(){
       ensureHandle();
       loadSavedHeight();
-      autoTightenHeader();
     }, 0);
   }
 
-  function onTableBuilt(){ ensureHandle(); loadSavedHeight(); setTimeout(autoTightenHeader, 0); }
-  function onTableRender(){ ensureHandle(); setTimeout(autoTightenHeader, 0); }
+  function onTableBuilt(){ ensureHandle(); loadSavedHeight(); }
+  function onTableDataLoaded(){
+    ensureHandle();
+    loadSavedHeight();
+  }
+  function onTableRender(){
+    ensureHandle();
+  }
 
   function init(){
     bindTableEvents();
     ensureHandle();
     loadSavedHeight();
-    autoTightenHeader();
   }
 
   if(document.readyState === 'loading'){
@@ -11520,37 +11551,69 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
     init();
   }
 
-  window.addEventListener('erc-zoom-change', function(){ ensureHandle(); });
+  window.addEventListener('erc-zoom-change', function(){
+    ensureHandle();
+  });
   if(window.__ercRegisterTableBinder) window.__ercRegisterTableBinder(bindTableEvents);
   else setInterval(bindTableEvents, 500);
   window.__ercEnsureHeaderResize = ensureHandle;
   window.__ercAutoTightenHeader = autoTightenHeader;
-  window.__ercApplyHeaderHeight = applyHeaderHeight;
+  window.__ercApplyHeaderHeight = function(px){ applyHeaderHeight(px, { persist: false }); };
+  window.__ercClearHeaderHeightLock = clearHeaderHeightLock;
 })();
 </script>
 
 <script id="erc-wrap-align-js">
 (function(){
   var boundTable = null;
+  var boundScrollEl = null;
+  var wrapSyncRaf = 0;
 
-  function syncWrapAlignment(){
-    requestAnimationFrame(function(){
-      var root = document.querySelector('.tabulator');
-      if(!root) return;
-      ["工程名稱及內容","施工位置"].forEach(function(field){
-        var wraps = root.querySelectorAll('.tabulator-cell[tabulator-field="' + field + '"] .erc-textwrap');
-        wraps.forEach(function(wrap){
-          var txt = wrap.querySelector('.erc-txt');
-          if(!txt) return;
-          wrap.classList.remove('erc-top');
-          var wrapH = wrap.clientHeight || 0;
-          var txtH = txt.scrollHeight || 0;
-          if(txtH - wrapH > 2){
-            wrap.classList.add('erc-top');
-          }
-        });
+  function doSyncWrapAlignment(){
+    var root = document.querySelector('.tabulator');
+    if(!root) return;
+    ["工程名稱及內容","施工位置"].forEach(function(field){
+      var wraps = root.querySelectorAll('.tabulator-cell[tabulator-field="' + field + '"] .erc-textwrap');
+      wraps.forEach(function(wrap){
+        var txt = wrap.querySelector('.erc-txt');
+        if(!txt) return;
+        var c = window.getComputedStyle ? window.getComputedStyle(wrap) : null;
+        var pt = c ? (parseFloat(c.paddingTop) || 0) : 0;
+        var pb = c ? (parseFloat(c.paddingBottom) || 0) : 0;
+        var usable = Math.max(0, wrap.clientHeight - pt - pb);
+        var need = txt.scrollHeight || 0;
+        if(usable > 0 && need > usable + 1) wrap.classList.add('erc-top');
+        else wrap.classList.remove('erc-top');
       });
     });
+  }
+
+  function scheduleSyncWrapAlignment(){
+    if(wrapSyncRaf) return;
+    wrapSyncRaf = requestAnimationFrame(function(){
+      wrapSyncRaf = 0;
+      doSyncWrapAlignment();
+    });
+  }
+
+  function syncWrapAlignment(){
+    scheduleSyncWrapAlignment();
+  }
+
+  function onScrollSync(){
+    scheduleSyncWrapAlignment();
+  }
+
+  function bindScrollTarget(){
+    var el = document.querySelector('.tabulator-tableholder') || document.querySelector('.erc-viewport');
+    if(boundScrollEl === el) return;
+    if(boundScrollEl){
+      boundScrollEl.removeEventListener('scroll', onScrollSync);
+    }
+    boundScrollEl = el;
+    if(boundScrollEl){
+      boundScrollEl.addEventListener('scroll', onScrollSync, {passive:true});
+    }
   }
 
   function bindTableEvents(){
@@ -11558,24 +11621,28 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
     if(!t || !t.on) return;
     if(boundTable === t) return;
     if(boundTable && boundTable.off){
-      boundTable.off('renderComplete', syncWrapAlignment);
-      boundTable.off('dataLoaded', syncWrapAlignment);
-      boundTable.off('rowUpdated', syncWrapAlignment);
-      boundTable.off('rowMoved', syncWrapAlignment);
-      boundTable.off('cellEdited', syncWrapAlignment);
+      boundTable.off('renderComplete', scheduleSyncWrapAlignment);
+      boundTable.off('dataLoaded', scheduleSyncWrapAlignment);
+      boundTable.off('rowUpdated', scheduleSyncWrapAlignment);
+      boundTable.off('rowMoved', scheduleSyncWrapAlignment);
+      boundTable.off('cellEdited', scheduleSyncWrapAlignment);
+      boundTable.off('dataFiltered', scheduleSyncWrapAlignment);
     }
     boundTable = t;
-    t.on('renderComplete', syncWrapAlignment);
-    t.on('dataLoaded', syncWrapAlignment);
-    t.on('rowUpdated', syncWrapAlignment);
-    t.on('rowMoved', syncWrapAlignment);
-    t.on('cellEdited', syncWrapAlignment);
-    setTimeout(syncWrapAlignment, 0);
+    t.on('renderComplete', scheduleSyncWrapAlignment);
+    t.on('dataLoaded', scheduleSyncWrapAlignment);
+    t.on('rowUpdated', scheduleSyncWrapAlignment);
+    t.on('rowMoved', scheduleSyncWrapAlignment);
+    t.on('cellEdited', scheduleSyncWrapAlignment);
+    t.on('dataFiltered', scheduleSyncWrapAlignment);
+    bindScrollTarget();
+    setTimeout(scheduleSyncWrapAlignment, 0);
   }
 
   function init(){
     bindTableEvents();
-    syncWrapAlignment();
+    bindScrollTarget();
+    scheduleSyncWrapAlignment();
   }
 
   if(document.readyState === 'loading'){
@@ -11584,19 +11651,42 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
     init();
   }
 
-  window.addEventListener('resize', function(){ setTimeout(syncWrapAlignment, 0); });
-  window.addEventListener('erc-zoom-change', function(){ setTimeout(syncWrapAlignment, 0); });
+  window.addEventListener('resize', function(){ bindScrollTarget(); setTimeout(scheduleSyncWrapAlignment, 0); });
+  window.addEventListener('erc-zoom-change', function(){ bindScrollTarget(); setTimeout(scheduleSyncWrapAlignment, 0); });
   if(window.__ercRegisterTableBinder) window.__ercRegisterTableBinder(bindTableEvents);
   else setInterval(bindTableEvents, 500);
-  window.__ercSyncWrapAlignment = syncWrapAlignment;
+  window.__ercSyncWrapAlignment = scheduleSyncWrapAlignment;
 })();
 </script>
 
 <script id="erc-category-filter-js">
 (function(){
+  window.__ercGapDebugOn = function(){ try{ localStorage.setItem("erc_gap_debug","1"); }catch(_){} console.log("[ERC-GAP] debug ON"); };
+  window.__ercGapDebugOff = function(){ try{ localStorage.setItem("erc_gap_debug","0"); }catch(_){} console.log("[ERC-GAP] debug OFF"); };
+  window.__ercGapSnapshot = function(){ try{ return (typeof getLayoutSnapshot==="function") ? getLayoutSnapshot() : null; }catch(_){ return null; } };
+  window.__ercGapDebugHelp = function(){
+    console.log("[ERC-GAP] 用法: __ercGapDebugOn(); 重新操作一次篩選; __ercGapDump('manual'); 完成後 __ercGapDebugOff();");
+    console.log("[ERC-TRACE] 用法: __ercTraceStart('filter-gap'); 操作篩選/拖曳; __ercTraceMark('after-manual-drag'); __ercTraceStop();");
+  };
+  window.__ercGapForceFix = function(){
+    try{
+      stabilizeFilterTop("manual-force", true);
+      runGapRepairLoop("manual-force-loop", 1200);
+    }catch(_){}
+  };
   var boundTable = null;
   var currentCategory = "";
   var applying = false;
+  var TRACE_MAX_RECORDS = 2000;
+  var traceState = {
+    enabled: false,
+    label: "",
+    startedAt: 0,
+    endedAt: 0,
+    dropped: 0,
+    records: [],
+    lastRafTraceAt: 0
+  };
 
   function $(id){ return document.getElementById(id); }
 
@@ -12030,7 +12120,7 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
       if(window.__ERC_DEPT_GROUP === group) group = "";
       window.__ERC_DEPT_GROUP = group;
       syncDeptFilterActive();
-      applyCategoryFilter();
+      applyCategoryFilter(true);
     });
   }
 
@@ -12321,7 +12411,7 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
     rebuildDeptGroupIndex();
     renderDeptFilterButtons();
     syncDeptFilterActive();
-    applyCategoryFilter();
+    applyCategoryFilter(true);
     closeDeptGroupModal();
   }
 
@@ -12707,6 +12797,405 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
   }
 
   var summaryTimer = null;
+  var filterNormalizeTimer = null;
+  var filterSettleUntil = 0;
+
+  var DEBUG_GAP = false;
+  try{
+    var dbg = localStorage.getItem("erc_gap_debug");
+    if(dbg === "0") DEBUG_GAP = false;
+    if(dbg === "1") DEBUG_GAP = true;
+  }catch(_){}
+
+  function markFilterSettleWindow(ms){
+    var until = Date.now() + (ms || 1200);
+    if(until > filterSettleUntil) filterSettleUntil = until;
+  }
+  function inFilterSettleWindow(){
+    return Date.now() < filterSettleUntil;
+  }
+
+  function pickFirstVisibleRow(tableEl){
+    if(!tableEl) return null;
+    var rows = tableEl.querySelectorAll('.tabulator-row');
+    if(!rows || !rows.length) return null;
+    for(var i = 0; i < rows.length; i++){
+      var row = rows[i];
+      if(!row) continue;
+      try{
+        var cs = window.getComputedStyle ? window.getComputedStyle(row) : null;
+        if(cs && (cs.display === "none" || cs.visibility === "hidden")) continue;
+      }catch(_){}
+      var h = 0;
+      try{
+        h = row.offsetHeight || row.clientHeight || 0;
+        if(h <= 1){
+          var rr = row.getBoundingClientRect ? row.getBoundingClientRect() : null;
+          if(rr) h = rr.height || 0;
+        }
+      }catch(_){}
+      if(h > 1) return row;
+    }
+    return rows[0] || null;
+  }
+
+  function getLayoutSnapshot(){
+    var tbl = window.table;
+    var tableWrap = document.getElementById('tableWrap');
+    var root = document.querySelector('#tableWrap .tabulator') ||
+               document.querySelector('#table .tabulator') ||
+               document.querySelector('.tabulator');
+    var holder = root ? root.querySelector('.tabulator-tableholder') : null;
+    var tableEl = root ? root.querySelector('.tabulator-table') : null;
+    var header = root ? root.querySelector('.tabulator-header') : null;
+    var viewport = document.querySelector('.erc-viewport');
+    var firstRow = pickFirstVisibleRow(tableEl);
+    var firstRowStyle = firstRow ? (window.getComputedStyle ? window.getComputedStyle(firstRow) : null) : null;
+    var holderStyle = holder ? (window.getComputedStyle ? window.getComputedStyle(holder) : null) : null;
+    var tableStyle = tableEl ? (window.getComputedStyle ? window.getComputedStyle(tableEl) : null) : null;
+    var headerStyle = header ? (window.getComputedStyle ? window.getComputedStyle(header) : null) : null;
+    var wrapStyle = tableWrap ? (window.getComputedStyle ? window.getComputedStyle(tableWrap) : null) : null;
+    var gap = null;
+    try{
+      if(firstRow && header){
+        gap = Math.round((firstRow.getBoundingClientRect().top - header.getBoundingClientRect().bottom) * 100) / 100;
+      }
+    }catch(_){}
+    var activeCount = null;
+    try{
+      if(tbl && typeof tbl.getRows === "function"){
+        activeCount = (tbl.getRows("active") || []).length;
+      }
+    }catch(_){}
+    return {
+      cat: (document.getElementById("ercCategorySelect") || {}).value || "",
+      settle: inFilterSettleWindow(),
+      gap: gap,
+      holderScrollTop: holder ? holder.scrollTop : null,
+      viewportScrollTop: viewport ? viewport.scrollTop : null,
+      holderPaddingTop: holder ? holder.style.paddingTop : "",
+      holderMarginTop: holder ? holder.style.marginTop : "",
+      tableTop: tableEl ? tableEl.style.top : "",
+      tablePaddingTop: tableEl ? tableEl.style.paddingTop : "",
+      tableMarginTop: tableEl ? tableEl.style.marginTop : "",
+      tableTransform: tableEl ? (tableEl.style.transform || "") : "",
+      rowsActive: activeCount,
+      holderPaddingTopComputed: holderStyle ? holderStyle.paddingTop : "",
+      holderMarginTopComputed: holderStyle ? holderStyle.marginTop : "",
+      tableTopComputed: tableStyle ? tableStyle.top : "",
+      tablePaddingTopComputed: tableStyle ? tableStyle.paddingTop : "",
+      tableMarginTopComputed: tableStyle ? tableStyle.marginTop : "",
+      tableTransformComputed: tableStyle ? tableStyle.transform : "",
+      headerHeightComputed: headerStyle ? headerStyle.height : "",
+      headerInlineHeight: header ? (header.style.height || "") : "",
+      headerInlineMinHeight: header ? (header.style.minHeight || "") : "",
+      headerRectHeight: header ? (Math.round((header.getBoundingClientRect().height || 0) * 100) / 100) : null,
+      headerHeightVar: root ? (root.style.getPropertyValue('--erc-header-height') || "") : "",
+      tableWrapZoomInline: tableWrap ? (tableWrap.style.zoom || "") : "",
+      tableWrapZoomComputed: wrapStyle ? (wrapStyle.zoom || "") : "",
+      firstRowHeight: firstRow ? (Math.round((firstRow.getBoundingClientRect().height || 0) * 100) / 100) : null,
+      firstRowStyleHeight: firstRow ? firstRow.style.height : "",
+      firstRowComputedHeight: firstRowStyle ? firstRowStyle.height : "",
+      firstRowComputedMinHeight: firstRowStyle ? firstRowStyle.minHeight : ""
+    };
+  }
+
+  function cloneTraceExtra(extra){
+    if(extra == null) return null;
+    if(typeof extra === "string" || typeof extra === "number" || typeof extra === "boolean") return extra;
+    try{
+      return JSON.parse(JSON.stringify(extra));
+    }catch(_){
+      try{ return String(extra); }catch(__){ return null; }
+    }
+  }
+
+  function getTraceZoomValue(){
+    try{
+      var wrap = document.getElementById("tableWrap");
+      if(wrap){
+        var cs = window.getComputedStyle ? window.getComputedStyle(wrap) : null;
+        var z = parseFloat((cs && cs.zoom) || wrap.style.zoom || "1");
+        if(isFinite(z) && z > 0) return z;
+      }
+    }catch(_){}
+    try{
+      var range = document.querySelector(".erc-zoom-controls input[type='range']");
+      if(range){
+        var v = parseFloat(range.value);
+        if(isFinite(v) && v > 0) return v;
+      }
+    }catch(_){}
+    return 1;
+  }
+
+  function getTraceFileBaseName(){
+    var path = "";
+    try{ path = String(location && location.pathname ? location.pathname : ""); }catch(_){}
+    var base = path.split("/").pop() || "erc-trace";
+    base = base.replace(/\.[^.]+$/, "");
+    if(!base) base = "erc-trace";
+    return base.replace(/[^\w\-\u4e00-\u9fff]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
+  }
+
+  function formatTraceTime(ts){
+    var d = new Date(ts || Date.now());
+    var y = String(d.getFullYear());
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    var hh = String(d.getHours()).padStart(2, "0");
+    var mm = String(d.getMinutes()).padStart(2, "0");
+    var ss = String(d.getSeconds()).padStart(2, "0");
+    return y + m + day + "-" + hh + mm + ss;
+  }
+
+  function buildTraceMeta(){
+    var startTs = traceState.startedAt || null;
+    var endTs = traceState.endedAt || null;
+    return {
+      schema: "erc-trace-v1",
+      module: "erc-category-filter-js",
+      fileName: getTraceFileBaseName(),
+      pageUrl: (function(){ try{ return String(location.href || ""); }catch(_){ return ""; } })(),
+      userAgent: (function(){ try{ return String(navigator.userAgent || ""); }catch(_){ return ""; } })(),
+      zoom: getTraceZoomValue(),
+      devicePixelRatio: (function(){ try{ return window.devicePixelRatio || null; }catch(_){ return null; } })(),
+      label: traceState.label || "",
+      startTs: startTs,
+      endTs: endTs,
+      durationMs: (startTs && endTs) ? (endTs - startTs) : null,
+      maxRecords: TRACE_MAX_RECORDS,
+      dropped: traceState.dropped || 0,
+      recordCount: traceState.records.length
+    };
+  }
+
+  function buildTraceRecord(eventName, extra, notes, snapshotOverride){
+    var snap = snapshotOverride || getLayoutSnapshot() || {};
+    var record = {
+      ts: Date.now(),
+      event: String(eventName || "unknown"),
+      cat: snap.cat || "",
+      settle: !!snap.settle,
+      gap: (snap.gap == null ? null : snap.gap),
+      rowsActive: (snap.rowsActive == null ? null : snap.rowsActive),
+      firstRowHeight: (snap.firstRowHeight == null ? null : snap.firstRowHeight),
+      firstRowComputedHeight: snap.firstRowComputedHeight || "",
+      firstRowComputedMinHeight: snap.firstRowComputedMinHeight || "",
+      headerHeightComputed: snap.headerHeightComputed || "",
+      holderScrollTop: (snap.holderScrollTop == null ? null : snap.holderScrollTop),
+      viewportScrollTop: (snap.viewportScrollTop == null ? null : snap.viewportScrollTop),
+      tableTop: snap.tableTop || "",
+      tablePaddingTop: snap.tablePaddingTop || "",
+      tableMarginTop: snap.tableMarginTop || "",
+      tableTransform: snap.tableTransform || "",
+      tableTopComputed: snap.tableTopComputed || "",
+      tablePaddingTopComputed: snap.tablePaddingTopComputed || "",
+      tableMarginTopComputed: snap.tableMarginTopComputed || "",
+      tableTransformComputed: snap.tableTransformComputed || "",
+      holderPaddingTop: snap.holderPaddingTop || "",
+      holderMarginTop: snap.holderMarginTop || "",
+      holderPaddingTopComputed: snap.holderPaddingTopComputed || "",
+      holderMarginTopComputed: snap.holderMarginTopComputed || "",
+      headerInlineHeight: snap.headerInlineHeight || "",
+      headerInlineMinHeight: snap.headerInlineMinHeight || "",
+      headerRectHeight: (snap.headerRectHeight == null ? null : snap.headerRectHeight),
+      headerHeightVar: snap.headerHeightVar || "",
+      tableWrapZoomInline: snap.tableWrapZoomInline || "",
+      tableWrapZoomComputed: snap.tableWrapZoomComputed || ""
+    };
+    if(notes) record.notes = String(notes);
+    var safeExtra = cloneTraceExtra(extra);
+    if(safeExtra != null) record.extra = safeExtra;
+    return record;
+  }
+
+  function tracePush(eventName, extra, notes, snapshotOverride){
+    if(!traceState.enabled) return null;
+    var rec = null;
+    try{
+      rec = buildTraceRecord(eventName, extra, notes, snapshotOverride);
+      if(traceState.records.length >= TRACE_MAX_RECORDS){
+        traceState.records.shift();
+        traceState.dropped += 1;
+      }
+      traceState.records.push(rec);
+    }catch(_){}
+    return rec;
+  }
+
+  function setTraceStatusText(text, stateClass){
+    var el = $("ercTraceStatus");
+    if(!el) return;
+    el.textContent = text || "未開始";
+    el.classList.remove("is-running", "is-saved", "is-error");
+    if(stateClass) el.classList.add(stateClass);
+  }
+
+  function syncTraceButtons(){
+    var startBtn = $("btnErcTraceStart");
+    var stopBtn = $("btnErcTraceStop");
+    if(startBtn) startBtn.disabled = !!traceState.enabled;
+    if(stopBtn) stopBtn.disabled = (!traceState.enabled && !traceState.records.length);
+  }
+
+  window.__ercTraceStart = function(label){
+    traceState.enabled = true;
+    traceState.label = (label == null ? "" : String(label)).trim() || "trace";
+    traceState.startedAt = Date.now();
+    traceState.endedAt = 0;
+    traceState.dropped = 0;
+    traceState.records = [];
+    traceState.lastRafTraceAt = 0;
+    tracePush("trace:start", { label: traceState.label }, "trace recorder started");
+    var meta = buildTraceMeta();
+    console.log("[ERC-TRACE] start", meta);
+    setTraceStatusText("偵測中：" + traceState.label, "is-running");
+    syncTraceButtons();
+    return meta;
+  };
+
+  window.__ercTraceMark = function(tag, extra){
+    if(!traceState.enabled){
+      console.warn("[ERC-TRACE] 尚未開始錄製，請先執行 __ercTraceStart('label')");
+      setTraceStatusText("尚未開始偵測", "is-error");
+      return null;
+    }
+    var eventName = "mark:" + ((tag == null || tag === "") ? "manual" : String(tag));
+    var rec = tracePush(eventName, extra);
+    console.log("[ERC-TRACE]", eventName, rec);
+    return rec;
+  };
+
+  window.__ercTraceDump = function(limit){
+    var n = parseInt(limit, 10);
+    if(!isFinite(n) || n <= 0) n = 30;
+    var meta = buildTraceMeta();
+    var recent = traceState.records.slice(Math.max(0, traceState.records.length - n));
+    console.log("[ERC-TRACE] summary", meta);
+    console.log("[ERC-TRACE] recent(" + recent.length + ")", recent);
+    return { meta: meta, recent: recent };
+  };
+
+  window.__ercTraceStop = function(filename){
+    if(!traceState.enabled && !traceState.records.length){
+      console.warn("[ERC-TRACE] 沒有可匯出的紀錄，請先執行 __ercTraceStart()");
+      setTraceStatusText("沒有可匯出的紀錄", "is-error");
+      syncTraceButtons();
+      return null;
+    }
+    if(traceState.enabled){
+      traceState.endedAt = Date.now();
+      tracePush("trace:stop", null, "trace recorder stopped");
+      traceState.enabled = false;
+    }else if(!traceState.endedAt){
+      traceState.endedAt = Date.now();
+    }
+
+    var payload = {
+      meta: buildTraceMeta(),
+      records: traceState.records.slice()
+    };
+    var name = (filename == null ? "" : String(filename)).trim();
+    if(!name){
+      name = "erc-trace-" + getTraceFileBaseName() + "-" + formatTraceTime(payload.meta.endTs || Date.now()) + ".json";
+    }else if(!/\.json$/i.test(name)){
+      name += ".json";
+    }
+    try{
+      var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){
+        try{ URL.revokeObjectURL(url); }catch(_){}
+        try{ a.remove(); }catch(_){}
+      }, 0);
+      console.log("[ERC-TRACE] saved", name, payload.meta);
+      setTraceStatusText("已匯出：" + name, "is-saved");
+      syncTraceButtons();
+    }catch(err){
+      console.error("[ERC-TRACE] 匯出失敗", err);
+      setTraceStatusText("匯出失敗（看 Console）", "is-error");
+      syncTraceButtons();
+      return null;
+    }
+    return payload.meta;
+  };
+
+  function logGap(tag, extra){
+    var traceEnabled = !!traceState.enabled;
+    if(!DEBUG_GAP && !traceEnabled) return;
+    try{
+      var ts = new Date();
+      var stamp = ts.toTimeString().slice(0, 8) + "." + String(ts.getMilliseconds()).padStart(3, "0");
+      var tagText = String(tag || "gap");
+      var snap = getLayoutSnapshot();
+      if(DEBUG_GAP){
+        console.log("[ERC-GAP]", stamp, tagText, snap);
+        console.log("[ERC-GAP-S]", stamp, tagText, JSON.stringify(snap));
+      }
+      if(traceEnabled){
+        var allowTrace = true;
+        var isRafStabilize = tagText.indexOf("stabilize:") === 0 && tagText.indexOf(":raf") >= 0;
+        if(isRafStabilize){
+          var nowTs = Date.now();
+          if(traceState.lastRafTraceAt && (nowTs - traceState.lastRafTraceAt) < 120){
+            allowTrace = false;
+          }else{
+            traceState.lastRafTraceAt = nowTs;
+          }
+        }
+        if(allowTrace) tracePush(tagText, extra, "", snap);
+      }
+    }catch(_){}
+  }
+
+  window.__ercGapDump = function(tag){
+    var t = tag || "manual";
+    logGap(t, { source: "__ercGapDump" });
+    tracePush("gapDump:" + t, { source: "__ercGapDump" });
+  };
+
+  function ensureGapObservers(){
+    if(!DEBUG_GAP) return;
+    var root = document.querySelector('#tableWrap .tabulator') ||
+               document.querySelector('#table .tabulator') ||
+               document.querySelector('.tabulator');
+    if(!root) return;
+    var holder = root.querySelector('.tabulator-tableholder');
+    var tableEl = root.querySelector('.tabulator-table');
+    if(holder && !holder._ercGapObsBound){
+      holder._ercGapObsBound = true;
+      try{
+        var moHolder = new MutationObserver(function(muts){
+          muts.forEach(function(m){
+            if(m.type === "attributes"){
+              logGap("mo-holder-" + m.attributeName);
+            }
+          });
+        });
+        moHolder.observe(holder, { attributes: true, attributeOldValue: true, attributeFilter: ["style", "class"] });
+      }catch(_){}
+    }
+    if(tableEl && !tableEl._ercGapObsBound){
+      tableEl._ercGapObsBound = true;
+      try{
+        var moTable = new MutationObserver(function(muts){
+          muts.forEach(function(m){
+            if(m.type === "attributes"){
+              logGap("mo-table-" + m.attributeName);
+            }
+          });
+        });
+        moTable.observe(tableEl, { attributes: true, attributeOldValue: true, attributeFilter: ["style", "class"] });
+      }catch(_){}
+    }
+  }
+
   function scheduleSummaryUpdate(){
     if(summaryTimer) return;
     summaryTimer = setTimeout(function(){
@@ -12715,50 +13204,311 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
     }, 80);
   }
 
-  var ercFilterLayoutTimer = null;
-  function applyFilterHeaderGapFix(doRedraw){
+  function getHeaderBodyGap(root){
+    try{
+      if(!root) return null;
+      var tableEl = root.querySelector(".tabulator-table");
+      var header = root.querySelector(".tabulator-header");
+      var firstRow = pickFirstVisibleRow(tableEl);
+      if(!firstRow || !header) return null;
+      return firstRow.getBoundingClientRect().top - header.getBoundingClientRect().bottom;
+    }catch(_){
+      return null;
+    }
+  }
+
+  function parseTranslateY(transformValue){
+    if(!transformValue || transformValue === "none") return 0;
+    var m = transformValue.match(/translateY\(([-\d.]+)px\)/i);
+    if(m && isFinite(parseFloat(m[1]))) return parseFloat(m[1]);
+    m = transformValue.match(/translate3d\(\s*[-\d.]+px\s*,\s*([-\d.]+)px\s*,\s*[-\d.]+px\s*\)/i);
+    if(m && isFinite(parseFloat(m[1]))) return parseFloat(m[1]);
+    m = transformValue.match(/translate\(\s*[-\d.]+px\s*,\s*([-\d.]+)px\s*\)/i);
+    if(m && isFinite(parseFloat(m[1]))) return parseFloat(m[1]);
+    m = transformValue.match(/matrix\(([^)]+)\)/i);
+    if(m){
+      var parts = m[1].split(",").map(function(x){ return parseFloat(String(x).trim()); });
+      if(parts.length >= 6 && isFinite(parts[5])) return parts[5];
+    }
+    m = transformValue.match(/matrix3d\(([^)]+)\)/i);
+    if(m){
+      var parts3d = m[1].split(",").map(function(x){ return parseFloat(String(x).trim()); });
+      if(parts3d.length >= 14 && isFinite(parts3d[13])) return parts3d[13];
+    }
+    return 0;
+  }
+
+  function clearHolderTopOffset(holder){
+    if(!holder) return;
+    holder.style.setProperty("padding-top", "0px", "important");
+    holder.style.setProperty("margin-top", "0px", "important");
+    holder.style.setProperty("scroll-padding-top", "0px", "important");
+    holder.style.boxSizing = "border-box";
+  }
+
+  function clearViewportTopOffset(viewport){
+    if(!viewport) return;
+    viewport.style.setProperty("padding-top", "0px", "important");
+    viewport.style.setProperty("margin-top", "0px", "important");
+    viewport.style.setProperty("scroll-padding-top", "0px", "important");
+    viewport.style.boxSizing = "border-box";
+  }
+
+  function clearTableTopOffset(tableEl){
+    if(!tableEl) return;
+    var cs = window.getComputedStyle ? window.getComputedStyle(tableEl) : null;
+    var pTop = parseFloat(tableEl.style.paddingTop || (cs ? cs.paddingTop : "0"));
+    var mTop = parseFloat(tableEl.style.marginTop || (cs ? cs.marginTop : "0"));
+    var topV = parseFloat(tableEl.style.top || (cs ? cs.top : "0"));
+    if(isFinite(pTop) && pTop > 0.5) tableEl.style.paddingTop = "0px";
+    if(isFinite(mTop) && mTop > 0.5) tableEl.style.marginTop = "0px";
+    if(isFinite(topV) && Math.abs(topV) > 0.5) tableEl.style.top = "0px";
+    var tfInline = tableEl.style.transform || "";
+    var tfComputed = cs ? cs.transform : "";
+    var yInline = parseTranslateY(tfInline);
+    var yComputed = parseTranslateY(tfComputed);
+    if(Math.abs(yInline) > 0.5 || Math.abs(yComputed) > 0.5){
+      tableEl.style.transform = "translateY(0px)";
+    }
+  }
+
+  function nudgeVerticalReflow(holder, viewport, tbl){
+    var target = holder || (tbl && tbl.rowManager && tbl.rowManager.element) || viewport;
+    if(!target) return;
+    try{
+      var max = Math.max(0, (target.scrollHeight || 0) - (target.clientHeight || 0));
+      if(max <= 0) return;
+      var bump = max >= 1 ? 1 : max;
+      target.scrollTop = bump;
+      target.scrollTop = 0;
+      try{ target.dispatchEvent(new Event("scroll", { bubbles: false })); }catch(_){}
+    }catch(_){}
+  }
+
+  function tryScrollFirstActiveRowTop(tbl){
+    try{
+      if(!tbl || typeof tbl.getRows !== "function" || typeof tbl.scrollToRow !== "function") return false;
+      var rows = tbl.getRows("active");
+      if(!rows || !rows.length) return false;
+      tbl.scrollToRow(rows[0], "top", false);
+      return true;
+    }catch(_){
+      return false;
+    }
+  }
+
+  function stabilizeFilterTop(reason, doRedraw){
+    var tbl = window.table;
+    if(!tbl) return;
     var root = document.querySelector('#tableWrap .tabulator') ||
                document.querySelector('#table .tabulator') ||
                document.querySelector('.tabulator');
     if(!root) return;
-    var holder = root.querySelector('.tabulator-tableholder');
+    var holder = (tbl.rowManager && tbl.rowManager.element) || root.querySelector('.tabulator-tableholder');
+    var viewport = document.querySelector('.erc-viewport');
     var tableEl = root.querySelector('.tabulator-table');
-    if(holder){
-      holder.style.paddingTop = '0px';
-      holder.style.marginTop = '0px';
-      holder.style.scrollPaddingTop = '0px';
+    try{
+      clearHolderTopOffset(holder);
+      clearViewportTopOffset(viewport);
+      if(holder) holder.scrollTop = 0;
+      if(viewport) viewport.scrollTop = 0;
+      if(tbl.rowManager && tbl.rowManager.element) tbl.rowManager.element.scrollTop = 0;
+    }catch(_){}
+
+    var atTopNow = !holder || holder.scrollTop <= 2;
+    var gapNow = getHeaderBodyGap(root);
+    var shouldForceClear = !!atTopNow || (gapNow != null && gapNow > 2);
+    if(shouldForceClear && tableEl){
+      clearHolderTopOffset(holder);
+      clearViewportTopOffset(viewport);
+      clearTableTopOffset(tableEl);
+      if(gapNow != null && gapNow > 2){
+        nudgeVerticalReflow(holder, viewport, tbl);
+      }
     }
-    if(tableEl){
-      tableEl.style.paddingTop = '0px';
-      tableEl.style.marginTop = '0px';
-    }
+
+    // 不使用 scrollToRow：在 virtual render + filter 組合下，可能造成 table top 殘留偏移
+    // 造成標題下方空白帶。改為僅維持 holder/viewport scrollTop=0。
+
     if(doRedraw){
       try{
-        if(window.table && typeof window.table.redraw === "function"){
-          window.table.redraw(true);
-        }
-      }catch(_){ }
+        if(typeof tbl.redraw === "function") tbl.redraw(true);
+      }catch(_){}
     }
+
     try{
-      if(window.__ercAutoTightenHeader) window.__ercAutoTightenHeader();
-    }catch(_){ }
-    try{
+      // Avoid forcing header auto-height during filter settle; it can re-introduce the visible blank band.
       if(window.__ercFixHeaderOverlap) window.__ercFixHeaderOverlap();
-    }catch(_){ }
+    }catch(_){}
+
+    var gapAfter = getHeaderBodyGap(root);
+    if(gapAfter != null && gapAfter > 2 && tableEl){
+      clearHolderTopOffset(holder);
+      clearViewportTopOffset(viewport);
+      clearTableTopOffset(tableEl);
+      nudgeVerticalReflow(holder, viewport, tbl);
+      tryScrollFirstActiveRowTop(tbl);
+      try{
+        if(holder) holder.scrollTop = 0;
+        if(viewport) viewport.scrollTop = 0;
+        if(tbl.rowManager && tbl.rowManager.element) tbl.rowManager.element.scrollTop = 0;
+      }catch(_){}
+      clearTableTopOffset(tableEl);
+    }
+    logGap("stabilize:" + (reason || ""));
+  }
+
+  function getActiveRowCount(tbl){
+    try{
+      if(tbl && typeof tbl.getRows === "function"){
+        return (tbl.getRows("active") || []).length;
+      }
+    }catch(_){}
+    return 0;
+  }
+
+  var gapRepairRAF = 0;
+  function runGapRepairLoop(tag, durationMs){
+    if(gapRepairRAF){
+      try{ cancelAnimationFrame(gapRepairRAF); }catch(_){}
+      tracePush("runGapRepairLoop:cancel-prev", { tag: tag || "" });
+      gapRepairRAF = 0;
+    }
+    var startAt = Date.now();
+    var maxMs = Math.max(300, parseInt(durationMs, 10) || 900);
+    var stableFrames = 0;
+    var lastStepTraceAt = 0;
+    tracePush("runGapRepairLoop:start", { tag: tag || "", durationMs: maxMs });
+    function step(){
+      stabilizeFilterTop((tag || "repair") + ":raf", false);
+      var tbl = window.table;
+      var root = document.querySelector('#tableWrap .tabulator') ||
+                 document.querySelector('#table .tabulator') ||
+                 document.querySelector('.tabulator');
+      var gap = getHeaderBodyGap(root);
+      var activeRows = getActiveRowCount(tbl);
+      var gapUnknownWithRows = (gap == null && activeRows > 0);
+      var gapBad = (gap != null) ? (gap > 2) : gapUnknownWithRows;
+      if(gapBad) stableFrames = 0;
+      else stableFrames += 1;
+      var elapsed = Date.now() - startAt;
+      var stillSettling = inFilterSettleWindow();
+      var shouldContinue = elapsed < maxMs && (gapBad || (stillSettling && stableFrames < 3));
+      if(traceState.enabled){
+        var nowTs = Date.now();
+        var shouldTraceStep = !lastStepTraceAt || (nowTs - lastStepTraceAt >= 120) || !shouldContinue;
+        if(shouldTraceStep){
+          lastStepTraceAt = nowTs;
+          tracePush("runGapRepairLoop:step", {
+            tag: tag || "",
+            elapsedMs: elapsed,
+            stableFrames: stableFrames,
+            gapMeasured: (gap == null ? null : Math.round(gap * 100) / 100),
+            gapBad: gapBad,
+            rowsActive: activeRows,
+            settle: stillSettling,
+            shouldContinue: shouldContinue
+          });
+        }
+      }
+      if(shouldContinue){
+        gapRepairRAF = requestAnimationFrame(step);
+      }else{
+        gapRepairRAF = 0;
+        logGap("repair-end:" + (tag || ""));
+        tracePush("runGapRepairLoop:end", {
+          tag: tag || "",
+          elapsedMs: elapsed,
+          stableFrames: stableFrames,
+          gapMeasured: (gap == null ? null : Math.round(gap * 100) / 100),
+          gapBad: gapBad,
+          rowsActive: activeRows
+        });
+      }
+    }
+    step();
+  }
+
+  function scheduleFilterTopNormalize(reason, forceSnap){
+    if(filterNormalizeTimer) clearTimeout(filterNormalizeTimer);
+    filterNormalizeTimer = setTimeout(function(){
+      filterNormalizeTimer = null;
+      var tbl = window.table;
+      if(!tbl) return;
+      var root = document.querySelector('#tableWrap .tabulator') ||
+                 document.querySelector('#table .tabulator') ||
+                 document.querySelector('.tabulator');
+      if(!root) return;
+      ensureGapObservers();
+      var holder = (tbl.rowManager && tbl.rowManager.element) || (root ? root.querySelector('.tabulator-tableholder') : null);
+      var tableEl = root ? root.querySelector('.tabulator-table') : null;
+      var header = root.querySelector('.tabulator-header');
+
+      var needSnapTop = false;
+      if(forceSnap || inFilterSettleWindow()){
+        needSnapTop = true;
+      }
+      if(holder && holder.scrollTop <= 2){
+        needSnapTop = true;
+      }
+      if(!needSnapTop && header && tableEl){
+        var firstRow = tableEl.querySelector('.tabulator-row');
+        if(firstRow){
+          var gap = firstRow.getBoundingClientRect().top - header.getBoundingClientRect().bottom;
+          if(gap > 2) needSnapTop = true;
+        }
+      }
+      if(!needSnapTop){
+        logGap("skip-normalize:" + (reason || ""));
+        return;
+      }
+
+      logGap("before-normalize:" + (reason || ""));
+      stabilizeFilterTop(reason || "normalize", false);
+      logGap("after-normalize:" + (reason || ""));
+    }, 40);
+  }
+
+  var ercFilterLayoutTimer = null;
+  function applyFilterHeaderGapFix(doRedraw){
+    stabilizeFilterTop("applyFilterHeaderGapFix", !!doRedraw);
   }
 
   function fixFilterHeaderGap(){
     if(ercFilterLayoutTimer) clearTimeout(ercFilterLayoutTimer);
     ercFilterLayoutTimer = setTimeout(function(){
       ercFilterLayoutTimer = null;
-      applyFilterHeaderGapFix(false);
+      applyFilterHeaderGapFix(true);
+      setTimeout(function(){ applyFilterHeaderGapFix(false); }, 120);
+      setTimeout(function(){ applyFilterHeaderGapFix(false); }, 260);
     }, 0);
   }
 
-  function applyCategoryFilter(){
+  function applyCategoryFilter(userTriggered){
     var sel = $("ercCategorySelect");
     if(!sel || !window.table || typeof window.table.setFilter !== "function") return;
     currentCategory = sel.value || "";
+    tracePush("applyCategoryFilter:start", { userTriggered: !!userTriggered, category: currentCategory });
+    try{
+      // 避免殘留的 header 高度鎖定在篩選後把標題列撐高成空白帶。
+      if(window.__ercClearHeaderHeightLock) window.__ercClearHeaderHeightLock();
+    }catch(_){}
+    if(userTriggered){
+      markFilterSettleWindow(1800);
+      logGap("applyCategoryFilter:start");
+    }
+    try{
+      var root = document.querySelector('#tableWrap .tabulator') ||
+                 document.querySelector('#table .tabulator') ||
+                 document.querySelector('.tabulator');
+      var holder = root ? root.querySelector('.tabulator-tableholder') : null;
+      var viewport = document.querySelector('.erc-viewport');
+      if(holder) holder.scrollTop = 0;
+      if(viewport) viewport.scrollTop = 0;
+      if(window.table && window.table.rowManager && window.table.rowManager.element){
+        window.table.rowManager.element.scrollTop = 0;
+      }
+    }catch(_){}
     applying = true;
     try{
       window.table.setFilter(buildCompositeFilter(currentCategory));
@@ -12768,7 +13518,21 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
     scheduleSummaryUpdate();
     applyNightSortIfNeeded();
     applyDeptSortIfNeeded();
-    fixFilterHeaderGap();
+    if(userTriggered){
+      fixFilterHeaderGap();
+      setTimeout(function(){ stabilizeFilterTop("user-triggered-stabilize-0", false); }, 0);
+      setTimeout(function(){ stabilizeFilterTop("user-triggered-stabilize-120", false); }, 120);
+      setTimeout(function(){ stabilizeFilterTop("user-triggered-stabilize-260", false); }, 260);
+      setTimeout(function(){ runGapRepairLoop("user-triggered-repair", 1400); }, 0);
+      scheduleFilterTopNormalize("user-triggered-0", true);
+      setTimeout(function(){ scheduleFilterTopNormalize("user-triggered-80", true); }, 80);
+      setTimeout(function(){ scheduleFilterTopNormalize("user-triggered-180", true); }, 180);
+      setTimeout(function(){ scheduleFilterTopNormalize("user-triggered-320", true); }, 320);
+      setTimeout(function(){ scheduleFilterTopNormalize("user-triggered-520", true); }, 520);
+      setTimeout(function(){ scheduleFilterTopNormalize("user-triggered-820", true); }, 820);
+      setTimeout(function(){ scheduleFilterTopNormalize("user-triggered-1200", true); }, 1200);
+    }
+    tracePush("applyCategoryFilter:end", { userTriggered: !!userTriggered, category: currentCategory });
   }
 
   function setSiteFilter(site){
@@ -12785,7 +13549,7 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
         unBtn.classList.remove("is-active");
       }
     }
-    applyCategoryFilter();
+    applyCategoryFilter(true);
   }
 
   function setRiskFilter(risk){
@@ -12795,7 +13559,7 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
       var match = risk && btn.getAttribute("data-risk") === risk;
       btn.classList.toggle("is-active", !!match);
     });
-    applyCategoryFilter();
+    applyCategoryFilter(true);
   }
 
   function updateCategoryOptions(){
@@ -12850,12 +13614,41 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
   }
 
   function handleCategoryDataLoaded(){
+    tracePush("dataLoaded", null, "table event");
     clearPermitTokenCache();
     scheduleCategoryOptionsUpdate(true);
+    markFilterSettleWindow(1200);
+    runGapRepairLoop("dataLoaded-repair", 1200);
+    scheduleFilterTopNormalize("dataLoaded-0", true);
+    setTimeout(function(){ scheduleFilterTopNormalize("dataLoaded-120", true); }, 120);
+    setTimeout(function(){ scheduleFilterTopNormalize("dataLoaded-260", true); }, 260);
   }
 
   function handleCategoryTableBuilt(){
     scheduleCategoryOptionsUpdate(false);
+  }
+
+  function handleCategoryDataFiltered(){
+    tracePush("dataFiltered", null, "table event");
+    scheduleSummaryUpdate();
+    markFilterSettleWindow(1000);
+    runGapRepairLoop("dataFiltered-repair", 1100);
+    scheduleFilterTopNormalize("dataFiltered-0", true);
+    setTimeout(function(){ scheduleFilterTopNormalize("dataFiltered-120", true); }, 120);
+    setTimeout(function(){ scheduleFilterTopNormalize("dataFiltered-260", true); }, 260);
+  }
+
+  function handleCategoryDataSorted(){
+    tracePush("dataSorted", null, "table event");
+    if(!inFilterSettleWindow()) return;
+    scheduleFilterTopNormalize("dataSorted", true);
+  }
+
+  function handleCategoryRenderComplete(){
+    tracePush("renderComplete", null, "table event");
+    if(!inFilterSettleWindow()) return;
+    runGapRepairLoop("renderComplete-repair", 900);
+    scheduleFilterTopNormalize("renderComplete", true);
   }
 
   function bindTableEvents(){
@@ -12866,21 +13659,29 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
       boundTable.off("dataLoaded", handleCategoryDataLoaded);
       boundTable.off("tableBuilt", handleCategoryTableBuilt);
       boundTable.off("cellEdited", scheduleSummaryUpdate);
-      boundTable.off("dataFiltered", scheduleSummaryUpdate);
+      boundTable.off("dataFiltered", handleCategoryDataFiltered);
+      boundTable.off("dataSorted", handleCategoryDataSorted);
+      boundTable.off("renderComplete", handleCategoryRenderComplete);
     }
     boundTable = t;
     t.on("dataLoaded", handleCategoryDataLoaded);
     t.on("tableBuilt", handleCategoryTableBuilt);
     t.on("cellEdited", scheduleSummaryUpdate);
-    t.on("dataFiltered", scheduleSummaryUpdate);
-    setTimeout(function(){ scheduleCategoryOptionsUpdate(true); }, 0);
+    t.on("dataFiltered", handleCategoryDataFiltered);
+    t.on("dataSorted", handleCategoryDataSorted);
+    t.on("renderComplete", handleCategoryRenderComplete);
+    setTimeout(function(){
+      ensureGapObservers();
+      scheduleCategoryOptionsUpdate(true);
+      logGap("bindTableEvents:init");
+    }, 0);
   }
 
   function init(){
     var sel = $("ercCategorySelect");
     if(sel && !sel._ercBound){
       sel._ercBound = true;
-      sel.addEventListener("change", function(){ applyCategoryFilter(); });
+      sel.addEventListener("change", function(){ applyCategoryFilter(true); });
     }
     var btn = $("btnUnclassifiedSite");
     if(btn && !btn._ercBound){
@@ -12896,7 +13697,7 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
             b.classList.remove("is-active");
           });
         }
-        applyCategoryFilter();
+        applyCategoryFilter(true);
       });
     }
     var nightBtn = $("btnNightShift");
@@ -12907,9 +13708,32 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
       nightBtn.addEventListener("click", function(){
         window.__ERC_NIGHT_ONLY = !window.__ERC_NIGHT_ONLY;
         nightBtn.classList.toggle("is-active", !!window.__ERC_NIGHT_ONLY);
-        applyCategoryFilter();
+        applyCategoryFilter(true);
       });
     }
+    var traceStartBtn = $("btnErcTraceStart");
+    if(traceStartBtn && !traceStartBtn._ercBound){
+      traceStartBtn._ercBound = true;
+      traceStartBtn.addEventListener("click", function(){
+        var label = "filter-gap-" + formatTraceTime(Date.now());
+        window.__ercTraceStart(label);
+      });
+    }
+    var traceStopBtn = $("btnErcTraceStop");
+    if(traceStopBtn && !traceStopBtn._ercBound){
+      traceStopBtn._ercBound = true;
+      traceStopBtn.addEventListener("click", function(){
+        window.__ercTraceStop();
+      });
+    }
+    if(traceState.enabled){
+      setTraceStatusText("偵測中：" + (traceState.label || "trace"), "is-running");
+    }else if(traceState.records.length){
+      setTraceStatusText("已有偵測資料，請按結束偵測匯出", "is-saved");
+    }else{
+      setTraceStatusText("未開始", "");
+    }
+    syncTraceButtons();
     if(typeof window.__ERC_SITE_ONLY !== "string") window.__ERC_SITE_ONLY = "";
     if(typeof window.__ERC_RISK_ONLY !== "string") window.__ERC_RISK_ONLY = "";
     if(typeof window.__ERC_DEPT_GROUP !== "string") window.__ERC_DEPT_GROUP = "";
