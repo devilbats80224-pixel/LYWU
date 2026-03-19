@@ -238,6 +238,21 @@ th{text-align:left;color:var(--sub)}
 .table.overview-edit .row-del:hover{filter:brightness(1.05)}
 .table.overview-edit td{padding:9px 8px}
 .table.overview-edit input{font-size:14px;min-width:160px}
+.table.overview-edit .flag-col{min-width:120px}
+.table.overview-edit .flag-editor{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:38px;
+  white-space:nowrap;
+}
+.table.overview-edit .flag-editor input[type="checkbox"]{
+  width:18px;
+  height:18px;
+  min-width:18px;
+  margin:0;
+}
 .table.overview-edit .col-gas{width:auto;min-width:300px}
 .table.overview-edit .col-gas input{min-width:280px}
 .table.overview-edit .field-col{width:auto;min-width:180px}
@@ -245,6 +260,16 @@ th{text-align:left;color:var(--sub)}
 .overview-edit-tools{margin-top:10px}
 .badge{background:var(--chip);border:1px solid var(--chip-b);border-radius:999px;
   padding:6px 10px;margin:4px 6px 0 0;display:inline-block}
+.badge.badge-flag-water{
+  background:#1d4ed8;
+  border-color:#1d4ed8;
+  color:#fff;
+}
+.badge.badge-flag-ignition{
+  background:#dc2626;
+  border-color:#dc2626;
+  color:#fff;
+}
 .group{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .card{background:var(--card);border:1px solid #d9e6f4;border-radius:14px;padding:12px;margin:10px 0}
 kbd{background:#eaf1ff;border:1px solid #bdd0f1;border-radius:6px;padding:2px 6px}
@@ -905,6 +930,7 @@ body.modal-open{overflow:hidden}
       <div class="flex" id="overviewTopRight">
         <button class="btn" id="btnEditOverview">編輯資料總覽</button>
         <button class="btn" id="btnFieldDelete">欄位管理</button>
+        <button class="btn" id="btnHazardSettings">危害欄位設定</button>
         <button class="btn primary hidden" id="btnSaveOverview">儲存總覽編輯</button>
         <button class="btn hidden" id="btnCancelOverview">取消編輯</button>
         <button class="btn" id="btnPhotoManager">照片與檔案管理</button>
@@ -999,6 +1025,39 @@ body.modal-open{overflow:hidden}
           <span id="queryFontPct" class="pct">100%</span>
           <button class="btn" id="btnQueryFontReset" type="button">重設</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="hazardSettingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="hazardSettingsModalTitle">
+    <div class="modal-card" style="width:min(620px,96vw)">
+      <div class="modal-head">
+        <h3 id="hazardSettingsModalTitle" style="margin:0">危害欄位設定</h3>
+        <button class="btn" id="btnCloseHazardSettingsModal" type="button">關閉</button>
+      </div>
+      <div class="card">
+        <div class="small">「禁水性 / 發火性」在資料總覽編輯模式的輸入方式</div>
+        <div class="query-manager-list" style="margin-top:8px">
+          <label class="query-manager-row">
+            <span>勾選方式（建議）</span>
+            <input type="radio" name="hazardEditMode" value="checkbox" id="hazardModeCheckbox"/>
+          </label>
+          <label class="query-manager-row">
+            <span>文字輸入方式（原本）</span>
+            <input type="radio" name="hazardEditMode" value="text" id="hazardModeText"/>
+          </label>
+        </div>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <div class="small">查詢結果顯示</div>
+        <label class="query-manager-row" style="margin-top:8px">
+          <span>禁水性藍底／發火性紅底</span>
+          <input type="checkbox" id="hazardColorizeToggle"/>
+        </label>
+      </div>
+      <div class="flex" style="margin-top:10px">
+        <button class="btn primary" id="btnSaveHazardSettings" type="button">套用設定</button>
+        <span class="small">未勾選與空值皆不顯示；僅套用於查詢結果卡片。</span>
       </div>
     </div>
   </div>
@@ -1161,31 +1220,6 @@ body.modal-open{overflow:hidden}
     }
   });
 })();
-async function purgeLegacyOfflineServiceWorkerCaches(){
-  if(!('serviceWorker' in navigator))return;
-  try{
-    const regs=await navigator.serviceWorker.getRegistrations();
-    await Promise.all(regs.map(reg=>{
-      const scope=String(reg.scope||'');
-      if(scope.includes('/gas-detector-app/')||scope.includes('/gas-leak-response-app/')){
-        return reg.unregister();
-      }
-      return Promise.resolve();
-    }));
-  }catch(_err){}
-
-  if(!('caches' in window))return;
-  try{
-    const keys=await caches.keys();
-    await Promise.all(
-      keys
-        .filter(name=>/gas-(detector|leak-response)-offline-v/i.test(name))
-        .map(name=>caches.delete(name))
-    );
-  }catch(_err){}
-}
-purgeLegacyOfflineServiceWorkerCaches();
-
 const MAX_IMAGES_PER_DETECTOR = 200;
 const MAX_PDF_PAGES_PER_DOC = 500;
 const MIN_PDF_CROP_SIZE = 0.05;
@@ -1230,6 +1264,30 @@ const DEFAULT_FIELD_ORDER = [
   'principles',
   'note'
 ];
+const DEFAULT_HAZARD_UI_SETTINGS = {
+  editMode:'checkbox', // checkbox | text
+  colorize:true
+};
+const HAZARD_FLAG_FIELD_IDS = ['waterReactive','ignition'];
+const HAZARD_FLAG_FALSE_TEXTS = new Set([
+  '',
+  '-',
+  '－',
+  '—',
+  '–',
+  '0',
+  'false',
+  'no',
+  'off',
+  'n',
+  'x',
+  '✕',
+  '✖',
+  '否',
+  '無',
+  '未勾選',
+  'none'
+]);
 const DEFAULT_PHOTO_DISPLAY = {
   detectors:'thumb',
   ppes:'thumb',
@@ -2122,6 +2180,10 @@ const PRESET = {
       "note"
     ],
     "fontScalePercent": 100
+  },
+  "hazardUiSettings": {
+    "editMode": "checkbox",
+    "colorize": true
   }
 };
 
@@ -2137,6 +2199,12 @@ const queryFieldSettingList = document.getElementById('queryFieldSettingList');
 const queryFontRange = document.getElementById('queryFontRange');
 const queryFontPct = document.getElementById('queryFontPct');
 const btnQueryFontReset = document.getElementById('btnQueryFontReset');
+const hazardSettingsModal = document.getElementById('hazardSettingsModal');
+const btnCloseHazardSettingsModal = document.getElementById('btnCloseHazardSettingsModal');
+const hazardModeCheckbox = document.getElementById('hazardModeCheckbox');
+const hazardModeText = document.getElementById('hazardModeText');
+const hazardColorizeToggle = document.getElementById('hazardColorizeToggle');
+const btnSaveHazardSettings = document.getElementById('btnSaveHazardSettings');
 const selPhotoType = document.getElementById('selPhotoType');
 const selPhotoTarget = document.getElementById('selPhotoTarget');
 const photoTargetLabel = document.getElementById('photoTargetLabel');
@@ -2147,6 +2215,7 @@ const storageUsageHint = document.getElementById('storageUsageHint');
 const btnPhotoManager = document.getElementById('btnPhotoManager');
 const btnExportFull = document.getElementById('btnExportFull');
 const btnFieldDelete = document.getElementById('btnFieldDelete');
+const btnHazardSettings = document.getElementById('btnHazardSettings');
 const photoModal = document.getElementById('photoModal');
 const btnClosePhotoModal = document.getElementById('btnClosePhotoModal');
 const photoFieldSettingList = document.getElementById('photoFieldSettingList');
@@ -2907,6 +2976,8 @@ function normalizeDB(db){
     visibleFields:nextQueryVisible,
     fontScalePercent:clampQueryFontScale(db.queryDisplay?.fontScalePercent)
   };
+  db.hazardUiSettings=normalizeHazardUiSettings(db.hazardUiSettings||db.hazardUi||DEFAULT_HAZARD_UI_SETTINGS);
+  delete db.hazardUi;
 
   Object.values(LEGACY_FIELD_IMAGE_MAP).forEach(legacyKey=>{
     db[legacyKey]={};
@@ -2929,6 +3000,13 @@ function clampQueryFontScale(v){
   const raw=Math.round(Number(v));
   if(!Number.isFinite(raw))return DEFAULT_QUERY_FONT_SCALE_PERCENT;
   return Math.max(MIN_QUERY_FONT_SCALE_PERCENT,Math.min(MAX_QUERY_FONT_SCALE_PERCENT,raw));
+}
+function normalizeHazardUiSettings(raw){
+  const mode=String(raw?.editMode||'').trim().toLowerCase();
+  return {
+    editMode:mode==='text'?'text':'checkbox',
+    colorize:raw?.colorize!==false
+  };
 }
 function getQueryFontScalePercent(){
   return clampQueryFontScale(DB.queryDisplay?.fontScalePercent);
@@ -2961,6 +3039,36 @@ function getPhotoMode(fieldId){
   if(mode==='thumb'||mode==='a4'||mode==='none')return mode;
   return DEFAULT_PHOTO_DISPLAY[fieldId]||'none';
 }
+function getHazardUiSettings(){
+  DB.hazardUiSettings=normalizeHazardUiSettings(DB.hazardUiSettings||DEFAULT_HAZARD_UI_SETTINGS);
+  return DB.hazardUiSettings;
+}
+function isHazardCheckboxMode(){
+  return getHazardUiSettings().editMode==='checkbox';
+}
+function useHazardColorize(){
+  return !!getHazardUiSettings().colorize;
+}
+function isHazardFlagField(fieldId){
+  return HAZARD_FLAG_FIELD_IDS.includes(fieldId);
+}
+function isHazardFlagChecked(value){
+  if(value===true)return true;
+  if(value===false||value===null||value===undefined)return false;
+  if(Array.isArray(value))return value.length>0;
+  const text=String(value).trim();
+  if(!text)return false;
+  return !HAZARD_FLAG_FALSE_TEXTS.has(text.toLowerCase());
+}
+function isFieldValueEmptyForQuery(fieldId,value){
+  if(isHazardFlagField(fieldId)&&isHazardCheckboxMode()){
+    return !isHazardFlagChecked(value);
+  }
+  if(Array.isArray(value))return value.length===0;
+  const text=String(value??'').trim();
+  if(!text)return true;
+  return /^[-－—–]+$/.test(text);
+}
 function getFieldValue(rec,fieldId){
   const r=normalizeGasRecord(rec);
   switch(fieldId){
@@ -2990,8 +3098,16 @@ function setFieldValue(rec,fieldId,value){
   const r=rec;
   switch(fieldId){
     case 'tlv': r.tlv=String(value??'').trim(); return;
-    case 'waterReactive': r.waterReactive=String(value??'').trim(); return;
-    case 'ignition': r.ignition=String(value??'').trim(); return;
+    case 'waterReactive':
+    case 'ignition':
+      if(isHazardCheckboxMode()||typeof value==='boolean'){
+        if(fieldId==='waterReactive')r.waterReactive=isHazardFlagChecked(value)?'✓':'';
+        else r.ignition=isHazardFlagChecked(value)?'✓':'';
+      }else{
+        if(fieldId==='waterReactive')r.waterReactive=String(value??'').trim();
+        else r.ignition=String(value??'').trim();
+      }
+      return;
     case 'detectors': r.detectors=mergeDetectorFragments(Array.isArray(value)?uniqClean(value):parseDetectorList(value)); return;
     case 'papers': r.papers=Array.isArray(value)?uniqClean(value).map(normPaper):parsePaperList(value); return;
     case 'ppes': r.ppes=Array.isArray(value)?uniqClean(value):parseNamedList(value); return;
@@ -3013,15 +3129,21 @@ function setFieldValue(rec,fieldId,value){
   }
 }
 function formatFieldValueForDisplay(fieldId,value){
+  if(isHazardFlagField(fieldId)&&isHazardCheckboxMode())return isHazardFlagChecked(value)?'✓':'-';
   if(Array.isArray(value))return value.length?value.join('、'):'-';
   const text=String(value??'').trim();
   return text||'-';
 }
 function formatFieldValueForInput(fieldId,value){
+  if(isHazardFlagField(fieldId)&&isHazardCheckboxMode())return isHazardFlagChecked(value)?'1':'';
   if(Array.isArray(value))return value.join('、');
   return String(value??'').trim();
 }
 function parseFieldInput(fieldId,raw){
+  if(isHazardFlagField(fieldId)){
+    if(isHazardCheckboxMode())return isHazardFlagChecked(raw);
+    return String(raw??'').trim();
+  }
   const text=String(raw??'').trim();
   if(fieldId==='detectors')return parseDetectorList(text);
   if(fieldId==='papers')return parsePaperList(text);
@@ -3031,6 +3153,9 @@ function parseFieldInput(fieldId,raw){
   return text;
 }
 function mergeFieldValue(existing,incoming,fieldId){
+  if(isHazardFlagField(fieldId)&&isHazardCheckboxMode()){
+    return isHazardFlagChecked(existing)||isHazardFlagChecked(incoming);
+  }
   if(isFieldMulti(fieldId)){
     if(fieldId==='detectors'){
       return mergeDetectorFragments(union(Array.isArray(existing)?existing:parseDetectorList(existing),Array.isArray(incoming)?incoming:parseDetectorList(incoming)));
@@ -3723,6 +3848,15 @@ function buildOverviewEditRow(gas,rawRec){
     if(fieldId==='gas'){
       return `<td class="col-gas" data-field-id="gas"><input type="text" class="ov-gas" list="ovGasOptions" value="${escapeHtml(gas)}" placeholder="氣體"/></td>`;
     }
+    if(isHazardFlagField(fieldId)&&isHazardCheckboxMode()){
+      const checked=isHazardFlagChecked(getFieldValue(rec,fieldId));
+      return `<td class="field-col flag-col" data-field-id="${escapeHtml(fieldId)}">
+        <label class="flag-editor">
+          <input type="checkbox" class="ov-field" data-field-id="${escapeHtml(fieldId)}" ${checked?'checked':''}/>
+          <span>勾選</span>
+        </label>
+      </td>`;
+    }
     const value=formatFieldValueForInput(fieldId,getFieldValue(rec,fieldId));
     const label=getFieldLabel(fieldId);
     const listId=getFieldInputListId(fieldId);
@@ -3764,7 +3898,7 @@ function renderTable(){
   wrap.innerHTML=`<div class="table-scroll"><table class="table overview-edit"><thead><tr>${head}<th class="col-op">操作</th></tr></thead><tbody>${bodyRows}</tbody></table></div>
     <div class="overview-edit-tools">
       <button class="btn" id="btnAddOverviewRow" type="button">新增空白列</button>
-      <span class="small">提示：多值欄位可用逗號或頓號分隔；紙帶可用逗號、頓號或空白分隔。</span>
+      <span class="small">提示：多值欄位可用逗號或頓號分隔；紙帶可用逗號、頓號或空白分隔；禁水性/發火性可於「危害欄位設定」切換勾選或文字輸入。</span>
     </div>`;
 }
 
@@ -4378,13 +4512,28 @@ function describeGas(inputName){
 
   const gas=key;
   const rec=normalizeGasRecord(DB.gases[gas]);
+  const hazardCheckboxMode=isHazardCheckboxMode();
+  const hazardColorize=useHazardColorize();
   const badges=getQueryVisibleFieldIds().map(fieldId=>{
     if(fieldId==='gas'){
       return `<span class="badge">${escapeHtml(getFieldLabel(fieldId))}：${escapeHtml(gas)}</span>`;
     }
-    const value=formatFieldValueForDisplay(fieldId,getFieldValue(rec,fieldId));
+    const rawValue=getFieldValue(rec,fieldId);
+    if(isFieldValueEmptyForQuery(fieldId,rawValue))return '';
+    if(isHazardFlagField(fieldId)&&hazardCheckboxMode){
+      const cls=
+        hazardColorize
+          ? (fieldId==='waterReactive'?'badge-flag-water':'badge-flag-ignition')
+          : '';
+      return `<span class="badge ${cls}">${escapeHtml(getFieldLabel(fieldId))}</span>`;
+    }
+    const value=formatFieldValueForDisplay(fieldId,rawValue);
+    if(isHazardFlagField(fieldId)&&hazardColorize&&isHazardFlagChecked(rawValue)){
+      const cls=fieldId==='waterReactive'?'badge-flag-water':'badge-flag-ignition';
+      return `<span class="badge ${cls}">${escapeHtml(getFieldLabel(fieldId))}：${escapeHtml(value)}</span>`;
+    }
     return `<span class="badge">${escapeHtml(getFieldLabel(fieldId))}：${escapeHtml(value)}</span>`;
-  }).join('');
+  }).filter(Boolean).join('');
 
   const others=computeOtherGases(gas,rec);
   const imgSections=buildPhotoSectionsForRecord(rec);
@@ -4448,12 +4597,32 @@ function closeQueryManagerModal(){
   queryManagerModal.classList.add('hidden');
   syncModalOpenState();
 }
+function renderHazardSettingsModal(){
+  const cfg=getHazardUiSettings();
+  if(hazardModeCheckbox)hazardModeCheckbox.checked=cfg.editMode==='checkbox';
+  if(hazardModeText)hazardModeText.checked=cfg.editMode==='text';
+  if(hazardColorizeToggle)hazardColorizeToggle.checked=!!cfg.colorize;
+}
+function openHazardSettingsModal(){
+  if(isOverviewEditing){
+    alert('目前在「資料總覽編輯」模式，請先儲存或取消編輯後再調整危害欄位設定。');
+    return;
+  }
+  renderHazardSettingsModal();
+  hazardSettingsModal.classList.remove('hidden');
+  syncModalOpenState();
+}
+function closeHazardSettingsModal(){
+  hazardSettingsModal.classList.add('hidden');
+  syncModalOpenState();
+}
 
 function syncModalOpenState(){
   const hasOpenModal=
     !photoModal.classList.contains('hidden')||
     !fieldDeleteModal.classList.contains('hidden')||
     !queryManagerModal.classList.contains('hidden')||
+    !hazardSettingsModal.classList.contains('hidden')||
     !imageViewerModal.classList.contains('hidden');
   document.body.classList.toggle('modal-open',hasOpenModal);
 }
@@ -6185,6 +6354,8 @@ btnFieldDelete.addEventListener('click',openFieldDeleteModal);
 btnCloseFieldDeleteModal.addEventListener('click',closeFieldDeleteModal);
 btnQueryManager.addEventListener('click',openQueryManagerModal);
 btnCloseQueryManagerModal.addEventListener('click',closeQueryManagerModal);
+btnHazardSettings.addEventListener('click',openHazardSettingsModal);
+btnCloseHazardSettingsModal.addEventListener('click',closeHazardSettingsModal);
 
 photoModal.addEventListener('click',e=>{
   if(e.target===photoModal)closePhotoModal();
@@ -6194,6 +6365,30 @@ fieldDeleteModal.addEventListener('click',e=>{
 });
 queryManagerModal.addEventListener('click',e=>{
   if(e.target===queryManagerModal)closeQueryManagerModal();
+});
+hazardSettingsModal.addEventListener('click',e=>{
+  if(e.target===hazardSettingsModal)closeHazardSettingsModal();
+});
+btnSaveHazardSettings.addEventListener('click',async ()=>{
+  const prev=cloneForStorage(DB.hazardUiSettings||DEFAULT_HAZARD_UI_SETTINGS);
+  const nextRaw={
+    editMode:hazardModeText.checked?'text':'checkbox',
+    colorize:!!hazardColorizeToggle.checked
+  };
+
+  DB.hazardUiSettings=normalizeHazardUiSettings(nextRaw);
+  DB=normalizeDB(DB);
+  if(!await saveDB()){
+    DB.hazardUiSettings=prev;
+    DB=normalizeDB(DB);
+    alert('儲存失敗：危害欄位設定未成功寫入。');
+    return;
+  }
+
+  closeHazardSettingsModal();
+  renderTable();
+  runSearch();
+  alert('危害欄位設定已更新');
 });
 imageViewerModal.addEventListener('click',e=>{
   const target=e.target;
@@ -6853,7 +7048,8 @@ btnSaveOverview.addEventListener('click',async ()=>{
     const rowValues={};
     [...row.querySelectorAll('.ov-field[data-field-id]')].forEach(input=>{
       const fieldId=input.dataset.fieldId;
-      rowValues[fieldId]=parseFieldInput(fieldId,input.value);
+      const rawValue=input.type==='checkbox'?input.checked:input.value;
+      rowValues[fieldId]=parseFieldInput(fieldId,rawValue);
     });
 
     if(!nextGases[gas]){
