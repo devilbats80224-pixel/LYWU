@@ -196,6 +196,24 @@ th{text-align:left;color:var(--sub)}
   box-shadow:0 1px 0 #dbe4ef;
   white-space:nowrap;
 }
+.table th.col-gas,
+.table td.col-gas{
+  position:sticky;
+  left:0;
+}
+.table thead th.col-gas{
+  z-index:7;
+  background:var(--panel);
+}
+.table tbody td.col-gas{
+  z-index:2;
+  background:var(--card);
+  box-shadow:1px 0 0 #dbe4ef,10px 0 12px -12px rgba(35,57,93,.35);
+}
+.table.overview-edit tbody td.col-gas{
+  z-index:5;
+  background:#fcfdff;
+}
 .table .tail-space td{
   padding:0;
   border-bottom:none;
@@ -549,6 +567,10 @@ kbd{background:#eaf1ff;border:1px solid #bdd0f1;border-radius:6px;padding:2px 6p
   border-radius:10px;
   background:#fcfdff;
 }
+.query-manager-row select{
+  min-width:220px;
+  max-width:100%;
+}
 .query-font-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
 .query-font-tools input[type=range]{width:220px}
 .query-font-tools .pct{min-width:56px;text-align:right;font-weight:700;color:var(--sub)}
@@ -839,6 +861,7 @@ body.modal-open{overflow:hidden}
   .delete-row .btn{width:100%}
   .field-manager-row{grid-template-columns:1fr 1fr}
   .query-manager-row{grid-template-columns:1fr}
+  .query-manager-row select{width:100%;min-width:0}
   .photo-setting-row{grid-template-columns:1fr}
 
   .img-grid,
@@ -1015,7 +1038,11 @@ body.modal-open{overflow:hidden}
         <button class="btn" id="btnCloseQueryManagerModal" type="button">關閉</button>
       </div>
       <div class="card">
-        <div class="small">查詢結果顯示欄位（可自由勾選；「氣體」固定顯示）</div>
+        <div class="small">查詢結果顯示欄位（可自由勾選；依「套用氣體」各自儲存；「氣體」固定顯示）</div>
+        <label class="query-manager-row" style="margin-top:8px">
+          <span>套用氣體</span>
+          <select id="queryFieldGasSelect" aria-label="查詢管理套用氣體"></select>
+        </label>
         <div id="queryFieldSettingList" class="query-manager-list"></div>
       </div>
       <div class="card" style="margin-top:10px">
@@ -2196,6 +2223,7 @@ const btnQueryManager = document.getElementById('btnQueryManager');
 const queryManagerModal = document.getElementById('queryManagerModal');
 const btnCloseQueryManagerModal = document.getElementById('btnCloseQueryManagerModal');
 const queryFieldSettingList = document.getElementById('queryFieldSettingList');
+const queryFieldGasSelect = document.getElementById('queryFieldGasSelect');
 const queryFontRange = document.getElementById('queryFontRange');
 const queryFontPct = document.getElementById('queryFontPct');
 const btnQueryFontReset = document.getElementById('btnQueryFontReset');
@@ -2272,6 +2300,7 @@ let viewerPanStartX = 0;
 let viewerPanStartY = 0;
 let viewerSuppressCloseUntil = 0;
 let activeQueryDropdownWrap = null;
+let queryManagerTargetGas = '';
 let mobileQueryUiEnabled = false;
 let cropDragState = null;
 let pendingSearchRefreshAfterPhotoModal = false;
@@ -2966,14 +2995,29 @@ function normalizeDB(db){
   const incomingQueryVisible=Array.isArray(db.queryDisplay?.visibleFields)
     ? db.queryDisplay.visibleFields.map(v=>String(v||'').trim()).filter(Boolean)
     : [];
-  const visibleSet=new Set(incomingQueryVisible.filter(id=>Object.prototype.hasOwnProperty.call(db.fieldDefs,id)));
-  if(visibleSet.size===0){
-    db.fieldOrder.forEach(id=>visibleSet.add(id));
-  }
-  visibleSet.add('gas');
-  const nextQueryVisible=db.fieldOrder.filter(id=>visibleSet.has(id));
+  const normalizeVisibleFieldIds=(sourceList)=>{
+    const visibleSet=new Set((Array.isArray(sourceList)?sourceList:[])
+      .map(v=>String(v||'').trim())
+      .filter(id=>Object.prototype.hasOwnProperty.call(db.fieldDefs,id)));
+    if(visibleSet.size===0){
+      db.fieldOrder.forEach(id=>visibleSet.add(id));
+    }
+    visibleSet.add('gas');
+    return db.fieldOrder.filter(id=>visibleSet.has(id));
+  };
+  const nextQueryVisible=normalizeVisibleFieldIds(incomingQueryVisible);
+  const rawVisibleByGas=(db.queryDisplay?.visibleFieldsByGas&&typeof db.queryDisplay.visibleFieldsByGas==='object')
+    ? db.queryDisplay.visibleFieldsByGas
+    : {};
+  const nextVisibleByGas={};
+  Object.entries(rawVisibleByGas).forEach(([gasName,list])=>{
+    const gasKey=normGasKeep(gasName);
+    if(!gasKey||!Object.prototype.hasOwnProperty.call(db.gases,gasKey))return;
+    nextVisibleByGas[gasKey]=normalizeVisibleFieldIds(list);
+  });
   db.queryDisplay={
     visibleFields:nextQueryVisible,
+    visibleFieldsByGas:nextVisibleByGas,
     fontScalePercent:clampQueryFontScale(db.queryDisplay?.fontScalePercent)
   };
   db.hazardUiSettings=normalizeHazardUiSettings(db.hazardUiSettings||db.hazardUi||DEFAULT_HAZARD_UI_SETTINGS);
@@ -2990,11 +3034,37 @@ function normalizeDB(db){
 function getFieldOrder(){
   return Array.isArray(DB.fieldOrder)?DB.fieldOrder.filter(Boolean):DEFAULT_FIELD_ORDER.slice();
 }
-function getQueryVisibleFieldIds(){
-  const order=getFieldOrder();
-  const set=new Set(Array.isArray(DB.queryDisplay?.visibleFields)?DB.queryDisplay.visibleFields:order);
+function normalizeQueryVisibleFieldIdsForOrder(order,source){
+  const set=new Set((Array.isArray(source)?source:[])
+    .map(v=>String(v||'').trim())
+    .filter(id=>order.includes(id)));
+  if(set.size===0){
+    order.forEach(id=>set.add(id));
+  }
   set.add('gas');
   return order.filter(id=>set.has(id));
+}
+function getQueryVisibleFieldMap(){
+  DB.queryDisplay=DB.queryDisplay||{};
+  const map=DB.queryDisplay.visibleFieldsByGas;
+  if(!map||typeof map!=='object'||Array.isArray(map)){
+    DB.queryDisplay.visibleFieldsByGas={};
+  }
+  return DB.queryDisplay.visibleFieldsByGas;
+}
+function getQueryVisibleFieldIds(gasName=''){
+  const order=getFieldOrder();
+  const gasKey=normGasKeep(gasName);
+  if(gasKey){
+    const map=DB.queryDisplay?.visibleFieldsByGas;
+    if(map&&typeof map==='object'&&!Array.isArray(map)){
+      const byGas=map[gasKey];
+      if(Array.isArray(byGas)&&byGas.length){
+        return normalizeQueryVisibleFieldIdsForOrder(order,byGas);
+      }
+    }
+  }
+  return normalizeQueryVisibleFieldIdsForOrder(order,DB.queryDisplay?.visibleFields);
 }
 function clampQueryFontScale(v){
   const raw=Math.round(Number(v));
@@ -3868,9 +3938,25 @@ function buildOverviewEditRow(gas,rawRec){
   return `<tr data-edit-row="1">${cells}<td class="col-op"><button type="button" class="row-del">刪除</button></td></tr>`;
 }
 
-function renderTable(){
+function captureOverviewScrollState(){
+  const scroller=document.querySelector('#tableWrap .table-scroll');
+  if(!scroller)return null;
+  return {
+    left:scroller.scrollLeft,
+    top:scroller.scrollTop
+  };
+}
+function restoreOverviewScrollState(state){
+  if(!state)return;
+  const scroller=document.querySelector('#tableWrap .table-scroll');
+  if(!scroller)return;
+  scroller.scrollLeft=Number(state.left)||0;
+  scroller.scrollTop=Number(state.top)||0;
+}
+function renderTable({preserveScroll=true}={}){
   const wrap=document.getElementById('tableWrap');
   const order=getFieldOrder();
+  const scrollState=preserveScroll?captureOverviewScrollState():null;
 
   if(!isOverviewEditing){
     const rows=getAllGases().map(gas=>{
@@ -3888,6 +3974,9 @@ function renderTable(){
     const head=order.map(fieldId=>`<th class="${fieldId==='gas'?'col-gas':'field-col'}" data-field-id="${escapeHtml(fieldId)}">${escapeHtml(getFieldLabel(fieldId))}</th>`).join('');
 
     wrap.innerHTML=`<div class="table-scroll"><table class="table overview-view"><thead><tr>${head}</tr></thead><tbody>${bodyRows}</tbody></table></div>`;
+    if(scrollState){
+      requestAnimationFrame(()=>restoreOverviewScrollState(scrollState));
+    }
     return;
   }
 
@@ -3900,6 +3989,9 @@ function renderTable(){
       <button class="btn" id="btnAddOverviewRow" type="button">新增空白列</button>
       <span class="small">提示：多值欄位可用逗號或頓號分隔；紙帶可用逗號、頓號或空白分隔；禁水性/發火性可於「危害欄位設定」切換勾選或文字輸入。</span>
     </div>`;
+  if(scrollState){
+    requestAnimationFrame(()=>restoreOverviewScrollState(scrollState));
+  }
 }
 
 function setOverviewEditButtons(){
@@ -4514,7 +4606,7 @@ function describeGas(inputName){
   const rec=normalizeGasRecord(DB.gases[gas]);
   const hazardCheckboxMode=isHazardCheckboxMode();
   const hazardColorize=useHazardColorize();
-  const badges=getQueryVisibleFieldIds().map(fieldId=>{
+  const badges=getQueryVisibleFieldIds(gas).map(fieldId=>{
     if(fieldId==='gas'){
       return `<span class="badge">${escapeHtml(getFieldLabel(fieldId))}：${escapeHtml(gas)}</span>`;
     }
@@ -4573,22 +4665,57 @@ function resetSearchInputs(){
   if(active&&typeof active.blur==='function')active.blur();
 }
 
+function resolveQueryManagerTargetGas(gases=getAllGases()){
+  if(!Array.isArray(gases)||gases.length===0)return '';
+  const selected=normGasKeep(queryFieldGasSelect?.value);
+  if(selected&&gases.includes(selected))return selected;
+  if(queryManagerTargetGas&&gases.includes(queryManagerTargetGas))return queryManagerTargetGas;
+  const q1=normGasKeep(document.getElementById('q1')?.value);
+  if(q1&&gases.includes(q1))return q1;
+  return gases[0];
+}
+function renderQueryManagerGasOptions(){
+  if(!queryFieldGasSelect)return '';
+  const gases=getAllGases();
+  if(gases.length===0){
+    queryManagerTargetGas='';
+    queryFieldGasSelect.disabled=true;
+    queryFieldGasSelect.innerHTML='<option value="">（目前無氣體資料）</option>';
+    return '';
+  }
+  const target=resolveQueryManagerTargetGas(gases);
+  queryManagerTargetGas=target;
+  queryFieldGasSelect.disabled=false;
+  queryFieldGasSelect.innerHTML=gases
+    .map(g=>`<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`)
+    .join('');
+  queryFieldGasSelect.value=target;
+  return target;
+}
 function renderQueryManagerSettings(){
-  const visibleSet=new Set(getQueryVisibleFieldIds());
-  queryFieldSettingList.innerHTML=getFieldOrder().map(fieldId=>{
-    const label=getFieldLabel(fieldId);
-    if(fieldId==='gas'){
-      return `<label class="query-manager-row"><span>${escapeHtml(label)}</span><span class="small">固定顯示</span></label>`;
-    }
-    const checked=visibleSet.has(fieldId)?'checked':'';
-    return `<label class="query-manager-row"><span>${escapeHtml(label)}</span><input type="checkbox" data-query-field="${escapeHtml(fieldId)}" ${checked}/></label>`;
-  }).join('');
+  const targetGas=renderQueryManagerGasOptions();
+  if(!targetGas){
+    queryFieldSettingList.innerHTML='<div class="small">目前尚無氣體資料，請先在資料總覽新增氣體。</div>';
+  }else{
+    const visibleSet=new Set(getQueryVisibleFieldIds(targetGas));
+    const rows=getFieldOrder()
+      .filter(fieldId=>fieldId!=='gas')
+      .map(fieldId=>{
+        const label=getFieldLabel(fieldId);
+        const checked=visibleSet.has(fieldId)?'checked':'';
+        return `<label class="query-manager-row"><span>${escapeHtml(label)}</span><input type="checkbox" data-query-field="${escapeHtml(fieldId)}" ${checked}/></label>`;
+      });
+    queryFieldSettingList.innerHTML=rows.length
+      ? rows.join('')
+      : '<div class="small">目前無可設定欄位。</div>';
+  }
   const pct=getQueryFontScalePercent();
   queryFontRange.value=String(pct);
   queryFontPct.textContent=`${pct}%`;
   applyQueryResultFontScale(pct);
 }
 function openQueryManagerModal(){
+  queryManagerTargetGas=resolveQueryManagerTargetGas();
   renderQueryManagerSettings();
   queryManagerModal.classList.remove('hidden');
   syncModalOpenState();
@@ -6504,14 +6631,21 @@ selPhotoType.addEventListener('change',renderPhotoTargetSelect);
 selPhotoTarget.addEventListener('change',renderImageManager);
 assetInput.addEventListener('change',()=>{uploadSelectedAssets();});
 
+queryFieldGasSelect.addEventListener('change',()=>{
+  queryManagerTargetGas=normGasKeep(queryFieldGasSelect.value);
+  renderQueryManagerSettings();
+});
+
 queryFieldSettingList.addEventListener('change',async e=>{
   const input=e.target.closest('input[data-query-field]');
   if(!input)return;
   const fieldId=String(input.dataset.queryField||'').trim();
   if(!fieldId)return;
+  const targetGas=resolveQueryManagerTargetGas();
+  if(!targetGas)return;
 
   const prev=cloneForStorage(DB.queryDisplay||{});
-  const visibleSet=new Set(getQueryVisibleFieldIds());
+  const visibleSet=new Set(getQueryVisibleFieldIds(targetGas));
   if(input.checked){
     visibleSet.add(fieldId);
   }else{
@@ -6519,7 +6653,13 @@ queryFieldSettingList.addEventListener('change',async e=>{
   }
   visibleSet.add('gas');
   DB.queryDisplay=DB.queryDisplay||{};
-  DB.queryDisplay.visibleFields=getFieldOrder().filter(id=>visibleSet.has(id));
+  const nextVisible=getFieldOrder().filter(id=>visibleSet.has(id));
+  const visibleFieldMap=getQueryVisibleFieldMap();
+  visibleFieldMap[targetGas]=nextVisible;
+  DB.queryDisplay.visibleFieldsByGas=visibleFieldMap;
+  if(!Array.isArray(DB.queryDisplay.visibleFields)||DB.queryDisplay.visibleFields.length===0){
+    DB.queryDisplay.visibleFields=nextVisible;
+  }
   DB=normalizeDB(DB);
 
   if(!await saveDB()){
