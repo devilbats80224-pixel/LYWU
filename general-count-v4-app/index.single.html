@@ -138,6 +138,17 @@
 .permit-lines{ display:block; white-space:normal; line-height:1.3; }
 .permit-lines .pline{ display:block; margin:2px 0; }
 
+/* Safari/iOS 長表格渲染穩定：避免 translateZ 合成層造成花屏/點擊異常 */
+.tabulator{
+  -webkit-transform:none !important;
+  transform:none !important;
+}
+.tabulator .tabulator-tableholder,
+.tabulator .tabulator-tableholder .tabulator-table{
+  -webkit-backface-visibility:hidden;
+  backface-visibility:hidden;
+}
+
 </style>
   <style>
 /* inlined: vendor/choices.min.css */
@@ -920,6 +931,19 @@ const GREY_HEX = new Set(["808080","A6A6A6","BFBFBF","D9D9D9","F2F2F2"]);
 const YELLOW_HEX = new Set(["FFFF00", "FFFF99", "FFCC00", "FFD700", "F0E68C"]); // 常見的黃色碼
 const GREY_TOL = 6;
 
+function ercToHalfWidthParens(value){
+  if(value == null) return "";
+  return String(value).replace(/\uFF08/g, "(").replace(/\uFF09/g, ")");
+}
+
+function ercHasSignInValue(value){
+  const s = (value == null ? "" : String(value)).replace(/\u00A0/g, " ").trim();
+  if(!s) return false;
+  const up = s.toUpperCase();
+  if(up === "NA" || up === "N/A" || up === "N.A" || s === "-" || s === "—" || s === "無") return false;
+  return true;
+}
+
 const HAZARD_MAP = [
   [1,  "一般作業", ["一般作業","一般"]],
   [2,  "局限空間", ["局限空間"]],
@@ -948,7 +972,13 @@ const HAZARD_MAP = [
   [25, "tsmc 建築物昇降設備維修保養作業許可證 (於現場標示)", ["建築物昇降設備維修保養作業許可證"]],
   [26, "tsmc 管路作業許可證 (於現場標示)", ["管路作業許可證"]],
   [27, "（測試中） tsmc 進入冷卻水塔作業許可證 (於現場標示)", ["進入冷卻水塔作業許可證"]],
-];
+].map(function(item){
+  return [
+    item[0],
+    ercToHalfWidthParens(item[1]),
+    Array.isArray(item[2]) ? item[2].map(ercToHalfWidthParens) : []
+  ];
+});
 const HAZARD_ORDER = Object.fromEntries(HAZARD_MAP.map((x,i)=>[x[0],i+1]));
 const HAZARD_NAME  = Object.fromEntries(HAZARD_MAP.map(x=>[x[0],x[1]]));
 window.HAZARD_NAME = HAZARD_NAME;
@@ -1430,6 +1460,14 @@ async function buildProcessedOutput(bytes){
     for(const obj of rows){
       const vendor = obj["_施工廠商_"];
       const sx = String(obj[resolved["出工人數"]]||"").trim();
+      const signInRaw = resolved["簽到時間"]
+        ? obj[resolved["簽到時間"]]
+        : (obj["簽到時間"] ?? obj["進場時間"] ?? obj["入場時間"] ?? "");
+      const hasSignIn = ercHasSignInValue(signInRaw);
+      if(!hasSignIn){
+        obj["_出工人數_"] = sx;
+        continue;
+      }
       // 檢查施工廠商是否為空或NA（包括各種變體）
       const vendorStr = String(vendor || "").trim();
       const vendorLower = vendorStr.toLowerCase();
@@ -1448,6 +1486,14 @@ async function buildProcessedOutput(bytes){
   }else{
     for(const obj of rows){ 
       const vendor = obj["_施工廠商_"];
+      const signInRaw = resolved["簽到時間"]
+        ? obj[resolved["簽到時間"]]
+        : (obj["簽到時間"] ?? obj["進場時間"] ?? obj["入場時間"] ?? "");
+      const hasSignIn = ercHasSignInValue(signInRaw);
+      if(!hasSignIn){
+        obj["_出工人數_"] = "";
+        continue;
+      }
       // 檢查施工廠商是否為空或NA（包括各種變體）
       const vendorStr = String(vendor || "").trim();
       const vendorLower = vendorStr.toLowerCase();
@@ -1563,14 +1609,14 @@ async function buildProcessedOutput(bytes){
       // 使用更嚴格的檢查：如果是空字串或 null/undefined 就填 NA
       // 修改：如果 obj["_高風險作業_"] 存在就用它，否則強制用 "NA"
       "高風險作業": (obj["_高風險作業_"] && String(obj["_高風險作業_"]).trim().length > 0 && String(obj["_高風險作業_"]) !== "undefined") ? obj["_高風險作業_"] : "NA",
-      "工程名稱及內容": resolved["工程名稱及內容"] ? obj[resolved["工程名稱及內容"]] : "",
+      "工程名稱及內容": ercToHalfWidthParens(resolved["工程名稱及內容"] ? obj[resolved["工程名稱及內容"]] : ""),
       "課別": resolved["課別"] ? obj[resolved["課別"]] : "",
       "工程申請人": resolved["工程申請人"] ? obj[resolved["工程申請人"]] : "",
       "電話": resolved["電話"] ? obj[resolved["電話"]] : "",
       "施工廠商": obj["_施工廠商_"],
       "出工人數": obj["_出工人數_"] || "0",
       "施工位置": resolved["施工位置"] ? obj[resolved["施工位置"]] : "",
-      "危險性作業施工許可": permit,
+      "危險性作業施工許可": ercToHalfWidthParens(permit),
       "簽到時間": resolved["簽到時間"] ? obj[resolved["簽到時間"]] : "",
       "簽退時間": resolved["簽退時間"] ? obj[resolved["簽退時間"]] : "",
       "實際巡檢人員": resolved["實際巡檢人員"] ? obj[resolved["實際巡檢人員"]] : "",
@@ -1597,6 +1643,8 @@ async function buildProcessedOutput(bytes){
   // 施工廠商為空時，出工人數改為 0
   try {
     out.forEach(r=>{
+      const signInRaw = r["簽到時間"] ?? r["進場時間"] ?? r["入場時間"] ?? "";
+      if(!ercHasSignInValue(signInRaw)) return;
       const v = (r["施工廠商"] ?? "").toString().trim();
       // 檢查是否為空、NA、N/A、-、—、無等
       const vLower = v.toLowerCase();
@@ -1607,6 +1655,8 @@ async function buildProcessedOutput(bytes){
   } catch(e) { console.warn("vendor->workers rule failed", e); }
   // ★★★ 最終防線：直接修改 out 陣列中的內容，確保資料遷移且移除舊欄位 ★★★
   out.forEach(r => {
+      r["工程名稱及內容"] = ercToHalfWidthParens(r["工程名稱及內容"]);
+      r["危險性作業施工許可"] = ercToHalfWidthParens(r["危險性作業施工許可"]);
       // 1. 強制遷移「類別」 -> 「高風險作業」
       // 尋找看起來像「類別」的 key
       const catKey = Object.keys(r).find(k => k.includes("類別") && k !== "高風險作業");
@@ -1983,7 +2033,6 @@ function renderTable(data){
     function setColumnWidthsDirect(){
         try {
             if (!table) return;
-            var changed = false;
             
             // 設置特定欄位寬度
             var col1 = table.getColumn("工程名稱及內容");
@@ -1994,28 +2043,20 @@ function renderTable(data){
                 var w1 = col1.getWidth ? col1.getWidth() : 0;
                 if(!w1 || Math.abs(w1 - 360) > 1){
                   col1.setWidth(360, true);
-                  changed = true;
                 }
               }catch(_){
                 col1.setWidth(360, true);
-                changed = true;
               }
             }
             if(col2 && col2.setWidth){
               try{
                 var w2 = col2.getWidth ? col2.getWidth() : 0;
-                if(!w2 || Math.abs(w2 - 240) > 1){
-                  col2.setWidth(240, true);
-                  changed = true;
+                if(!w2 || Math.abs(w2 - 130) > 1){
+                  col2.setWidth(130, true);
                 }
               }catch(_){
-                col2.setWidth(240, true);
-                changed = true;
+                col2.setWidth(130, true);
               }
-            }
-            // 只在有實際寬度變動時做 soft redraw，避免 renderComplete/redraw 循環
-            if(changed && table && typeof table.redraw === "function"){
-              table.redraw(false);
             }
             
         } catch(e) {}
@@ -2036,17 +2077,24 @@ function renderTable(data){
     // ★★★ 2025-12-27 最後一道防線：使用 Tabulator API 強制檢查並填補 NA ★★★
     // 這可以解決因資料源處理過程中的任何遺漏導致的空值
     var rows = table.getRows();
-    var updates = [];
     rows.forEach(function(row){
         var data = row.getData();
+        var upd = {};
         var val = data["高風險作業"];
         // 檢查是否為空
         if(val == null || String(val).trim() === "" || String(val) === "null" || String(val) === "undefined"){
-            // 我們不直接 row.update 以免觸發大量重繪，而是收集後批次更新?
-            // Tabulator 的 update 是非同步的，但這裡為了確保，我們直接修改 data 物件並安靜更新
-            data["高風險作業"] = "NA";
-            // 標記需要更新
-            row.update({"高風險作業": "NA"}); 
+            upd["高風險作業"] = "NA";
+        }
+        var proj = ercToHalfWidthParens(data["工程名稱及內容"]);
+        if(String(proj) !== String(data["工程名稱及內容"] ?? "")){
+          upd["工程名稱及內容"] = proj;
+        }
+        var permitVal = ercToHalfWidthParens(data["危險性作業施工許可"]);
+        if(String(permitVal) !== String(data["危險性作業施工許可"] ?? "")){
+          upd["危險性作業施工許可"] = permitVal;
+        }
+        if(Object.keys(upd).length){
+          row.update(upd);
         }
     });
     
@@ -2078,44 +2126,7 @@ function renderTable(data){
   
   // 強制設置欄位寬度的函數（持續監控版本）
   function forceColumnWidthsPersistent(){
-    try{
-      var col1El = document.querySelector('.tabulator-col[data-field="工程名稱及內容"]');
-      var col2El = document.querySelector('.tabulator-col[data-field="施工位置"]');
-      
-      if(col1El){
-        var currentWidth = col1El.offsetWidth;
-        if(currentWidth > 130){
-          col1El.style.cssText = "width: 120px !important; min-width: 80px !important;";
-          col1El.setAttribute("data-width", "120");
-          var col1 = table.getColumn("工程名稱及內容");
-          if(col1) {
-            col1.updateDefinition({width:120, minWidth:80, widthGrow:0, widthShrink:0});
-            if(col1.setWidth) col1.setWidth(120, true);
-          }
-          // 設置所有相關的 cell
-          document.querySelectorAll('.tabulator-cell[data-field="工程名稱及內容"]').forEach(function(cell){
-            cell.style.cssText = "width: 120px !important; min-width: 80px !important;";
-          });
-        }
-      }
-      
-      if(col2El){
-        var currentWidth2 = col2El.offsetWidth;
-        if(currentWidth2 > 90){
-          col2El.style.cssText = "width: 80px !important; min-width: 60px !important;";
-          col2El.setAttribute("data-width", "80");
-          var col2 = table.getColumn("施工位置");
-          if(col2) {
-            col2.updateDefinition({width:80, minWidth:60, widthGrow:0, widthShrink:0});
-            if(col2.setWidth) col2.setWidth(80, true);
-          }
-          // 設置所有相關的 cell
-          document.querySelectorAll('.tabulator-cell[data-field="施工位置"]').forEach(function(cell){
-            cell.style.cssText = "width: 80px !important; min-width: 60px !important;";
-          });
-        }
-      }
-    }catch(e){}
+    return;
   }
   
   // 不再使用持續監控的 MutationObserver，只在初始設置時生效，允許用戶手動調整
@@ -2137,6 +2148,23 @@ function renderTable(data){
   }
   table.on("rowSelected", function(row){ __syncRowCB(row); });
   table.on("rowDeselected", function(row){ __syncRowCB(row); });
+
+  // 申請類別/工程名稱含括號時，一律轉成半形顯示
+  if(!table._ercParenNormalizeBound){
+    table.on("cellEdited", function(cell){
+      try{
+        if(!cell || !cell.getField) return;
+        const field = cell.getField();
+        if(field !== "工程名稱及內容" && field !== "危險性作業施工許可" && field !== "申請類別") return;
+        const before = cell.getValue();
+        const after = ercToHalfWidthParens(before);
+        if(String(before ?? "") === String(after ?? "")) return;
+        const upd = {}; upd[field] = after;
+        ercWithNoUndo(function(){ cell.getRow().update(upd); });
+      }catch(_){}
+    });
+    table._ercParenNormalizeBound = true;
+  }
 
 // ===== Multi-row drag move: selected rows follow the dragged row =====
 (function attachMultiRowDrag(){
@@ -2205,54 +2233,21 @@ function renderTable(data){
 })();
 // ===== end Multi-row drag =====
 
-  // 在 renderTable 函數結束前，使用多種方式確保設置欄位寬度
-  // 方法1: 使用 requestAnimationFrame 確保在瀏覽器渲染後執行
-  requestAnimationFrame(function(){
-    setTimeout(function(){
-      if(table){
-        console.log("renderTable 結束後執行寬度設置 (requestAnimationFrame)");
-        try{
-          var col1 = table.getColumn("工程名稱及內容");
-          var col2 = table.getColumn("施工位置");
-          if(col1 && col1.setWidth) {
-            col1.setWidth(120, true);
-            console.log("已設置「工程名稱及內容」寬度為 120px");
-          }
-          if(col2 && col2.setWidth) {
-            col2.setWidth(65, true);
-            console.log("已設置「施工位置」寬度為 65px");
-          }
-        }catch(e){console.error("renderTable 結束後設置寬度錯誤:", e);}
-      }
-    }, 500);
-  });
-  
-  // 方法2: 多次延遲設置作為保障
-  [1500, 2500, 3500, 5000].forEach(function(delay){
-    setTimeout(function(){
-      if(table){
-        console.log("renderTable 結束後執行寬度設置 (延遲 " + delay + "ms)");
-        try{
-          var col1 = table.getColumn("工程名稱及內容");
-          var col2 = table.getColumn("施工位置");
-          if(col1 && col1.setWidth) col1.setWidth(120, true);
-          if(col2 && col2.setWidth) col2.setWidth(65, true);
-        }catch(e){}
-      }
-    }, delay);
-  });
+  // 使用單一策略設置欄寬，避免多組寬度互相覆蓋造成抖動
+  setTimeout(setColumnWidthsDirect, 250);
 
 }
 
 // 下載 Excel
 async function downloadExcel(data){
+  if (typeof downloadXlsxWithData === "function"){
+    return downloadXlsxWithData(data, "處理結果.xlsx");
+  }
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("處理結果");
-  // 欄位順序
   ws.addRow(colOrder);
-  for(const row of data){
-    const arr = colOrder.map(c => c===permitCol ? row[c] : row[c]);
-    ws.addRow(arr);
+  for(const row of (Array.isArray(data) ? data : [])){
+    ws.addRow(colOrder.map(c => row[c]));
   }
   const buf = await wb.xlsx.writeBuffer();
   saveAs(new Blob([buf], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}), "處理結果.xlsx");
@@ -2331,7 +2326,12 @@ document.getElementById('btnDownload').addEventListener('click', async ()=>{
   function $(sel){ return document.querySelector(sel); }
   function cloneReplace(el){ const c = el.cloneNode(true); el.parentNode.replaceChild(c, el); return c; }
   function normalize(s){ return s == null ? "" : String(s).trim(); }
-  function toHalfWidth(str){ return String(str).replace(/[Ａ-Ｚａ-ｚ０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)); }
+  function toHalfWidth(str){
+    return String(str)
+      .replace(/[Ａ-Ｚａ-ｚ０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+      .replace(/\uFF08/g, "(")
+      .replace(/\uFF09/g, ")");
+  }
   function includesKW(hay, kw){ if (!hay) return false; hay = toHalfWidth(String(hay)).toLowerCase(); kw = toHalfWidth(String(kw)).toLowerCase(); return hay.indexOf(kw) >= 0; }
   function uniq(arr){ return Array.from(new Set(arr)); }
   function sortByCategoryOrder(arr){ const parseNo = s => { const m = /^(\d+)\./.exec(s); return m ? parseInt(m[1],10) : 999; }; return arr.slice().sort((a,b)=>parseNo(a)-parseNo(b)); }
@@ -3800,7 +3800,7 @@ function buildPermitValue(origPermit, riskVal, isRiskCellGray, hasEquipHR, projN
       return true;
     });
     const tokens = cats.concat(customTokens);
-    return tokens.join("\n");
+    return ercToHalfWidthParens(tokens.join("\n"));
   } else {
     // 沒有自動判斷出類別，保留原始值中的 recognized 類別和 custom 文字
   parsed.recognized.forEach(v => {
@@ -3813,7 +3813,7 @@ function buildPermitValue(origPermit, riskVal, isRiskCellGray, hasEquipHR, projN
     // 當沒有自動判斷類別時，保留 custom 文字
   const customTokens = parsed.custom.filter(token => shouldKeepCustomToken(token, cats.length > 0));
   const tokens = cats.concat(customTokens);
-  return tokens.join("\n");
+  return ercToHalfWidthParens(tokens.join("\n"));
   }
 }
 
@@ -4171,6 +4171,10 @@ function buildPermitValue(origPermit, riskVal, isRiskCellGray, hasEquipHR, projN
   
 function buildColumnsForTabulator(order){
   return order.map(name => {
+    var centerColumns = new Set([
+      "Site","高風險作業","課別","工程申請人","電話","施工廠商",
+      "出工人數","簽到時間","簽退時間","實際巡檢人員"
+    ]);
     var colDef = {
         title: name,
         field: name,
@@ -4179,6 +4183,9 @@ function buildColumnsForTabulator(order){
         headerSort: false,
       // editor: "input", // ★★★ 移除：改用外掛式編輯器 ★★★
     };
+    if(centerColumns.has(name)){
+      colDef.vertAlign = "middle";
+    }
 
     if (name === "高風險作業"){
       // ★★★ Mutator: 確保在任何資料載入時，空值轉為 NA ★★★
@@ -6337,6 +6344,8 @@ function renderTable(){
       if (/(消防|Vesda|GMS)/i.test(out["工程名稱及內容"]||"")) {
         out["_highlightISEP"] = true;
       }
+      out["工程名稱及內容"] = ercToHalfWidthParens(out["工程名稱及內容"]);
+      out["危險性作業施工許可"] = ercToHalfWidthParens(out["危險性作業施工許可"]);
 
       out["Site"] = resolveSite(out["Site"], out["課別"], out["工程申請人"], out["工程名稱及內容"], out["施工位置"]);
       
@@ -6354,13 +6363,15 @@ function renderTable(){
       // 先在規則計算前把空值視為 NA，避免 permit 補 1 與後續顯示不同步
       if(!normalize(out["高風險作業"])) out["高風險作業"] = "NA";
       if (!normalize(out["施工廠商"])) out["施工廠商"] = "NA";
+      const signInRaw = out["簽到時間"] || out["進場時間"] || out["入場時間"] || "";
+      const hasSignIn = ercHasSignInValue(signInRaw);
       const ppl = parseInt(out["出工人數"] || "0", 10);
       // 如果施工廠商有值（非 NA），且人數是 0 或無效，則隨機生成 1-15 人
-      if (normalize(out["施工廠商"]) && (isNaN(ppl) || ppl === 0)) {
+      if (hasSignIn && normalize(out["施工廠商"]) && (isNaN(ppl) || ppl === 0)) {
           out["出工人數"] = String(Math.floor(Math.random()*15)+1);
       }
       // 如果施工廠商為 NA 或空，則人數強制歸零
-      if (!normalize(out["施工廠商"]) || out["施工廠商"] === "NA") {
+      if (hasSignIn && (!normalize(out["施工廠商"]) || out["施工廠商"] === "NA")) {
           out["出工人數"] = "0";
       }
 
@@ -6380,7 +6391,7 @@ function renderTable(){
       // 保存灰底狀態供統計使用
       out["_isGray"] = isGray;
       
-      out["危險性作業施工許可"] = buildPermitValue(out["危險性作業施工許可"], out["高風險作業"], isGray, includesKW(rawRiskOrig, "設備高風險"), out["工程名稱及內容"]);
+      out["危險性作業施工許可"] = ercToHalfWidthParens(buildPermitValue(out["危險性作業施工許可"], out["高風險作業"], isGray, includesKW(rawRiskOrig, "設備高風險"), out["工程名稱及內容"]));
       
       // ★★★ Permit 欄位黃色標記：若包含 23~27 項或保留原值，則標記 ★★★
       // 檢查 permit 內容是否包含 23. ~ 27. 的編號或關鍵字
@@ -6455,16 +6466,137 @@ return out;
     return Array.isArray(parsedRows) ? parsedRows : [];
   }
 
+  function ercVisualWidth(text){
+    const s = text == null ? "" : String(text);
+    let w = 0;
+    for(let i = 0; i < s.length; i++){
+      const code = s.charCodeAt(i);
+      w += code > 255 ? 2 : 1;
+    }
+    return w;
+  }
+
+  function ercEstimateWrappedLines(text, colWidthChars){
+    const s = text == null ? "" : String(text).replace(/\r\n/g, "\n");
+    if(!s) return 1;
+    const capacity = Math.max(1, Math.floor((Number(colWidthChars) || 10) - 1));
+    return s.split("\n").reduce((sum, part) => {
+      const lineWidth = Math.max(1, ercVisualWidth(part));
+      return sum + Math.max(1, Math.ceil(lineWidth / capacity));
+    }, 0);
+  }
+
+  function ercShouldTopAlignCell(text, colWidthChars, rowHeight){
+    const lines = ercEstimateWrappedLines(text, colWidthChars);
+    const maxLines = Math.max(1, Math.floor((Number(rowHeight) - 8) / 16));
+    return lines > maxLines;
+  }
+
+  function ercIsVerticalHeaderForExport(colName){
+    const verticalHeaders = new Set([
+      "ISEP負責工程師",
+      "Site",
+      "編碼",
+      "高風險作業",
+      "出工人數",
+      "簽到時間",
+      "簽退時間",
+      "實際巡檢人員"
+    ]);
+    return verticalHeaders.has(String(colName || "").trim());
+  }
+
+  function ercEstimateHeaderDisplayHeight(headers){
+    let need = 36;
+    (Array.isArray(headers) ? headers : []).forEach(function(name){
+      const txt = String(name == null ? "" : name).replace(/\s+/g, "");
+      if(!txt) return;
+      if(ercIsVerticalHeaderForExport(txt)){
+        const chars = Array.from(txt).length;
+        // 直排：每個字元一行，給字高 + 上下留白
+        need = Math.max(need, 24 + chars * 12);
+      }else{
+        // 橫排：單行即可
+        need = Math.max(need, 40);
+      }
+    });
+    return Math.max(120, Math.min(180, need));
+  }
+
+  function ercExportTypedCellValue(headerKey, rawValue){
+    const numericCols = new Set(["編碼", "電話", "出工人數"]);
+    if(!numericCols.has(String(headerKey || "").trim())) return rawValue;
+    if(rawValue == null || rawValue === "") return rawValue;
+    if(typeof rawValue === "number") return rawValue;
+
+    const s = String(rawValue)
+      .trim()
+      .replace(/[０-９]/g, function(ch){ return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0); })
+      .replace(/,/g, "");
+    if(/^[-+]?\d+(\.\d+)?$/.test(s)){
+      const n = Number(s);
+      if(Number.isFinite(n)) return n;
+    }
+    return rawValue;
+  }
+
   async function downloadXlsxWithData(data, filename){
     const safeData = Array.isArray(data) ? data : [];
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("處理結果");
-    ws.addRow(columnOrder);
-    for (const row of safeData){ ws.addRow(columnOrder.map(k=>row[k])); }
+    ws.properties.defaultRowHeight = 15;
+    const headerRow = ws.addRow(columnOrder);
+    for (const row of safeData){
+      ws.addRow(columnOrder.map(function(k){
+        return ercExportTypedCellValue(k, row[k]);
+      }));
+    }
+
+    // ExcelJS row.height 單位是 points；使用者看到的 UI 高度大約是像素。
+    // 這裡把「顯示 75」轉成 points，避免在 Excel 端看到接近 100。
+    const DATA_ROW_HEIGHT = 56.25;
+    const HEADER_ROW_HEIGHT_DISPLAY = ercEstimateHeaderDisplayHeight(columnOrder);
+    const HEADER_ROW_HEIGHT = Math.round(HEADER_ROW_HEIGHT_DISPLAY * 0.75 * 100) / 100;
+
     columnOrder.forEach((k, i)=>{
       const maxLen = Math.max(k.length, ...safeData.map(r=>(r[k] ? String(r[k]).length : 0)));
-      ws.getColumn(i+1).width = Math.min(60, Math.max(8, maxLen + 2));
+      const col = ws.getColumn(i + 1);
+      col.width = Math.min(60, Math.max(8, maxLen + 2));
+      if(k === "工程名稱及內容") col.width = Math.max(col.width, 42);
+      if(k === "施工位置") col.width = Math.max(col.width, 20);
+      if(k === "危險性作業施工許可") col.width = Math.max(col.width, 38);
+      if(k === "工程申請人") col.width = Math.max(col.width, 12);
+      if(k === "施工廠商") col.width = Math.max(col.width, 11);
     });
+
+    headerRow.eachCell(function(cell, colNumber){
+      const headerName = columnOrder[colNumber - 1] || "";
+      const isVerticalHeader = ercIsVerticalHeaderForExport(headerName);
+      cell.alignment = Object.assign({}, cell.alignment || {}, {
+        wrapText: false,
+        horizontal: "center",
+        vertical: "middle",
+        textRotation: isVerticalHeader ? "vertical" : 0
+      });
+    });
+    headerRow.height = HEADER_ROW_HEIGHT;
+
+    for(let r = 2; r <= ws.rowCount; r++){
+      const row = ws.getRow(r);
+      for(let c = 1; c <= columnOrder.length; c++){
+        const colWidth = ws.getColumn(c).width || 10;
+        const cell = row.getCell(c);
+        const rawText = cell.value == null ? "" : String(cell.value);
+        const top = ercShouldTopAlignCell(rawText, colWidth, DATA_ROW_HEIGHT);
+        cell.alignment = Object.assign({}, cell.alignment || {}, {
+          wrapText: true,
+          vertical: top ? "top" : "middle"
+        });
+      }
+      // 強制固定資料列列高，避免 Excel 依內容再次自動放大
+      row.height = DATA_ROW_HEIGHT;
+    }
+
     const arrayBuffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([arrayBuffer], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
     const url = URL.createObjectURL(blob);
@@ -6653,7 +6785,7 @@ const PERMIT_27 = (function () {
       for (let i = 1; i <= 27; i++) {
         if (HAZARD_NAME[i]) arr.push(i + "." + HAZARD_NAME[i]);
       }
-      if (arr.length) return arr;
+      if (arr.length) return arr.map(ercToHalfWidthParens);
     }
   } catch (e) {}
   // 若意外取不到 HAZARD_NAME，僅作為備援，不會影響你本檔正常情況
@@ -6663,11 +6795,11 @@ const PERMIT_27 = (function () {
     "11.匯流排開關箱作業","12.異味作業/有機溶劑","13.天花板（含夾層）作業","14.設備高風險作業","15.高風險場所",
     "16.五公尺以上施工架組/拆作業","17.監控系統軟/硬體增修查檢表","18.208V以上，750V以下（含）已送電電盤開盤作業","19.GMS軟體測試作業檢核表","20.拆牆作業",
     "21.屋頂作業","22.火災風險 pumping line 管路解離作業","23.tsmc 發火性 LDS 鋼瓶更換作業許可證 (於現場標示)","24.tsmc 高壓水切割作業許可證 (於現場標示)","25.tsmc 建築物昇降設備維修保養作業許可證 (於現場標示)","26.tsmc 管路作業許可證 (於現場標示)","27.（測試中） tsmc 進入冷卻水塔作業許可證 (於現場標示)"
-  ];
+  ].map(ercToHalfWidthParens);
 })();
 
 function permitNormalize(s) {
-  return (s == null ? "" : String(s)).replace(/\u3000/g, " ").trim();
+  return ercToHalfWidthParens((s == null ? "" : String(s)).replace(/\u3000/g, " ").trim());
 }
 
 const PERMIT_27_NORMALIZED = new Set(PERMIT_27.map(v => permitNormalize(v).toLowerCase()));
@@ -8578,6 +8710,11 @@ function multiSelectMatch(cellValue, selected){
     if (lowered === "" || lowered === "na" || lowered === "n/a" || lowered === "-" || lowered === "—" || lowered === "無") return "";
     return v;
   }
+  function hasSignIn(rowLike){
+    const raw = rowLike ? (rowLike["簽到時間"] || rowLike["進場時間"] || rowLike["入場時間"] || "") : "";
+    if(typeof ercHasSignInValue === "function") return ercHasSignInValue(raw);
+    return String(raw).trim() !== "";
+  }
   function applyVendorRule(){
     try{
       if (!window.table || typeof window.table.getData !== "function") return;
@@ -8590,6 +8727,7 @@ function multiSelectMatch(cellValue, selected){
         // 使用 updateData 方法
         let touched = false;
         for (const row of data){
+          if(!hasSignIn(row)) continue;
           const vendor = normalizeVendor(row["施工廠商"]);
           if (vendor === ""){
             const workers = row["出工人數"];
@@ -8610,6 +8748,7 @@ function multiSelectMatch(cellValue, selected){
       for (const row of rows){
         try {
           const rowData = row.getData();
+          if(!hasSignIn(rowData)) continue;
           const vendor = normalizeVendor(rowData["施工廠商"]);
           if (vendor === ""){
             const workers = rowData["出工人數"];
@@ -8649,7 +8788,7 @@ function multiSelectMatch(cellValue, selected){
         // 監聽單元格編輯事件，當施工廠商欄位被編輯時也觸發規則
         window.table.on("cellEdited", function(cell){
           const field = cell.getField();
-          if (field === "施工廠商" || field === "出工人數"){
+          if (field === "施工廠商" || field === "出工人數" || field === "簽到時間" || field === "進場時間" || field === "入場時間"){
             setTimeout(applyVendorRule, 50);
           }
         });
@@ -8702,6 +8841,11 @@ function multiSelectMatch(cellValue, selected){
     if(n === "" || n === "na" || n === "n/a" || n === "na" || n === "n.a" || n === "null" || n === "undefined") return true;
     return false;
   }
+  function hasSignIn(rowLike){
+    const raw = rowLike ? (rowLike["簽到時間"] || rowLike["進場時間"] || rowLike["入場時間"] || "") : "";
+    if(typeof ercHasSignInValue === "function") return ercHasSignInValue(raw);
+    return String(raw).trim() !== "";
+  }
   function tryApply(table){
     try{
       if(!table) return false;
@@ -8713,6 +8857,7 @@ function multiSelectMatch(cellValue, selected){
       const wField = workersDef.field;
       table.getRows().forEach(row => {
         const data = row.getData();
+        if(!hasSignIn(data)) return;
         const vendorVal = data[vField];
         if(isEmptyVendor(vendorVal)){
           if(data[wField] !== 0 && data[wField] !== "0"){
@@ -10884,116 +11029,8 @@ body{padding-bottom:64px}
 })();
 </script>
 <script>
-// 全局強制設置欄位寬度的腳本（在頁面完全載入後執行）
-(function(){
-  function forceColumnWidthsGlobal(){
-    try{
-      // 優先使用 Tabulator API
-      var table = window.table;
-      if(table){
-        var col1 = table.getColumn && table.getColumn("工程名稱及內容");
-        var col2 = table.getColumn && table.getColumn("施工位置");
-        
-        if(col1){
-          var col1El = col1.getElement && col1.getElement();
-          if(!col1El) {
-            // 如果無法從 API 獲取，嘗試 DOM 查詢
-            col1El = document.querySelector('#table .tabulator-col[data-field="工程名稱及內容"]') || 
-                     document.querySelector('.tabulator .tabulator-header .tabulator-col[data-field="工程名稱及內容"]');
-          }
-          if(col1El){
-            var w = col1El.offsetWidth || 0;
-            if(w > 130){
-              col1El.style.cssText = "width: 120px !important; min-width: 80px !important;";
-              col1.updateDefinition({width:120, minWidth:80, widthGrow:0, widthShrink:0});
-              if(col1.setWidth) col1.setWidth(120, true);
-            }
-          }
-        }
-        
-        if(col2){
-          var col2El = col2.getElement && col2.getElement();
-          if(!col2El) {
-            col2El = document.querySelector('#table .tabulator-col[data-field="施工位置"]') || 
-                     document.querySelector('.tabulator .tabulator-header .tabulator-col[data-field="施工位置"]');
-          }
-          if(col2El){
-            var w2 = col2El.offsetWidth || 0;
-            if(w2 > 90){
-              col2El.style.cssText = "width: 80px !important; min-width: 60px !important;";
-              col2.updateDefinition({width:80, minWidth:60, widthGrow:0, widthShrink:0});
-              if(col2.setWidth) col2.setWidth(80, true);
-            }
-          }
-        }
-      }
-      
-      // 備用方法：使用多種選擇器嘗試查找
-      var selectors1 = [
-        '#table .tabulator-col[data-field="工程名稱及內容"]',
-        '.tabulator .tabulator-header .tabulator-col[data-field="工程名稱及內容"]',
-        '.tabulator-col[data-field="工程名稱及內容"]',
-        '[data-field="工程名稱及內容"]'
-      ];
-      var selectors2 = [
-        '#table .tabulator-col[data-field="施工位置"]',
-        '.tabulator .tabulator-header .tabulator-col[data-field="施工位置"]',
-        '.tabulator-col[data-field="施工位置"]',
-        '[data-field="施工位置"]'
-      ];
-      
-      var col1El = null;
-      var col2El = null;
-      
-      for(var i = 0; i < selectors1.length && !col1El; i++){
-        col1El = document.querySelector(selectors1[i]);
-      }
-      for(var i = 0; i < selectors2.length && !col2El; i++){
-        col2El = document.querySelector(selectors2[i]);
-      }
-      
-      if(col1El){
-        var w = col1El.offsetWidth || 0;
-        if(w > 130){
-          col1El.style.cssText = "width: 120px !important; min-width: 80px !important;";
-        }
-      }
-      
-      if(col2El){
-        var w2 = col2El.offsetWidth || 0;
-        if(w2 > 90){
-          col2El.style.cssText = "width: 80px !important; min-width: 60px !important;";
-        }
-      }
-    }catch(e){}
-  }
-  
-  // 頁面載入後立即執行
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', function(){
-      setTimeout(forceColumnWidthsGlobal, 100);
-      setTimeout(forceColumnWidthsGlobal, 500);
-      setTimeout(forceColumnWidthsGlobal, 1000);
-    });
-  }else{
-    setTimeout(forceColumnWidthsGlobal, 100);
-    setTimeout(forceColumnWidthsGlobal, 500);
-    setTimeout(forceColumnWidthsGlobal, 1000);
-  }
-  
-  // 不再使用持續監控，只在初始設置時生效，允許用戶手動調整
-  // 清除之前的 interval（如果存在）
-  if(window._forceColumnWidthInterval){
-    clearInterval(window._forceColumnWidthInterval);
-    window._forceColumnWidthInterval = null;
-  }
-  
-  // 清除之前的 MutationObserver（如果存在）
-  if(window._columnWidthObserver){
-    window._columnWidthObserver.disconnect();
-    window._columnWidthObserver = null;
-  }
-})();
+// 關閉舊版全域欄寬強制器（會和 renderTable 內設定互相覆蓋，造成抖動/花屏）
+(function(){})();
 </script>
 <script>
 // ★★★ Search Clear Fix & Zoom Sync Check ★★★
@@ -13871,6 +13908,7 @@ window.__ercFixHeaderOverlap = fixHeaderOverlap;
     <li><strong>施工廠商</strong>：若為空白，自動填入 <strong>NA</strong>。</li>
     <li><strong>出工人數</strong>：
       <ul>
+        <li>僅當「簽到時間」有值時才套用以下規則。</li>
         <li>若「施工廠商」為空白、NA、N/A、-、—、無，則人數自動填入 <strong>0</strong>。</li>
         <li>若「施工廠商」有值且人數為 0，則隨機產生 <strong>1~15</strong> 之間的數字。</li>
       </ul>

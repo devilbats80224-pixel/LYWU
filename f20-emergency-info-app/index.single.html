@@ -405,6 +405,41 @@
       flex-wrap: wrap;
     }
 
+    .save-status {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      z-index: 1101;
+      min-width: 168px;
+      max-width: min(86vw, 360px);
+      border: 1px solid #c6d4ea;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: #284164;
+      box-shadow: 0 8px 20px rgba(15, 35, 70, 0.14);
+      backdrop-filter: blur(2px);
+      pointer-events: none;
+    }
+
+    .save-status.is-pending {
+      border-color: #9eb7df;
+      color: #204372;
+    }
+
+    .save-status.is-ok {
+      border-color: #9bcaa7;
+      color: #225837;
+    }
+
+    .save-status.is-warn {
+      border-color: #e2b36f;
+      color: #744f17;
+      background: rgba(255, 249, 235, 0.97);
+    }
+
     @media (max-width: 720px) {
       .top-bar {
         padding-top: 12px;
@@ -420,6 +455,12 @@
 
       .modal {
         padding: 10px;
+      }
+
+      .save-status {
+        right: 10px;
+        bottom: 10px;
+        max-width: calc(100vw - 20px);
       }
     }
   </style>
@@ -446,6 +487,10 @@
         <div class="hint">請按右上角「設定」，填入本機 HTML 路徑或網頁連結。</div>
       </div>
     </section>
+  </div>
+
+  <div id="saveStatus" class="save-status is-pending" role="status" aria-live="polite">
+    正在讀取本機設定...
   </div>
 
   <div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
@@ -486,6 +531,9 @@
   <script>
     (function () {
       var STORAGE_KEY = "f20_emergency_hub_config_v1";
+      var UPLOAD_DB_NAME = "f20_emergency_hub_uploads";
+      var UPLOAD_DB_VERSION = 1;
+      var UPLOAD_STORE_NAME = "uploaded_html_by_tab";
       var DEFAULT_TITLE = "F20緊急應變資訊整合系統";
 
       var state = loadState();
@@ -497,6 +545,7 @@
       var externalHintText = document.getElementById("externalHintText");
       var openExternalBtn = document.getElementById("openExternalBtn");
       var emptyState = document.getElementById("emptyState");
+      var saveStatus = document.getElementById("saveStatus");
 
       var settingsModal = document.getElementById("settingsModal");
       var titleInput = document.getElementById("titleInput");
@@ -515,6 +564,7 @@
       var externalSourceToOpen = "";
       var embedCheckTimer = null;
       var importedActiveTabId = null;
+      var uploadDbPromise = null;
 
       openSettingsBtn.addEventListener("click", openSettings);
       cancelSettingsBtn.addEventListener("click", closeSettings);
@@ -538,7 +588,32 @@
         }
       });
 
+      setSaveStatus("pending", "正在讀取本機設定...");
       render();
+      hydrateStateWithIndexedDbUploads();
+
+      function setSaveStatus(level, text) {
+        if (!saveStatus) {
+          return;
+        }
+        saveStatus.classList.remove("is-pending", "is-ok", "is-warn");
+        if (level === "warn") {
+          saveStatus.classList.add("is-warn");
+        } else if (level === "ok") {
+          saveStatus.classList.add("is-ok");
+        } else {
+          saveStatus.classList.add("is-pending");
+        }
+        saveStatus.textContent = text;
+      }
+
+      function formatStatusTime() {
+        var d = new Date();
+        var hh = String(d.getHours()).padStart(2, "0");
+        var mm = String(d.getMinutes()).padStart(2, "0");
+        var ss = String(d.getSeconds()).padStart(2, "0");
+        return hh + ":" + mm + ":" + ss;
+      }
 
       function loadState() {
         var parsed = null;
@@ -585,13 +660,226 @@
       }
 
       function saveState() {
+        setSaveStatus("pending", "儲存中...");
+        var persistableState = buildPersistableState(state);
+        var localSaved = saveStateToLocalStorage(persistableState);
+        if (!localSaved) {
+          setSaveStatus("warn", "儲存失敗（localStorage）：" + formatStatusTime());
+          return Promise.resolve({
+            persisted: false,
+            reason: "localStorage"
+          });
+        }
+
+        return writeUploadedHtmlMap(state.tabs)
+          .then(function () {
+            setSaveStatus("ok", "已儲存：" + formatStatusTime());
+            return { persisted: true };
+          })
+          .catch(function (error) {
+            if (hasUploadedHtmlTabs(state.tabs)) {
+              console.warn("無法將上傳 HTML 寫入 IndexedDB，重新整理後可能遺失。", error);
+              setSaveStatus("warn", "儲存不完整（IndexedDB）：" + formatStatusTime());
+              return {
+                persisted: false,
+                reason: "indexedDB"
+              };
+            }
+            setSaveStatus("ok", "已儲存：" + formatStatusTime());
+            return { persisted: true };
+          });
+      }
+
+      function saveStateMetaOnly() {
+        setSaveStatus("pending", "儲存中...");
+        var persistableState = buildPersistableState(state);
+        if (!saveStateToLocalStorage(persistableState)) {
+          setSaveStatus("warn", "儲存失敗（localStorage）：" + formatStatusTime());
+          console.warn("狀態未完整保存：localStorage");
+          return false;
+        }
+        setSaveStatus("ok", "已儲存：" + formatStatusTime());
+        return true;
+      }
+
+      function hasUploadedHtmlTabs(tabs) {
+        return (Array.isArray(tabs) ? tabs : []).some(function (tab) {
+          return !!(tab && typeof tab.uploadedHtml === "string" && tab.uploadedHtml);
+        });
+      }
+
+      function buildPersistableState(rawState) {
+        var normalizedTabs = normalizeTabsForState(rawState.tabs).map(function (tab) {
+          return {
+            id: tab.id,
+            name: tab.name,
+            source: tab.source,
+            uploadedHtml: "",
+            uploadedFileName: tab.uploadedFileName
+          };
+        });
+
+        var activeExists = normalizedTabs.some(function (tab) {
+          return tab.id === rawState.activeTabId;
+        });
+
+        return {
+          title: typeof rawState.title === "string" && rawState.title.trim() ? rawState.title.trim() : DEFAULT_TITLE,
+          activeTabId: activeExists ? rawState.activeTabId : normalizedTabs[0].id,
+          tabs: normalizedTabs
+        };
+      }
+
+      function saveStateToLocalStorage(payload) {
         try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
           return true;
         } catch (error) {
           console.warn("無法寫入 localStorage，設定不會持久保存。", error);
           return false;
         }
+      }
+
+      function hydrateStateWithIndexedDbUploads() {
+        readUploadedHtmlMap()
+          .then(function (uploadMap) {
+            var changed = false;
+            state.tabs = state.tabs.map(function (tab) {
+              if (!tab || typeof tab.id !== "string") {
+                return tab;
+              }
+              var persistedHtml = uploadMap[tab.id];
+              if (!tab.uploadedHtml && persistedHtml) {
+                changed = true;
+                return {
+                  id: tab.id,
+                  name: tab.name,
+                  source: tab.source,
+                  uploadedHtml: persistedHtml,
+                  uploadedFileName: tab.uploadedFileName
+                };
+              }
+              return tab;
+            });
+            if (changed) {
+              render();
+            }
+            setSaveStatus("ok", "本機設定已載入：" + formatStatusTime());
+          })
+          .catch(function (error) {
+            console.warn("無法讀取 IndexedDB 上傳資料。", error);
+            setSaveStatus("warn", "本機上傳資料讀取失敗（IndexedDB）");
+          });
+      }
+
+      function openUploadDb() {
+        if (!window.indexedDB) {
+          return Promise.reject(new Error("此瀏覽器不支援 IndexedDB。"));
+        }
+        if (uploadDbPromise) {
+          return uploadDbPromise;
+        }
+
+        uploadDbPromise = new Promise(function (resolve, reject) {
+          var request = window.indexedDB.open(UPLOAD_DB_NAME, UPLOAD_DB_VERSION);
+
+          request.onupgradeneeded = function (event) {
+            var db = event.target.result;
+            if (!db.objectStoreNames.contains(UPLOAD_STORE_NAME)) {
+              db.createObjectStore(UPLOAD_STORE_NAME, { keyPath: "tabId" });
+            }
+          };
+
+          request.onsuccess = function () {
+            resolve(request.result);
+          };
+
+          request.onerror = function () {
+            reject(request.error || new Error("無法開啟 IndexedDB。"));
+          };
+
+          request.onblocked = function () {
+            reject(new Error("IndexedDB 被阻擋，請關閉其他同網域分頁後再試。"));
+          };
+        }).catch(function (error) {
+          uploadDbPromise = null;
+          throw error;
+        });
+
+        return uploadDbPromise;
+      }
+
+      function readUploadedHtmlMap() {
+        return openUploadDb().then(function (db) {
+          return new Promise(function (resolve, reject) {
+            var tx = db.transaction(UPLOAD_STORE_NAME, "readonly");
+            var store = tx.objectStore(UPLOAD_STORE_NAME);
+            var request = store.openCursor();
+            var map = {};
+
+            request.onsuccess = function (event) {
+              var cursor = event.target.result;
+              if (!cursor) {
+                resolve(map);
+                return;
+              }
+              var row = cursor.value || {};
+              if (typeof row.tabId === "string") {
+                map[row.tabId] = typeof row.uploadedHtml === "string" ? row.uploadedHtml : "";
+              }
+              cursor.continue();
+            };
+
+            request.onerror = function () {
+              reject(request.error || new Error("讀取上傳資料失敗。"));
+            };
+
+            tx.onerror = function () {
+              reject(tx.error || new Error("讀取上傳資料失敗。"));
+            };
+          });
+        });
+      }
+
+      function writeUploadedHtmlMap(tabs) {
+        return openUploadDb().then(function (db) {
+          return new Promise(function (resolve, reject) {
+            var tx = db.transaction(UPLOAD_STORE_NAME, "readwrite");
+            var store = tx.objectStore(UPLOAD_STORE_NAME);
+            var clearRequest = store.clear();
+
+            clearRequest.onerror = function () {
+              reject(clearRequest.error || new Error("清除舊上傳資料失敗。"));
+            };
+
+            clearRequest.onsuccess = function () {
+              (Array.isArray(tabs) ? tabs : []).forEach(function (tab) {
+                if (!tab || typeof tab.id !== "string") {
+                  return;
+                }
+                if (typeof tab.uploadedHtml === "string" && tab.uploadedHtml) {
+                  store.put({
+                    tabId: tab.id,
+                    uploadedHtml: tab.uploadedHtml,
+                    uploadedFileName: typeof tab.uploadedFileName === "string" ? tab.uploadedFileName : ""
+                  });
+                }
+              });
+            };
+
+            tx.oncomplete = function () {
+              resolve();
+            };
+
+            tx.onerror = function () {
+              reject(tx.error || new Error("寫入上傳資料失敗。"));
+            };
+
+            tx.onabort = function () {
+              reject(tx.error || new Error("寫入上傳資料失敗。"));
+            };
+          });
+        });
       }
 
       function createTabId() {
@@ -624,7 +912,7 @@
           btn.setAttribute("title", tab.name);
           btn.addEventListener("click", function () {
             state.activeTabId = tab.id;
-            saveState();
+            saveStateMetaOnly();
             render();
           });
           tabBar.appendChild(btn);
@@ -1527,12 +1815,14 @@
         state = buildStateFromEditor();
         importedActiveTabId = null;
 
-        var saved = saveState();
-        if (!saved) {
-          alert("設定已套用於目前頁面，但儲存空間不足，重新整理後可能不會保留上傳檔案。");
-        }
         closeSettings();
         render();
+        saveState().then(function (result) {
+          if (!result || result.persisted) {
+            return;
+          }
+          alert("設定已套用於目前頁面，但儲存空間不足或瀏覽器限制儲存，重新整理後可能不會保留上傳檔案。");
+        });
       }
 
     })();
