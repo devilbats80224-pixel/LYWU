@@ -306,6 +306,11 @@ button:hover { border-color: var(--brand); }
 .tabulator .tabulator-row .tabulator-cell{
   vertical-align:middle !important;
 }
+.tabulator .tabulator-row .tabulator-cell.erc-vmiddle-cell{
+  display:inline-flex;
+  align-items:center;
+  justify-content:flex-start;
+}
 .tabulator .tabulator-cell.erc-vertical-cell{
   display:flex;
   justify-content:center;
@@ -4185,6 +4190,7 @@ function buildColumnsForTabulator(order){
     };
     if(centerColumns.has(name)){
       colDef.vertAlign = "middle";
+      colDef.cssClass = [colDef.cssClass, "erc-vmiddle-cell"].filter(Boolean).join(" ");
     }
 
     if (name === "高風險作業"){
@@ -6492,6 +6498,24 @@ return out;
     return lines > maxLines;
   }
 
+  function ercIsMiddleAlignColumnForExport(colName){
+    const middleColumns = new Set([
+      "編碼",
+      "ISEP負責工程師",
+      "Site",
+      "高風險作業",
+      "課別",
+      "工程申請人",
+      "電話",
+      "施工廠商",
+      "出工人數",
+      "簽到時間",
+      "簽退時間",
+      "實際巡檢人員"
+    ]);
+    return middleColumns.has(String(colName || "").trim());
+  }
+
   function ercIsVerticalHeaderForExport(colName){
     const verticalHeaders = new Set([
       "ISEP負責工程師",
@@ -6540,62 +6564,143 @@ return out;
     return rawValue;
   }
 
+  function ercToHalfWidthAscii(text){
+    return String(text == null ? "" : text).replace(/[！-～]/g, function(ch){
+      return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
+    });
+  }
+
+  function ercGetRiskTag(rawRisk){
+    const s = ercToHalfWidthAscii(rawRisk).toUpperCase().replace(/\s+/g, "");
+    if(s === "L1" || s.indexOf("L1") !== -1) return "L1";
+    if(s === "L2" || s.indexOf("L2") !== -1) return "L2";
+    return "";
+  }
+
+  function ercIsRiskNA(rawRisk){
+    const s = ercToHalfWidthAscii(rawRisk).toUpperCase().replace(/\s+/g, "");
+    return s === "NA" || s === "N/A" || s === "N-A";
+  }
+
+  function ercPermitHasHighRiskPlace(rawPermit){
+    return String(rawPermit == null ? "" : rawPermit).indexOf("高風險場所") !== -1;
+  }
+
+  function ercIsNightSheetRow(row){
+    if(!row) return false;
+    var outRaw = row["簽退時間"] || row["退場時間"] || row["離場時間"] || "";
+    if(outRaw == null || String(outRaw).trim() === "") return true;
+    var outInfo = ercParseTimeParts(outRaw);
+    if(!outInfo) return false;
+    var m = outInfo.minutes;
+    return m >= (21 * 60) || m <= 30;
+  }
+
   async function downloadXlsxWithData(data, filename){
     const safeData = Array.isArray(data) ? data : [];
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("處理結果");
-    ws.properties.defaultRowHeight = 15;
-    const headerRow = ws.addRow(columnOrder);
-    for (const row of safeData){
-      ws.addRow(columnOrder.map(function(k){
-        return ercExportTypedCellValue(k, row[k]);
-      }));
-    }
 
-    // ExcelJS row.height 單位是 points；使用者看到的 UI 高度大約是像素。
-    // 這裡把「顯示 75」轉成 points，避免在 Excel 端看到接近 100。
-    const DATA_ROW_HEIGHT = 56.25;
+    // 使用 Excel points 直接設定 75，確保在 Windows 端維持列高 75。
+    const DATA_ROW_HEIGHT = 75;
     const HEADER_ROW_HEIGHT_DISPLAY = ercEstimateHeaderDisplayHeight(columnOrder);
-    const HEADER_ROW_HEIGHT = Math.round(HEADER_ROW_HEIGHT_DISPLAY * 0.75 * 100) / 100;
+    // Windows 端保守安全值：再拉高，避免 ISEP負責工程師 直排剛好切齊。
+    const HEADER_ROW_HEIGHT = Math.round(Math.max(148, HEADER_ROW_HEIGHT_DISPLAY * 1.02) * 100) / 100;
+    const GRID_BORDER = {
+      top: {style: "thin", color: {argb: "FF000000"}},
+      left: {style: "thin", color: {argb: "FF000000"}},
+      bottom: {style: "thin", color: {argb: "FF000000"}},
+      right: {style: "thin", color: {argb: "FF000000"}}
+    };
+    const FILL_L1 = {type: "pattern", pattern: "solid", fgColor: {argb: "FFFFBC93"}};
+    const FILL_L2 = {type: "pattern", pattern: "solid", fgColor: {argb: "FFFFFF00"}};
+    const FILL_NA_HIGH_PLACE = {type: "pattern", pattern: "solid", fgColor: {argb: "FFBFBFBF"}};
 
-    columnOrder.forEach((k, i)=>{
-      const maxLen = Math.max(k.length, ...safeData.map(r=>(r[k] ? String(r[k]).length : 0)));
-      const col = ws.getColumn(i + 1);
-      col.width = Math.min(60, Math.max(8, maxLen + 2));
-      if(k === "工程名稱及內容") col.width = Math.max(col.width, 42);
-      if(k === "施工位置") col.width = Math.max(col.width, 20);
-      if(k === "危險性作業施工許可") col.width = Math.max(col.width, 38);
-      if(k === "工程申請人") col.width = Math.max(col.width, 12);
-      if(k === "施工廠商") col.width = Math.max(col.width, 11);
-    });
+    const siteColNo = columnOrder.indexOf("Site") + 1;
+    const riskColNo = columnOrder.indexOf("高風險作業") + 1;
+    const signOutColNo = columnOrder.indexOf("簽退時間") + 1;
+    const fillStartCol = (siteColNo > 0 && signOutColNo > 0) ? Math.min(siteColNo, signOutColNo) : -1;
+    const fillEndCol = (siteColNo > 0 && signOutColNo > 0) ? Math.max(siteColNo, signOutColNo) : -1;
 
-    headerRow.eachCell(function(cell, colNumber){
-      const headerName = columnOrder[colNumber - 1] || "";
-      const isVerticalHeader = ercIsVerticalHeaderForExport(headerName);
-      cell.alignment = Object.assign({}, cell.alignment || {}, {
-        wrapText: false,
-        horizontal: "center",
-        vertical: "middle",
-        textRotation: isVerticalHeader ? "vertical" : 0
-      });
-    });
-    headerRow.height = HEADER_ROW_HEIGHT;
+    function ercPopulateSheet(sheetName, rows){
+      const srcRows = Array.isArray(rows) ? rows : [];
+      const ws = wb.addWorksheet(sheetName);
+      ws.properties.defaultRowHeight = 15;
+      ws.views = [{state: "frozen", ySplit: 1}];
+      const headerRow = ws.addRow(columnOrder);
 
-    for(let r = 2; r <= ws.rowCount; r++){
-      const row = ws.getRow(r);
-      for(let c = 1; c <= columnOrder.length; c++){
-        const colWidth = ws.getColumn(c).width || 10;
-        const cell = row.getCell(c);
-        const rawText = cell.value == null ? "" : String(cell.value);
-        const top = ercShouldTopAlignCell(rawText, colWidth, DATA_ROW_HEIGHT);
-        cell.alignment = Object.assign({}, cell.alignment || {}, {
-          wrapText: true,
-          vertical: top ? "top" : "middle"
-        });
+      for (let rowIdx = 0; rowIdx < srcRows.length; rowIdx++){
+        const row = srcRows[rowIdx] || {};
+        ws.addRow(columnOrder.map(function(k){
+          if(k === "編碼") return rowIdx + 1;
+          return ercExportTypedCellValue(k, row[k]);
+        }));
       }
-      // 強制固定資料列列高，避免 Excel 依內容再次自動放大
-      row.height = DATA_ROW_HEIGHT;
+
+      columnOrder.forEach((k, i)=>{
+        const maxLen = Math.max(k.length, ...safeData.map(r=>(r[k] ? String(r[k]).length : 0)));
+        const col = ws.getColumn(i + 1);
+        col.width = Math.min(60, Math.max(8, maxLen + 2));
+        if(k === "工程名稱及內容") col.width = Math.max(col.width, 42);
+        if(k === "施工位置") col.width = Math.max(col.width, 20);
+        if(k === "危險性作業施工許可") col.width = Math.max(col.width, 38);
+        if(k === "ISEP負責工程師") col.width = Math.max(col.width, 10);
+        if(k === "工程申請人") col.width = Math.max(col.width, 14);
+        if(k === "施工廠商") col.width = Math.max(col.width, 12);
+      });
+
+      headerRow.eachCell(function(cell, colNumber){
+        const headerName = columnOrder[colNumber - 1] || "";
+        const isVerticalHeader = ercIsVerticalHeaderForExport(headerName);
+        cell.alignment = Object.assign({}, cell.alignment || {}, {
+          wrapText: false,
+          horizontal: "center",
+          vertical: "middle",
+          textRotation: isVerticalHeader ? "vertical" : 0
+        });
+        cell.border = GRID_BORDER;
+      });
+      headerRow.height = HEADER_ROW_HEIGHT;
+
+      for(let r = 2; r <= ws.rowCount; r++){
+        const row = ws.getRow(r);
+        const src = srcRows[r - 2] || {};
+        const riskTag = ercGetRiskTag(src["高風險作業"]);
+        const naHighPlace = !riskTag && ercIsRiskNA(src["高風險作業"]) && ercPermitHasHighRiskPlace(src["危險性作業施工許可"]);
+        const rowFill = riskTag === "L1" ? FILL_L1 : (riskTag === "L2" ? FILL_L2 : (naHighPlace ? FILL_NA_HIGH_PLACE : null));
+        for(let c = 1; c <= columnOrder.length; c++){
+          const colWidth = ws.getColumn(c).width || 10;
+          const cell = row.getCell(c);
+          const headerKey = columnOrder[c - 1] || "";
+          const rawText = cell.value == null ? "" : String(cell.value);
+          cell.border = GRID_BORDER;
+          if(rowFill && c >= fillStartCol && c <= fillEndCol){
+            cell.fill = rowFill;
+          }
+          if((riskTag === "L1" || riskTag === "L2") && (c === siteColNo || c === riskColNo)){
+            cell.font = Object.assign({}, cell.font || {}, {bold: true});
+          }
+          const forceMiddle = ercIsMiddleAlignColumnForExport(headerKey);
+          if(forceMiddle){
+            cell.alignment = Object.assign({}, cell.alignment || {}, {
+              wrapText: true,
+              horizontal: "center",
+              vertical: "middle"
+            });
+          }else{
+            const top = ercShouldTopAlignCell(rawText, colWidth, DATA_ROW_HEIGHT);
+            cell.alignment = Object.assign({}, cell.alignment || {}, {
+              wrapText: true,
+              vertical: top ? "top" : "middle"
+            });
+          }
+        }
+        // 強制固定資料列列高，避免 Excel 依內容再次自動放大
+        row.height = DATA_ROW_HEIGHT;
+      }
     }
+
+    ercPopulateSheet("處理結果", safeData);
+    ercPopulateSheet("夜間施工", safeData.filter(ercIsNightSheetRow));
 
     const arrayBuffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([arrayBuffer], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
