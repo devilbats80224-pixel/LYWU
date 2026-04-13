@@ -7112,7 +7112,42 @@ return out;
     });
     const text = lines.join("\n");
 
-    let htmlTable = '<table border="1" cellspacing="0" cellpadding="2" style="border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;"><tbody>';
+    const escHtmlWithTypography = function(v){
+      const plain = escPlain(v);
+      if(!plain) return "";
+      const runs = ercSplitTextByScriptRuns(plain);
+      if(!runs.length) return escHtml(plain);
+      return runs.map(function(run){
+        const family = run.isCjk
+          ? ERC_CLIPBOARD_FONT_CJK_STACK
+          : ("'" + ERC_EXPORT_FONT_LATIN + "',sans-serif");
+        const lang = run.isCjk ? ' lang="zh-TW"' : "";
+        return '<span' + lang + ' style="font-family:' + family + ';font-size:' + ERC_EXPORT_FONT_SIZE + 'pt;mso-fareast-font-family:\'' + ERC_CLIPBOARD_FONT_CJK + '\';mso-ascii-font-family:\'' + ERC_EXPORT_FONT_LATIN + '\';mso-hansi-font-family:\'' + ERC_EXPORT_FONT_LATIN + '\';mso-fareast-language:ZH-TW;">' + escHtml(run.text) + '</span>';
+      }).join("");
+    };
+    const columnMetrics = ERC_PHASE_COPY_TEMPLATE_COL_WIDTH_CH
+      .slice(0, fields.length)
+      .map(function(w){
+        const widthCh = Number(w) || 8.43;
+        const widthPx = Math.max(14, ercExcelColWidthCharsToPx(widthCh));
+        const widthPt = (widthPx * 0.75).toFixed(2);
+        const msoAlt = Math.round(widthCh * 256);
+        return { widthCh: widthCh, widthPx: widthPx, widthPt: widthPt, msoAlt: msoAlt };
+      });
+    const buildColgroupHtml = function(){
+      if(columnMetrics.length !== fields.length) return "";
+      const cols = columnMetrics.map(function(metric){
+        return '<col width="' + metric.widthPx + '" style="mso-width-source:userset;width:' + metric.widthPt + 'pt;mso-width-alt:' + metric.msoAlt + ';" />';
+      });
+      return "<colgroup>" + cols.join("") + "</colgroup>";
+    };
+
+    const colgroupHtml = buildColgroupHtml();
+    const totalTableWidthPx = columnMetrics.reduce(function(sum, m){ return sum + (m && m.widthPx ? m.widthPx : 0); }, 0);
+    let htmlTable = '<table class="erc-copy-table" border="1" cellspacing="0" cellpadding="2" style="border-collapse:collapse;table-layout:fixed;mso-table-lspace:0pt;mso-table-rspace:0pt;font-size:' + ERC_EXPORT_FONT_SIZE + 'pt;' + (totalTableWidthPx > 0 ? ('width:' + totalTableWidthPx + 'px;') : '') + '"><tbody>';
+    if(colgroupHtml){
+      htmlTable = htmlTable.replace("<tbody>", colgroupHtml + "<tbody>");
+    }
     var rowFillStats = { L1: 0, L2: 0, NA15: 0, WHITE: 0 };
     rows.forEach(function(r){
       const rowFill = ercGetPhaseCopyFillColor(r);
@@ -7120,23 +7155,29 @@ return out;
       else if(rowFill === "#fff200") rowFillStats.L2 += 1;
       else if(rowFill === "#d9d9d9") rowFillStats.NA15 += 1;
       else rowFillStats.WHITE += 1;
-      htmlTable += "<tr>";
-      fields.forEach(function(f){
+      htmlTable += '<tr height="100" style="height:75pt;mso-height-source:userset;mso-height-alt:1500;">';
+      fields.forEach(function(f, colIdx){
         const raw = ercGetPhaseCopyFieldValue(r, f);
-        const plainVal = escPlain(raw);
-        const cellHtml = escHtml(plainVal);
+        const cellHtml = escHtmlWithTypography(raw);
         const fill = fillForField(r, f);
+        const metric = columnMetrics[colIdx] || null;
+        const widthStyle = metric
+          ? ('width:' + metric.widthPt + 'pt;mso-width-source:userset;mso-width-alt:' + metric.msoAlt + ';')
+          : "";
+        const tdWidthAttr = metric ? (' width="' + metric.widthPx + '"') : "";
+        const tdHeightAttr = ' height="100"';
+        const baseStyle = 'border:1px solid #000;height:75pt;mso-height-source:userset;mso-height-alt:1500;vertical-align:middle;white-space:pre-wrap;line-height:1.2;font-size:' + ERC_EXPORT_FONT_SIZE + 'pt;font-family:' + ERC_CLIPBOARD_FONT_CJK_STACK + ';mso-fareast-font-family:\'' + ERC_CLIPBOARD_FONT_CJK + '\';mso-ascii-font-family:\'' + ERC_EXPORT_FONT_LATIN + '\';mso-hansi-font-family:\'' + ERC_EXPORT_FONT_LATIN + '\';mso-bidi-font-family:\'' + ERC_EXPORT_FONT_LATIN + '\';mso-fareast-language:ZH-TW;mso-font-charset:136;mso-number-format:\\@;' + widthStyle;
         const style = fill
-          ? (' style="border:1px solid #000;background-color:' + fill + ';mso-number-format:\\@;"')
-          : ' style="border:1px solid #000;mso-number-format:\\@;"';
+          ? (' style="' + baseStyle + 'background-color:' + fill + ';"')
+          : (' style="' + baseStyle + '"');
         const bg = fill ? (' bgcolor="' + fill + '"') : "";
-        htmlTable += "<td" + bg + style + ">" + cellHtml + "</td>";
+        htmlTable += "<td" + tdWidthAttr + tdHeightAttr + bg + style + ">" + cellHtml + "</td>";
       });
         htmlTable += "</tr>";
     });
     htmlTable += "</tbody></table>";
     const htmlFragment = "<!--StartFragment-->" + htmlTable + "<!--EndFragment-->";
-    const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body>' + htmlFragment + "</body></html>";
+    const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="ProgId" content="Excel.Sheet"><meta name="Generator" content="Microsoft Excel"><style>br{mso-data-placement:same-cell;} table{mso-displayed-decimal-separator:"\\.";mso-displayed-thousand-separator:"\\,";} .erc-copy-table td{font-size:' + ERC_EXPORT_FONT_SIZE + 'pt;}</style><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>工作表1</x:Name><x:WorksheetOptions><x:DisplayGridlines/><x:DefaultRowHeight>100</x:DefaultRowHeight><x:Selected/><x:Panes></x:Panes><x:ProtectContents>False</x:ProtectContents><x:ProtectObjects>False</x:ProtectObjects><x:ProtectScenarios>False</x:ProtectScenarios></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>' + htmlFragment + "</body></html>";
 
     const execCopy = function(){
       var box = document.createElement("div");
@@ -7488,6 +7529,102 @@ return out;
   function ercToHalfWidthAscii(text){
     return String(text == null ? "" : text).replace(/[！-～]/g, function(ch){
       return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0);
+    });
+  }
+
+  const ERC_EXPORT_FONT_SIZE = 9;
+  const ERC_EXPORT_FONT_CJK = "標楷體";
+  const ERC_EXPORT_FONT_LATIN = "Arial";
+  const ERC_CLIPBOARD_FONT_CJK = "標楷體";
+  const ERC_CLIPBOARD_FONT_CJK_STACK = "'標楷體','DFKai-SB','BiauKai'";
+  const ERC_EXPORT_FORCE_LATIN_HEADERS = new Set(["編碼", "電話", "出工人數", "簽到時間", "簽退時間"]);
+  // 對應匯出模板「處理結果」A~P 欄寬（Excel 字元寬單位）
+  const ERC_PHASE_COPY_TEMPLATE_COL_WIDTH_CH = [
+    4.0, 2.59765625, 2.796875, 2.796875, 30.3984375, 8.3984375, 8.3984375, 7.3984375,
+    6.3984375, 3.3984375, 12.59765625, 17.796875, 5.19921875, 5.19921875, 2.59765625, 6.796875
+  ];
+
+  function ercExcelColWidthCharsToPx(widthChars){
+    const w = Number(widthChars);
+    if(!Number.isFinite(w) || w <= 0) return 64;
+    // Excel 欄寬字元單位轉像素（與 OOXML 相容）
+    return Math.floor(((256 * w + Math.floor(128 / 7)) / 256) * 7);
+  }
+
+  function ercIsCjkScriptChar(ch){
+    if(!ch) return false;
+    const code = String(ch).charCodeAt(0);
+    if((code >= 0x3400 && code <= 0x4DBF) || (code >= 0x4E00 && code <= 0x9FFF) || (code >= 0xF900 && code <= 0xFAFF)) return true;
+    if((code >= 0x3000 && code <= 0x303F) || (code >= 0xFF00 && code <= 0xFFEF)) return true;
+    return false;
+  }
+
+  function ercSplitTextByScriptRuns(text){
+    const src = String(text == null ? "" : text);
+    if(!src) return [];
+    const runs = [];
+    let buffer = "";
+    let lastIsCjk = null;
+    Array.from(src).forEach(function(ch){
+      const isCjk = ercIsCjkScriptChar(ch);
+      if(lastIsCjk === null || isCjk === lastIsCjk){
+        buffer += ch;
+      }else{
+        runs.push({ text: buffer, isCjk: lastIsCjk });
+        buffer = ch;
+      }
+      lastIsCjk = isCjk;
+    });
+    if(buffer){
+      runs.push({ text: buffer, isCjk: !!lastIsCjk });
+    }
+    return runs;
+  }
+
+  function ercBuildExcelRichTextByScript(text, extraFont){
+    const runs = ercSplitTextByScriptRuns(text);
+    if(!runs.length) return [];
+    const base = Object.assign({}, extraFont || {});
+    return runs.map(function(run){
+      const font = Object.assign({}, base, {
+        name: run.isCjk ? ERC_EXPORT_FONT_CJK : ERC_EXPORT_FONT_LATIN,
+        size: ERC_EXPORT_FONT_SIZE
+      });
+      return { text: run.text, font: font };
+    });
+  }
+
+  function ercApplyExportDataCellTypography(cell, headerKey){
+    if(!cell) return;
+    const oldFont = cell.font || {};
+    const normalizedHeader = String(headerKey == null ? "" : headerKey).trim();
+    const rawText = ercCellTextForTemplate(cell.value);
+    const text = String(rawText == null ? "" : rawText);
+    const hasCjk = /[\u3400-\u9FFF\uF900-\uFAFF]/.test(text);
+    const hasAsciiAlnum = /[A-Za-z0-9]/.test(text);
+
+    if(ERC_EXPORT_FORCE_LATIN_HEADERS.has(normalizedHeader)){
+      cell.font = Object.assign({}, oldFont, { name: ERC_EXPORT_FONT_LATIN, size: ERC_EXPORT_FONT_SIZE });
+      return;
+    }
+
+    if(hasCjk && hasAsciiAlnum && text){
+      const richRuns = ercBuildExcelRichTextByScript(text, {
+        bold: !!oldFont.bold,
+        italic: !!oldFont.italic,
+        underline: oldFont.underline,
+        strike: !!oldFont.strike,
+        color: oldFont.color
+      });
+      if(richRuns.length){
+        cell.value = { richText: richRuns };
+        return;
+      }
+    }
+
+    cell.font = Object.assign({}, oldFont, {
+      name: hasCjk ? ERC_EXPORT_FONT_CJK : ERC_EXPORT_FONT_LATIN,
+      size: ERC_EXPORT_FONT_SIZE
     });
   }
 
@@ -8664,6 +8801,7 @@ Level 2=${eqpTotalL2}`);
         }else{
           cell.value = ercExportTypedCellValue(key, values[c - 1]);
         }
+        ercApplyExportDataCellTypography(cell, key);
       }
 
       const riskOut = ercCellTextForTemplate(row.getCell(4).value);   // D 高風險作業
