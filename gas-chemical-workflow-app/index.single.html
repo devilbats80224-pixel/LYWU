@@ -688,7 +688,7 @@
           <input type="checkbox" id="management-mode-switch">
           管理模式
         </label>
-        <div class="management-help" id="management-mode-help">管理模式用途：可代人刷卡確認結束、刪除員工資料與執行高風險維護操作。</div>
+        <div class="management-help" id="management-mode-help">管理模式用途：可代人刷卡確認結束、刪除員工/工單資料與執行高風險維護操作。</div>
       </div>
     </header>
 
@@ -796,6 +796,25 @@
             </div>
           </div>
 
+          <div class="form-row cols-4" style="margin-top:8px;">
+            <div class="field">
+              <label for="planned-date">預計作業日期（可選）</label>
+              <input type="date" id="planned-date">
+            </div>
+            <div class="field">
+              <label for="planned-start-time">預計開始時間（可選）</label>
+              <input type="time" id="planned-start-time">
+            </div>
+            <div class="field">
+              <label for="planned-end-time">預計結束時間（可選）</label>
+              <input type="time" id="planned-end-time">
+            </div>
+            <div class="field">
+              <label>排程提示</label>
+              <input type="text" value="可預先申請明天/後天等日期" readonly>
+            </div>
+          </div>
+
           <div class="card" style="margin-top:10px; padding:10px;">
             <h3 style="margin-top:0;">作業項目明細（至少一筆）</h3>
             <div class="table-wrap items-table">
@@ -866,7 +885,7 @@
             </select>
           </div>
           <div class="field">
-            <label for="filter-date">日期（建單日）</label>
+            <label for="filter-date">日期（預計作業日）</label>
             <input type="date" id="filter-date">
           </div>
           <div class="field">
@@ -908,6 +927,7 @@
                 <th>項目摘要</th>
                 <th>是否隔離</th>
                 <th>點位數量</th>
+                <th>預計時程</th>
                 <th>建單時間</th>
                 <th>開始時間</th>
                 <th>電話通知結束</th>
@@ -1112,9 +1132,10 @@
           3. 員工資料可在管理區手動新增/編輯，或匯入 CSV / XLSX；刷卡/工號輸入後可自動帶出姓名、部門、電話。<br>
           4. 本人確認結束流程：申請人電話通知結束後，需回辦公室再刷卡確認，系統才會轉為「已完成」。<br>
           5. 隔離點位是條件式欄位：只有選擇「需要隔離點位」時才必填，不是每張單都必填。<br>
-          6. 管理模式用途：可代人刷卡確認結束、刪除員工資料與執行高風險維護操作。<br>
+          6. 管理模式用途：可代人刷卡確認結束、刪除員工資料、刪除工單資料與執行高風險維護操作。<br>
           7. 若非原申請人確認結束，需先開啟管理模式，且必填代確認原因；系統會完整記錄代確認資訊。<br>
-          8. 可使用「匯入完整備份」還原資料；查詢結果可匯出 XLSX；「匯入完整備份」與「匯入員工主檔」為兩個不同功能。
+          8. 工單在進行中可執行「編輯追加」，補登作業項目與隔離點位，避免重複建單。<br>
+          9. 可使用「匯入完整備份」還原資料；查詢結果可匯出 XLSX；「匯入完整備份」與「匯入員工主檔」為兩個不同功能。
         </div>
       </div>
     </section>
@@ -1154,6 +1175,58 @@
       <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn success" id="btn-submit-confirm-done" type="button">確認結束</button>
         <button class="btn ghost" id="btn-cancel-confirm-done" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="edit-order-modal">
+    <div class="modal-card" style="width:min(980px, 100%);">
+      <div class="modal-header">
+        <h3 id="edit-order-title">工單編輯追加</h3>
+        <button class="btn ghost" id="btn-close-edit-order" type="button">關閉</button>
+      </div>
+      <div id="edit-order-info" class="hint">-</div>
+
+      <div class="card" style="padding:10px; margin-top:10px;">
+        <h3 style="margin-top:0;">追加作業項目</h3>
+        <div class="table-wrap items-table">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:55px;">序</th>
+                <th style="width:120px;">類型</th>
+                <th style="width:160px;">常用快速選</th>
+                <th>品項名稱</th>
+                <th style="width:110px;">數量</th>
+                <th style="width:120px;">單位</th>
+                <th style="width:170px;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="edit-items-body"></tbody>
+          </table>
+        </div>
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn ghost" id="btn-add-edit-item" type="button">新增追加項目</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:10px; margin-top:10px;">
+        <h3 style="margin-top:0;">追加隔離點位（可選）</h3>
+        <div class="point-list" id="edit-point-list"></div>
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn ghost" id="btn-add-edit-point" type="button">新增追加點位</button>
+        </div>
+        <div id="edit-point-duplicate-warning"></div>
+      </div>
+
+      <div class="field" style="margin-top:10px;">
+        <label for="edit-order-note-append">追加說明（可選）</label>
+        <input type="text" id="edit-order-note-append" placeholder="可填寫補充說明，例如：補登漏填項目">
+      </div>
+      <div id="edit-order-message" style="margin-top:8px;"></div>
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn success" id="btn-submit-edit-order" type="button">儲存追加</button>
+        <button class="btn ghost" id="btn-cancel-edit-order" type="button">取消</button>
       </div>
     </div>
   </div>
@@ -1640,6 +1713,9 @@
           orderId: '',
           scannedEmployee: null
         },
+        editOrderContext: {
+          orderId: ''
+        },
         clockTimer: null,
         confirmOnLeave: true,
         persistence: {
@@ -1723,6 +1799,15 @@
         if (!obj.settings.current_operator_name) obj.settings.current_operator_name = '辦公室值班';
 
         var now = nowIso();
+        obj.work_orders.forEach(function(order) {
+          if (!order) return;
+          if (!order.planned_date) {
+            order.planned_date = getDateKeyFromIso(order.created_at) || formatDateKey(new Date());
+          }
+          order.planned_start_time = String(order.planned_start_time || '').trim();
+          order.planned_end_time = String(order.planned_end_time || '').trim();
+        });
+
         obj.employees.forEach(function(emp) {
           if (!emp) return;
           emp.emp_id = normalizeEmpId(emp.emp_id);
@@ -1981,6 +2066,21 @@
         var d = new Date(iso);
         if (isNaN(d.getTime())) return '';
         return formatDateKey(d);
+      }
+
+      function getOrderScheduleDateKey(order) {
+        var planned = String((order && order.planned_date) || '').trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(planned)) return planned;
+        return getDateKeyFromIso(order ? order.created_at : '');
+      }
+
+      function formatPlanSchedule(order) {
+        var dateKey = getOrderScheduleDateKey(order);
+        if (!dateKey) return '-';
+        var start = String((order && order.planned_start_time) || '').trim();
+        var end = String((order && order.planned_end_time) || '').trim();
+        if (!start && !end) return dateKey;
+        return dateKey + ' ' + (start || '--:--') + ' ~ ' + (end || '--:--');
       }
 
       function uid(prefix) {
@@ -2610,6 +2710,16 @@
         document.getElementById('btn-close-detail').addEventListener('click', closeDetailModal);
         document.getElementById('btn-close-confirm').addEventListener('click', closeConfirmModal);
         document.getElementById('btn-cancel-confirm-done').addEventListener('click', closeConfirmModal);
+        document.getElementById('btn-close-edit-order').addEventListener('click', closeEditOrderModal);
+        document.getElementById('btn-cancel-edit-order').addEventListener('click', closeEditOrderModal);
+        document.getElementById('btn-submit-edit-order').addEventListener('click', submitEditOrderAppend);
+        document.getElementById('btn-add-edit-item').addEventListener('click', function() {
+          addEditOrderItemRow();
+        });
+        document.getElementById('btn-add-edit-point').addEventListener('click', function() {
+          addEditOrderPointRow('');
+          checkEditOrderPointDuplicates();
+        });
 
         document.getElementById('btn-confirm-scan').addEventListener('click', handleConfirmScan);
         document.getElementById('confirm-scan-input').addEventListener('keydown', function(ev) {
@@ -2630,6 +2740,74 @@
         document.getElementById('confirm-modal').addEventListener('click', function(ev) {
           if (ev.target === document.getElementById('confirm-modal')) {
             closeConfirmModal();
+          }
+        });
+
+        document.getElementById('edit-items-body').addEventListener('change', function(ev) {
+          var row = ev.target.closest('tr');
+          if (!row) return;
+          if (ev.target.classList.contains('edit-item-type')) {
+            var type = ev.target.value || 'gas';
+            var commonSel = row.querySelector('.edit-item-common');
+            fillCommonOptions(commonSel, type);
+          }
+          if (ev.target.classList.contains('edit-item-common')) {
+            var selected = ev.target.value;
+            var nameInput = row.querySelector('.edit-item-name');
+            if (selected && selected !== '其他') {
+              nameInput.value = selected;
+            }
+            if (selected === '其他') {
+              nameInput.focus();
+            }
+          }
+        });
+
+        document.getElementById('edit-items-body').addEventListener('click', function(ev) {
+          var btn = ev.target.closest('button[data-edit-item-act]');
+          if (!btn) return;
+          var tr = btn.closest('tr');
+          if (!tr) return;
+          var act = btn.getAttribute('data-edit-item-act');
+          if (act === 'del') {
+            tr.remove();
+          } else if (act === 'up') {
+            var prev = tr.previousElementSibling;
+            if (prev) tr.parentNode.insertBefore(tr, prev);
+          } else if (act === 'down') {
+            var next = tr.nextElementSibling;
+            if (next) tr.parentNode.insertBefore(next, tr);
+          }
+          normalizeEditOrderItemIndexes();
+        });
+
+        document.getElementById('edit-point-list').addEventListener('click', function(ev) {
+          var btn = ev.target.closest('button[data-edit-point-act]');
+          if (!btn) return;
+          var row = btn.closest('.point-row');
+          if (!row) return;
+          var act = btn.getAttribute('data-edit-point-act');
+          if (act === 'del') {
+            row.remove();
+          } else if (act === 'up') {
+            var prev = row.previousElementSibling;
+            if (prev) row.parentNode.insertBefore(row, prev);
+          } else if (act === 'down') {
+            var next = row.nextElementSibling;
+            if (next) row.parentNode.insertBefore(next, row);
+          }
+          checkEditOrderPointDuplicates();
+        });
+
+        document.getElementById('edit-point-list').addEventListener('input', function(ev) {
+          if (ev.target.classList.contains('edit-point-name')) {
+            checkEditOrderPointDuplicates();
+          }
+        });
+
+        document.getElementById('edit-order-modal').addEventListener('click', function(ev) {
+          if (ev.target === document.getElementById('edit-order-modal')) {
+            closeEditOrderModal();
           }
         });
       }
@@ -2706,15 +2884,15 @@
         var box = document.getElementById('management-mode-help');
         if (!box) return;
         if (state.settings.management_mode) {
-          box.textContent = '管理模式已開啟：可代人刷卡確認結束、刪除員工資料與執行高風險維護操作。';
+          box.textContent = '管理模式已開啟：可代人刷卡確認結束、刪除員工資料、刪除工單資料與執行高風險維護操作。';
         } else {
-          box.textContent = '管理模式目前關閉：可先用一般模式作業；需代人刷卡確認或刪除員工資料時再開啟。';
+          box.textContent = '管理模式目前關閉：可先用一般模式作業；需代人刷卡確認、刪除員工或刪除工單時再開啟。';
         }
       }
 
       function toggleManagementMode(next) {
         if (next) {
-          var c1 = window.confirm('將進入管理模式，可執行代確認與高風險管理操作。是否繼續？');
+          var c1 = window.confirm('將進入管理模式，可執行代確認、刪除員工/工單等高風險管理操作。是否繼續？');
           if (!c1) {
             document.getElementById('management-mode-switch').checked = false;
             return;
@@ -2762,7 +2940,7 @@
       function renderDashboard() {
         var todayKey = formatDateKey(new Date());
         var orders = state.work_orders.filter(function(order) {
-          return getDateKeyFromIso(order.created_at) === todayKey;
+          return getOrderScheduleDateKey(order) === todayKey;
         });
 
         var counts = {
@@ -2852,7 +3030,7 @@
         var needIso = runtime.todayFilters.needIsolation;
 
         var filtered = state.work_orders.filter(function(order) {
-          if (date && getDateKeyFromIso(order.created_at) !== date) return false;
+          if (date && getOrderScheduleDateKey(order) !== date) return false;
           if (status !== 'all' && order.status !== status) return false;
           if (workType !== 'all' && order.work_type !== workType) return false;
           if (needIso === 'yes' && !order.need_isolation_points) return false;
@@ -2873,7 +3051,7 @@
         var orders = getFilteredOrdersFromTodayPage();
 
         if (!orders.length) {
-          tbody.innerHTML = '<tr><td colspan="15" class="empty">沒有符合條件的工單</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="16" class="empty">沒有符合條件的工單</td></tr>';
           return;
         }
 
@@ -2895,6 +3073,7 @@
             '<td>' + escapeHtml(itemSummary || '-') + '</td>' +
             '<td>' + (order.need_isolation_points ? '是' : '否') + '</td>' +
             '<td>' + points.length + '</td>' +
+            '<td>' + escapeHtml(formatPlanSchedule(order)) + '</td>' +
             '<td>' + formatDateTime(order.created_at) + '</td>' +
             '<td>' + formatDateTime(order.started_at) + '</td>' +
             '<td>' + formatDateTime(order.ended_reported_at) + '</td>' +
@@ -2908,6 +3087,7 @@
 
       function renderOrderActionButtons(order) {
         var html = '<div class="row-actions">';
+        var canAppend = ['pending', 'active', 'end_reported'].indexOf(order.status) >= 0;
 
         if (order.status === 'pending') {
           html += '<button class="btn small primary" data-act="start" data-id="' + order.id + '">開始</button>';
@@ -2918,6 +3098,14 @@
         } else if (order.status === 'end_reported') {
           html += '<button class="btn small success" data-act="confirm_done" data-id="' + order.id + '">本人確認結束</button>';
           html += '<button class="btn small danger" data-act="cancel" data-id="' + order.id + '">取消</button>';
+        }
+
+        if (canAppend) {
+          html += '<button class="btn small ghost" data-act="append_edit" data-id="' + order.id + '">編輯追加</button>';
+        }
+
+        if (state.settings.management_mode) {
+          html += '<button class="btn small danger" data-act="delete" data-id="' + order.id + '">刪除</button>';
         }
 
         html += '<button class="btn small ghost" data-act="detail" data-id="' + order.id + '">查看詳情</button>';
@@ -3296,6 +3484,9 @@
         document.getElementById('applicant-dept').value = '';
         document.getElementById('applicant-phone').value = '';
         document.getElementById('work-type').value = '';
+        document.getElementById('planned-date').value = formatDateKey(new Date());
+        document.getElementById('planned-start-time').value = '';
+        document.getElementById('planned-end-time').value = '';
         document.getElementById('new-order-message').innerHTML = '';
 
         var body = document.getElementById('new-items-body');
@@ -3495,6 +3686,9 @@
         if (!data.applicant_name) return '申請人姓名為必填。';
         if (!data.applicant_dept) return '申請人部門為必填。';
         if (!data.applicant_phone) return '電話為必填。';
+        if (data.planned_date && !/^\d{4}-\d{2}-\d{2}$/.test(data.planned_date)) return '預計作業日期格式不正確。';
+        if (data.planned_start_time && !/^\d{2}:\d{2}$/.test(data.planned_start_time)) return '預計開始時間格式不正確。';
+        if (data.planned_end_time && !/^\d{2}:\d{2}$/.test(data.planned_end_time)) return '預計結束時間格式不正確。';
         if (!data.machine_name && !data.panel_name) return '機台名稱或盤面名稱至少需填一個。';
         if (!data.work_type) return '請選擇作業類型。';
         if (!data.items.length) return '至少需要一筆作業項目。';
@@ -3566,6 +3760,9 @@
           applicant_name: String(document.getElementById('applicant-name').value || '').trim() || (existingEmp ? String(existingEmp.name || '').trim() : ''),
           applicant_dept: String(document.getElementById('applicant-dept').value || '').trim() || (existingEmp ? String(existingEmp.dept || '').trim() : ''),
           applicant_phone: String(document.getElementById('applicant-phone').value || '').trim() || (existingEmp ? String(existingEmp.phone || '').trim() : ''),
+          planned_date: String(document.getElementById('planned-date').value || '').trim(),
+          planned_start_time: String(document.getElementById('planned-start-time').value || '').trim(),
+          planned_end_time: String(document.getElementById('planned-end-time').value || '').trim(),
           machine_name: String(document.getElementById('machine-name').value || '').trim(),
           panel_name: String(document.getElementById('panel-name').value || '').trim(),
           work_type: String(document.getElementById('work-type').value || '').trim(),
@@ -3579,6 +3776,11 @@
         if (error) {
           showFormMessage('error', error);
           return;
+        }
+
+        if (data.planned_start_time && data.planned_end_time && data.planned_end_time < data.planned_start_time) {
+          var timeOk = window.confirm('預計結束時間早於預計開始時間，仍要送出嗎？');
+          if (!timeOk) return;
         }
 
         var duplicates = getDuplicateValues(data.points);
@@ -3599,6 +3801,9 @@
           applicant_name: data.applicant_name,
           applicant_dept: data.applicant_dept,
           applicant_phone: data.applicant_phone,
+          planned_date: data.planned_date || formatDateKey(new Date()),
+          planned_start_time: data.planned_start_time || '',
+          planned_end_time: data.planned_end_time || '',
           machine_name: data.machine_name,
           panel_name: data.panel_name,
           work_type: data.work_type,
@@ -3671,6 +3876,15 @@
           return;
         }
 
+        if (action === 'append_edit') {
+          if (['pending', 'active', 'end_reported'].indexOf(order.status) < 0) {
+            showToast('error', '此狀態不可執行編輯追加。');
+            return;
+          }
+          openEditOrderModal(orderId);
+          return;
+        }
+
         if (action === 'start') {
           if (order.status !== 'pending') {
             showToast('error', '狀態不符，只有待開始工單可執行開始。');
@@ -3728,6 +3942,32 @@
           saveState();
           showToast('warn', '工單已取消。');
           refreshAll();
+          return;
+        }
+
+        if (action === 'delete') {
+          if (!state.settings.management_mode) {
+            showToast('error', '刪除工單需先開啟管理模式。');
+            return;
+          }
+          var c1 = window.confirm('確定永久刪除此工單？刪除後不可還原。');
+          if (!c1) return;
+          var c2 = window.prompt('請輸入工單單號 ' + order.order_no + ' 以確認刪除：', '');
+          if (String(c2 || '').trim() !== String(order.order_no || '').trim()) {
+            showToast('warn', '二次確認未通過，已取消刪除。');
+            return;
+          }
+
+          state.work_orders = state.work_orders.filter(function(row) { return row.id !== order.id; });
+          state.work_order_items = state.work_order_items.filter(function(item) { return item.work_order_id !== order.id; });
+          state.work_order_detector_points = state.work_order_detector_points.filter(function(point) { return point.work_order_id !== order.id; });
+          state.activity_logs = state.activity_logs.filter(function(log) { return log.work_order_id !== order.id; });
+          rebuildPointDictionaryFromOrders();
+          closeDetailModal();
+          closeEditOrderModal();
+          saveState();
+          refreshAll();
+          showToast('warn', '工單已刪除：' + order.order_no);
         }
       }
 
@@ -3876,6 +4116,7 @@
             '<div class="kv"><b>盤面名稱：</b>' + escapeHtml(order.panel_name || '-') + '</div>' +
             '<div class="kv"><b>作業類型：</b>' + escapeHtml(getWorkTypeLabel(order.work_type)) + '</div>' +
             '<div class="kv"><b>是否需要隔離點位：</b>' + (order.need_isolation_points ? '是' : '否') + '</div>' +
+            '<div class="kv"><b>預計時程：</b>' + escapeHtml(formatPlanSchedule(order)) + '</div>' +
             '<div class="kv"><b>建單時間：</b>' + formatDateTime(order.created_at) + '</div>' +
             '<div class="kv"><b>開始時間：</b>' + formatDateTime(order.started_at) + '</div>' +
             '<div class="kv"><b>電話通知結束時間：</b>' + formatDateTime(order.ended_reported_at) + '</div>' +
@@ -3939,6 +4180,229 @@
         document.getElementById('detail-modal').classList.remove('active');
       }
 
+      function showEditOrderMessage(type, msg) {
+        var cls = type === 'error' ? 'error-box' : (type === 'success' ? 'ok-box' : 'warn-box');
+        document.getElementById('edit-order-message').innerHTML = '<div class="' + cls + '">' + escapeHtml(msg) + '</div>';
+      }
+
+      function openEditOrderModal(orderId) {
+        var order = getOrderById(orderId);
+        if (!order) {
+          showToast('error', '找不到工單。');
+          return;
+        }
+        if (['pending', 'active', 'end_reported'].indexOf(order.status) < 0) {
+          showToast('error', '此狀態不可執行編輯追加。');
+          return;
+        }
+
+        runtime.editOrderContext.orderId = orderId;
+        document.getElementById('edit-order-title').textContent = '工單編輯追加：' + order.order_no;
+        document.getElementById('edit-order-info').innerHTML =
+          '<b>目前狀態：</b>' + escapeHtml(getStatusLabel(order.status)) +
+          '　|　<b>目前項目數：</b>' + getOrderItems(order.id).length +
+          '　|　<b>目前點位數：</b>' + getOrderPoints(order.id).length;
+
+        document.getElementById('edit-items-body').innerHTML = '';
+        addEditOrderItemRow();
+
+        document.getElementById('edit-point-list').innerHTML = '';
+        addEditOrderPointRow('');
+        document.getElementById('edit-order-note-append').value = '';
+        document.getElementById('edit-point-duplicate-warning').innerHTML = '';
+        showEditOrderMessage('warn', '僅追加新資料，不會刪除既有項目與點位。');
+
+        document.getElementById('edit-order-modal').classList.add('active');
+      }
+
+      function closeEditOrderModal() {
+        document.getElementById('edit-order-modal').classList.remove('active');
+        runtime.editOrderContext.orderId = '';
+      }
+
+      function addEditOrderItemRow(data) {
+        var tr = document.createElement('tr');
+        tr.className = 'edit-item-row';
+        var itemType = (data && data.item_type) ? data.item_type : 'gas';
+        var itemName = (data && data.item_name) ? data.item_name : '';
+        var qty = (data && data.quantity !== undefined) ? data.quantity : '';
+        var unit = (data && data.unit) ? data.unit : '';
+
+        tr.innerHTML = '' +
+          '<td class="edit-item-index"></td>' +
+          '<td>' +
+            '<select class="edit-item-type">' +
+              '<option value="gas"' + (itemType === 'gas' ? ' selected' : '') + '>gas</option>' +
+              '<option value="chemical"' + (itemType === 'chemical' ? ' selected' : '') + '>chemical</option>' +
+            '</select>' +
+          '</td>' +
+          '<td><select class="edit-item-common"></select></td>' +
+          '<td><input type="text" class="edit-item-name" placeholder="品項名稱" value="' + escapeHtml(itemName) + '"></td>' +
+          '<td><input type="number" class="edit-item-qty" min="0" step="0.01" placeholder="數量" value="' + escapeHtml(qty) + '"></td>' +
+          '<td><input type="text" class="edit-item-unit" placeholder="單位" value="' + escapeHtml(unit) + '"></td>' +
+          '<td>' +
+            '<div class="row-actions">' +
+              '<button type="button" class="btn small ghost" data-edit-item-act="up">上移</button>' +
+              '<button type="button" class="btn small ghost" data-edit-item-act="down">下移</button>' +
+              '<button type="button" class="btn small danger" data-edit-item-act="del">刪除</button>' +
+            '</div>' +
+          '</td>';
+
+        document.getElementById('edit-items-body').appendChild(tr);
+        fillCommonOptions(tr.querySelector('.edit-item-common'), itemType);
+        normalizeEditOrderItemIndexes();
+      }
+
+      function normalizeEditOrderItemIndexes() {
+        document.querySelectorAll('#edit-items-body tr').forEach(function(tr, idx) {
+          var cell = tr.querySelector('.edit-item-index');
+          if (cell) cell.textContent = String(idx + 1);
+        });
+      }
+
+      function addEditOrderPointRow(value) {
+        var row = document.createElement('div');
+        row.className = 'point-row';
+        row.innerHTML = '' +
+          '<input type="text" class="edit-point-name" list="point-history-list" placeholder="輸入追加點位，例如 GD-CVD-017" value="' + escapeHtml(value || '') + '">' +
+          '<button type="button" class="btn small ghost" data-edit-point-act="up">上移</button>' +
+          '<button type="button" class="btn small ghost" data-edit-point-act="down">下移</button>' +
+          '<button type="button" class="btn small danger" data-edit-point-act="del">刪除</button>';
+        document.getElementById('edit-point-list').appendChild(row);
+      }
+
+      function getEditOrderPointValues() {
+        return Array.from(document.querySelectorAll('#edit-point-list .edit-point-name')).map(function(input) {
+          return String(input.value || '').trim();
+        }).filter(function(v) { return !!v; });
+      }
+
+      function checkEditOrderPointDuplicates() {
+        var wrap = document.getElementById('edit-point-duplicate-warning');
+        var points = getEditOrderPointValues();
+        var duplicates = getDuplicateValues(points);
+        if (!duplicates.length) {
+          wrap.innerHTML = '';
+          return;
+        }
+        wrap.innerHTML = '<div class="warn-box">提醒：本次追加點位有重複：' + escapeHtml(duplicates.join('、')) + '。</div>';
+      }
+
+      function collectEditOrderItems() {
+        var rows = Array.from(document.querySelectorAll('#edit-items-body tr'));
+        var items = [];
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+          var type = String(row.querySelector('.edit-item-type').value || '').trim();
+          var name = String(row.querySelector('.edit-item-name').value || '').trim();
+          var qtyRaw = String(row.querySelector('.edit-item-qty').value || '').trim();
+          var unit = String(row.querySelector('.edit-item-unit').value || '').trim();
+          var isFullyBlank = !name && !qtyRaw && !unit;
+          if (isFullyBlank) continue;
+          var qty = Number(qtyRaw);
+          items.push({
+            item_type: type,
+            item_name: name,
+            quantity: qty,
+            unit: unit,
+            rowIndex: i + 1
+          });
+        }
+        return items;
+      }
+
+      function submitEditOrderAppend() {
+        var order = getOrderById(runtime.editOrderContext.orderId);
+        if (!order) {
+          showToast('error', '找不到工單資料。');
+          return;
+        }
+        if (['pending', 'active', 'end_reported'].indexOf(order.status) < 0) {
+          showToast('error', '此狀態不可執行編輯追加。');
+          return;
+        }
+
+        var items = collectEditOrderItems();
+        var points = getEditOrderPointValues();
+        var noteAppend = String(document.getElementById('edit-order-note-append').value || '').trim();
+
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          if (!item.item_name) {
+            showEditOrderMessage('error', '第 ' + item.rowIndex + ' 筆追加項目名稱不可空白。');
+            return;
+          }
+          if (!(item.quantity > 0)) {
+            showEditOrderMessage('error', '第 ' + item.rowIndex + ' 筆追加項目數量必須大於 0。');
+            return;
+          }
+        }
+
+        if (!items.length && !points.length && !noteAppend) {
+          showEditOrderMessage('error', '請至少填一筆追加項目、追加點位，或追加說明。');
+          return;
+        }
+
+        var duplicates = getDuplicateValues(points);
+        if (duplicates.length) {
+          var goOn = window.confirm('本次追加點位含重複：' + duplicates.join('、') + '。是否仍要送出？');
+          if (!goOn) return;
+        }
+
+        var now = nowIso();
+        var operator = getCurrentOperator();
+        var nextItemSort = getOrderItems(order.id).reduce(function(max, item) {
+          return Math.max(max, Number(item.sort_order || 0));
+        }, 0);
+        var nextPointSort = getOrderPoints(order.id).reduce(function(max, point) {
+          return Math.max(max, Number(point.sort_order || 0));
+        }, 0);
+
+        items.forEach(function(item, idx) {
+          state.work_order_items.push({
+            id: uid('item'),
+            work_order_id: order.id,
+            item_type: item.item_type,
+            item_name: item.item_name,
+            quantity: item.quantity,
+            unit: item.unit,
+            sort_order: nextItemSort + idx + 1,
+            is_demo: false
+          });
+        });
+
+        if (points.length) {
+          points.forEach(function(pointName, idx) {
+            state.work_order_detector_points.push({
+              id: uid('point'),
+              work_order_id: order.id,
+              point_name: pointName,
+              sort_order: nextPointSort + idx + 1,
+              is_demo: false
+            });
+          });
+          order.need_isolation_points = true;
+          updatePointDictionary(points, now, false);
+        }
+
+        if (noteAppend) {
+          var stamp = formatDateTime(now);
+          var appendText = '[追加 ' + stamp + '] ' + noteAppend;
+          order.note = order.note ? (order.note + ' | ' + appendText) : appendText;
+        }
+
+        var remarkParts = [];
+        if (items.length) remarkParts.push('追加項目 ' + items.length + ' 筆');
+        if (points.length) remarkParts.push('追加點位 ' + points.length + ' 筆');
+        if (noteAppend) remarkParts.push('追加說明：' + noteAppend);
+        addActivityLog(order.id, 'edit', operator.emp_id, operator.name, remarkParts.join('；') || '編輯追加。', false);
+
+        saveState();
+        refreshAll();
+        closeEditOrderModal();
+        showToast('success', '工單已完成編輯追加。');
+      }
+
       function orderMatchesSearch(order, queryLower) {
         var items = getOrderItems(order.id).map(function(item) {
           return item.item_name;
@@ -3954,6 +4418,9 @@
           order.applicant_name,
           order.applicant_emp_id,
           order.applicant_phone,
+          order.planned_date,
+          order.planned_start_time,
+          order.planned_end_time,
           order.note,
           items,
           points,
@@ -4432,7 +4899,7 @@
         var rows = [[
           '狀態', '機台', '盤面', '申請人', '工號', '電話',
           '作業類型', '項目摘要', '是否隔離', '點位數量',
-          '建單時間', '開始時間', '電話通知結束', '本人確認結束'
+          '預計時程', '建單時間', '開始時間', '電話通知結束', '本人確認結束'
         ]];
 
         orders.forEach(function(order) {
@@ -4452,6 +4919,7 @@
             items || '-',
             order.need_isolation_points ? '是' : '否',
             points.length,
+            formatPlanSchedule(order),
             formatDateTime(order.created_at),
             formatDateTime(order.started_at),
             formatDateTime(order.ended_reported_at),
