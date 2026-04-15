@@ -1,0 +1,4460 @@
+<!DOCTYPE html>
+<!--
+  本檔案為完全離線運作版本，不依賴任何外部資源。
+  所有 CSS、JavaScript、資料模型、假資料皆內嵌於此單一 HTML。
+  所有資料僅儲存在本機瀏覽器（IndexedDB + localStorage 雙重保存），不會主動連網。
+  建議使用方式：直接雙擊開啟此檔，先到「管理區」檢查示範資料，再依流程建單與操作。
+-->
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; img-src 'self' data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'; font-src 'self' data:; object-src 'none'; frame-src 'none';">
+  <title>送氣／送化作業申請與隔離管理系統</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --line: #d7deea;
+      --text: #1f2a3a;
+      --muted: #5d6a7e;
+      --primary: #175ed9;
+      --primary-soft: #e8f0ff;
+      --danger: #bd2f2f;
+      --danger-soft: #fdecec;
+      --success: #1f7a3d;
+      --success-soft: #e8f8ee;
+      --warning: #8a5b00;
+      --warning-soft: #fff5e1;
+      --pending: #b77a00;
+      --active: #1565c0;
+      --end-reported: #8e5dc2;
+      --done: #2e7d32;
+      --cancelled: #7d8898;
+      --shadow: 0 8px 20px rgba(15, 39, 77, 0.08);
+      --radius: 12px;
+      --font: "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font);
+      background: linear-gradient(180deg, #f8fbff 0%, #f3f6fb 100%);
+      color: var(--text);
+      font-size: 17px;
+    }
+
+    body {
+      min-height: 100vh;
+    }
+
+    .app {
+      max-width: 1420px;
+      margin: 0 auto;
+      padding: 14px;
+    }
+
+    .topbar {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 12px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .title-wrap h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      line-height: 1.2;
+    }
+
+    .title-wrap p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .operator-tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f2f6ff;
+      color: #274a8c;
+      border: 1px solid #d8e3fa;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      white-space: nowrap;
+    }
+
+    .chip.warn {
+      background: #fff6ea;
+      color: #7c5200;
+      border-color: #f2d9af;
+    }
+
+    .operator-tools input[type="text"],
+    .operator-tools input[type="search"],
+    .operator-tools input[type="date"],
+    .operator-tools select,
+    .operator-tools textarea,
+    input[type="text"],
+    input[type="search"],
+    input[type="date"],
+    input[type="number"],
+    select,
+    textarea {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 1rem;
+      padding: 10px 11px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: 3px solid rgba(23, 94, 217, 0.13);
+      border-color: var(--primary);
+    }
+
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1;
+      padding: 11px 14px;
+      cursor: pointer;
+      transition: transform 0.04s ease, opacity 0.2s ease;
+      background: #edf2fb;
+      color: #21324f;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      opacity: 0.92;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn.primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn.success {
+      background: #1e8c43;
+      color: #fff;
+    }
+
+    .btn.warning {
+      background: #cc8b00;
+      color: #fff;
+    }
+
+    .btn.danger {
+      background: #c03b3b;
+      color: #fff;
+    }
+
+    .btn.ghost {
+      background: #fff;
+      border-color: var(--line);
+      color: #2f4b7c;
+    }
+
+    .btn.small {
+      padding: 8px 10px;
+      font-size: 0.9rem;
+    }
+
+    .nav {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .nav .nav-btn {
+      border: 1px solid #cbd7ee;
+      background: #eef4ff;
+      color: #204070;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 12px 10px;
+      cursor: pointer;
+    }
+
+    .nav .nav-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .card h2,
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 1.14rem;
+    }
+
+    .grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .grid.cols-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .grid.cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fbfdff;
+    }
+
+    .stat .label {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 7px;
+    }
+
+    .stat .value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .stat.pending { border-left: 6px solid var(--pending); }
+    .stat.active { border-left: 6px solid var(--active); }
+    .stat.end_reported { border-left: 6px solid var(--end-reported); }
+    .stat.done { border-left: 6px solid var(--done); }
+
+    .filters,
+    .form-row {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(6, minmax(120px, 1fr));
+      align-items: end;
+    }
+
+    .form-row.cols-4 {
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+    }
+
+    .form-row.cols-3 {
+      grid-template-columns: repeat(3, minmax(120px, 1fr));
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .field label {
+      font-weight: 700;
+      color: #264572;
+      font-size: 0.92rem;
+    }
+
+    .hint {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 90px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.86rem;
+    }
+
+    .badge.pending { background: var(--pending); }
+    .badge.active { background: var(--active); }
+    .badge.end_reported { background: var(--end-reported); }
+    .badge.done { background: var(--done); }
+    .badge.cancelled { background: var(--cancelled); }
+
+    .table-wrap {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: auto;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 880px;
+      background: #fff;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid #e8edf5;
+      padding: 9px 8px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 0.92rem;
+      line-height: 1.35;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #f5f8ff;
+      color: #29436f;
+      z-index: 1;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .warn-box {
+      border: 1px solid #f1cf9f;
+      background: #fff7eb;
+      color: #7d5100;
+      border-radius: 8px;
+      padding: 8px;
+      margin-top: 8px;
+      font-size: 0.92rem;
+    }
+
+    .ok-box {
+      border: 1px solid #b8e0c5;
+      background: #ecfbf1;
+      color: #1b6c35;
+      border-radius: 8px;
+      padding: 8px;
+      margin-top: 8px;
+      font-size: 0.92rem;
+    }
+
+    .error-box {
+      border: 1px solid #edb2b2;
+      background: #fff1f1;
+      color: #8a2424;
+      border-radius: 8px;
+      padding: 8px;
+      margin-top: 8px;
+      font-size: 0.92rem;
+    }
+
+    .items-table select,
+    .items-table input[type="text"],
+    .items-table input[type="number"] {
+      width: 100%;
+      font-size: 0.92rem;
+      padding: 8px;
+    }
+
+    .items-table .btn.small {
+      padding: 6px 8px;
+    }
+
+    .point-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-top: 8px;
+    }
+
+    .point-row {
+      display: grid;
+      gap: 7px;
+      grid-template-columns: 1fr auto auto auto;
+      align-items: center;
+    }
+
+    .point-row input {
+      width: 100%;
+    }
+
+    .radio-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 6px 0;
+    }
+
+    .radio-wrap label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      color: #2a466f;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .summary-grid .mini-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fcfdff;
+      padding: 8px;
+      font-size: 0.92rem;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(18, 32, 52, 0.42);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 50;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-card {
+      width: min(980px, 100%);
+      max-height: 92vh;
+      overflow: auto;
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #d4deee;
+      box-shadow: 0 16px 32px rgba(20, 36, 66, 0.25);
+      padding: 14px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 1.16rem;
+    }
+
+    .modal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .kv {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      background: #fbfdff;
+      font-size: 0.92rem;
+    }
+
+    .kv b {
+      color: #23406e;
+      margin-right: 6px;
+    }
+
+    .toast-wrap {
+      position: fixed;
+      right: 12px;
+      top: 12px;
+      z-index: 80;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: 420px;
+    }
+
+    .toast {
+      border-radius: 10px;
+      padding: 10px 12px;
+      box-shadow: var(--shadow);
+      border: 1px solid;
+      font-size: 0.92rem;
+      background: #fff;
+    }
+
+    .toast.info {
+      border-color: #bfd4fb;
+      color: #18458f;
+      background: #eef4ff;
+    }
+
+    .toast.success {
+      border-color: #b3dfc1;
+      color: #1a7038;
+      background: #ecfbf1;
+    }
+
+    .toast.error {
+      border-color: #edb2b2;
+      color: #8a2424;
+      background: #fff1f1;
+    }
+
+    .toast.warn {
+      border-color: #f1cf9f;
+      color: #835300;
+      background: #fff7eb;
+    }
+
+    .system-note {
+      border: 1px dashed #b8c9e6;
+      background: #f7fbff;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 0.94rem;
+      color: #23406e;
+      line-height: 1.55;
+    }
+
+    .empty {
+      color: var(--muted);
+      padding: 12px;
+      text-align: center;
+    }
+
+    .small {
+      font-size: 0.86rem;
+    }
+
+    .mode-chip {
+      display: inline-flex;
+      align-items: center;
+      background: #eef4ff;
+      color: #1f4f96;
+      border: 1px solid #c8daf8;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .info-inline {
+      border: 1px solid #d9e3f4;
+      background: #f8fbff;
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 0.9rem;
+      color: #35517d;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1100px) {
+      .grid.cols-4,
+      .filters,
+      .form-row,
+      .form-row.cols-4,
+      .form-row.cols-3,
+      .nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        padding: 10px;
+      }
+
+      .title-wrap h1 {
+        font-size: 1.2rem;
+      }
+
+      .grid.cols-4,
+      .grid.cols-3,
+      .grid.cols-2,
+      .filters,
+      .form-row,
+      .form-row.cols-4,
+      .form-row.cols-3,
+      .nav,
+      .modal-grid,
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .point-row {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-card {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="title-wrap">
+        <h1>送氣／送化作業申請與隔離管理系統</h1>
+        <p>完全單機離線 | 不依賴外部資源 | 本機瀏覽器儲存</p>
+      </div>
+      <div class="operator-tools">
+        <div class="chip" id="clock-chip">現在時間：-</div>
+        <label class="field" style="min-width:220px;">
+          <span style="font-weight:700; color:#274a8c; font-size:0.88rem;">目前操作人工號</span>
+          <input type="text" id="operator-emp-id" placeholder="輸入工號後按 Enter">
+        </label>
+        <button class="btn small primary" id="btn-set-operator" type="button">套用操作人</button>
+        <div class="chip" id="operator-chip">操作人：辦公室值班</div>
+        <label class="chip warn" style="cursor:pointer;">
+          <input type="checkbox" id="management-mode-switch">
+          管理模式
+        </label>
+      </div>
+    </header>
+
+    <nav class="nav" id="main-nav">
+      <button class="nav-btn active" data-page="dashboard" type="button">首頁 Dashboard</button>
+      <button class="nav-btn" data-page="new-order" type="button">新增申請</button>
+      <button class="nav-btn" data-page="today-list" type="button">今日作業列表</button>
+      <button class="nav-btn" data-page="pending-confirm" type="button">待本人確認</button>
+      <button class="nav-btn" data-page="admin" type="button">管理區</button>
+    </nav>
+
+    <section class="page active" id="page-dashboard">
+      <div class="card">
+        <h2>今日狀態總覽</h2>
+        <div class="grid cols-4" id="dashboard-stats"></div>
+      </div>
+      <div class="card">
+        <div class="form-row cols-3">
+          <div class="field" style="grid-column:span 2;">
+            <label for="dashboard-search">快速搜尋（機台/盤面/姓名/工號/電話/品項/點位/備註）</label>
+            <input type="search" id="dashboard-search" placeholder="輸入關鍵字即時搜尋">
+          </div>
+          <div class="field">
+            <button class="btn ghost" id="btn-dashboard-clear-search" type="button">清除搜尋</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>最近紀錄列表</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>狀態</th>
+                <th>單號</th>
+                <th>機台 / 盤面</th>
+                <th>申請人</th>
+                <th>作業類型</th>
+                <th>項目摘要</th>
+                <th>是否隔離</th>
+                <th>建單時間</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-recent-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="page-new-order">
+      <div class="card">
+        <h2>新增送氣／送化申請</h2>
+        <form id="new-order-form" novalidate>
+          <div class="form-row cols-4">
+            <div class="field">
+              <label for="applicant-card-input">刷卡 / 工號輸入（按 Enter）</label>
+              <input type="text" id="applicant-card-input" placeholder="例如 E1001" autocomplete="off">
+            </div>
+            <div class="field">
+              <button class="btn primary" id="btn-lookup-applicant" type="button">查詢申請人</button>
+            </div>
+            <div class="field">
+              <label for="applicant-name">姓名</label>
+              <input type="text" id="applicant-name" readonly>
+            </div>
+            <div class="field">
+              <label for="applicant-dept">部門</label>
+              <input type="text" id="applicant-dept" readonly>
+            </div>
+          </div>
+
+          <div class="form-row cols-4" style="margin-top:8px;">
+            <div class="field">
+              <label for="applicant-emp-id">工號</label>
+              <input type="text" id="applicant-emp-id" readonly>
+            </div>
+            <div class="field">
+              <label for="applicant-phone">電話（必填）</label>
+              <input type="text" id="applicant-phone" placeholder="可在此修正電話">
+            </div>
+            <div class="field">
+              <label for="machine-name">機台名稱</label>
+              <input type="text" id="machine-name" placeholder="可空白，但機台/盤面至少一個">
+            </div>
+            <div class="field">
+              <label for="panel-name">盤面名稱</label>
+              <input type="text" id="panel-name" placeholder="可空白，但機台/盤面至少一個">
+            </div>
+          </div>
+
+          <div class="form-row cols-4" style="margin-top:8px;">
+            <div class="field">
+              <label for="work-type">作業類型（必填）</label>
+              <select id="work-type">
+                <option value="">請選擇</option>
+                <option value="gas">送氣</option>
+                <option value="chemical">送化</option>
+                <option value="both">兩者</option>
+              </select>
+            </div>
+            <div class="field" style="grid-column: span 3;">
+              <label for="order-note">備註</label>
+              <input type="text" id="order-note" placeholder="可填寫補充說明、風險提醒等">
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:10px; padding:10px;">
+            <h3 style="margin-top:0;">作業項目明細（至少一筆）</h3>
+            <div class="table-wrap items-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:55px;">序</th>
+                    <th style="width:120px;">類型</th>
+                    <th style="width:160px;">常用快速選</th>
+                    <th>品項名稱</th>
+                    <th style="width:110px;">數量</th>
+                    <th style="width:120px;">單位</th>
+                    <th style="width:170px;">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="new-items-body"></tbody>
+              </table>
+            </div>
+            <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn ghost" id="btn-add-item" type="button">新增項目</button>
+              <span class="hint">常用氣體：Ar、N2、SiH4、H2、He、O2、NH3、其他</span>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:10px; padding:10px;">
+            <h3 style="margin-top:0;">隔離點位設定</h3>
+            <div class="radio-wrap">
+              <label><input type="radio" name="need-isolation" value="yes"> 需要隔離點位</label>
+              <label><input type="radio" name="need-isolation" value="no" checked> 不需要隔離點位</label>
+            </div>
+            <div id="point-section" class="hidden">
+              <div class="hint">僅在「需要隔離點位」時必填。可新增/刪除/調整順序，並使用歷史點位建議。</div>
+              <div class="point-list" id="new-point-list"></div>
+              <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn ghost" id="btn-add-point" type="button">新增點位</button>
+              </div>
+              <div id="point-duplicate-warning"></div>
+            </div>
+          </div>
+
+          <div id="new-order-message" style="margin-top:8px;"></div>
+
+          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn success" type="submit">建單送出</button>
+            <button class="btn ghost" id="btn-reset-new-order" type="button">清空表單</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="page" id="page-today-list">
+      <div class="card">
+        <h2>今日作業列表</h2>
+        <div class="filters">
+          <div class="field" style="grid-column: span 2;">
+            <label for="filter-search">搜尋</label>
+            <input type="search" id="filter-search" placeholder="機台/盤面/姓名/工號/電話/品項/點位/備註">
+          </div>
+          <div class="field">
+            <label for="filter-status">狀態</label>
+            <select id="filter-status">
+              <option value="all">全部</option>
+              <option value="pending">待開始</option>
+              <option value="active">進行中</option>
+              <option value="end_reported">待本人確認</option>
+              <option value="done">已完成</option>
+              <option value="cancelled">取消</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="filter-date">日期（建單日）</label>
+            <input type="date" id="filter-date">
+          </div>
+          <div class="field">
+            <label for="filter-work-type">作業類型</label>
+            <select id="filter-work-type">
+              <option value="all">全部</option>
+              <option value="gas">送氣</option>
+              <option value="chemical">送化</option>
+              <option value="both">兩者</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="filter-need-iso">是否需隔離</label>
+            <select id="filter-need-iso">
+              <option value="all">全部</option>
+              <option value="yes">是</option>
+              <option value="no">否</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn ghost" id="btn-reset-filters" type="button">重設篩選</button>
+          <button class="btn primary" id="btn-export-filtered-now" type="button">匯出目前查詢結果 CSV</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>狀態</th>
+                <th>機台</th>
+                <th>盤面</th>
+                <th>申請人</th>
+                <th>工號</th>
+                <th>電話</th>
+                <th>作業類型</th>
+                <th>項目摘要</th>
+                <th>是否隔離</th>
+                <th>點位數量</th>
+                <th>建單時間</th>
+                <th>開始時間</th>
+                <th>電話通知結束</th>
+                <th>本人確認結束</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="today-orders-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="page-pending-confirm">
+      <div class="card" style="border:2px solid #d7c4ee; background:#fbf8ff;">
+        <h2>待本人確認結束清單</h2>
+        <p class="hint" style="margin-top:2px;">此頁僅顯示狀態為「已電話通知結束，待本人確認」的工單，方便集中刷卡確認。</p>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>機台</th>
+                <th>盤面</th>
+                <th>申請人</th>
+                <th>工號</th>
+                <th>電話</th>
+                <th>電話通知結束時間</th>
+                <th>已等待</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="pending-confirm-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="page" id="page-admin">
+      <div class="card">
+        <h2>管理區</h2>
+        <div class="summary-grid">
+          <div class="mini-card"><b>管理模式：</b><span id="admin-management-mode">關閉</span></div>
+          <div class="mini-card"><b>資料儲存：</b>IndexedDB + localStorage（雙重自動保存）</div>
+          <div class="mini-card"><b>員工數：</b><span id="admin-employee-count">0</span></div>
+          <div class="mini-card"><b>工單數：</b><span id="admin-order-count">0</span></div>
+        </div>
+      </div>
+
+      <div class="card" id="employee-form-card">
+        <h3>手動新增 / 編輯員工主檔</h3>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="mode-chip" id="employee-form-mode-label">目前模式：新增</span>
+          <span class="hint">工號為唯一鍵，編輯模式下不可修改工號。</span>
+        </div>
+        <div class="form-row cols-4" style="margin-top:8px;">
+          <div class="field">
+            <label for="employee-form-emp-id">工號 emp_id（必填）</label>
+            <input type="text" id="employee-form-emp-id" placeholder="例如 E2001">
+          </div>
+          <div class="field">
+            <label for="employee-form-name">姓名 name（必填）</label>
+            <input type="text" id="employee-form-name" placeholder="例如 林小華">
+          </div>
+          <div class="field">
+            <label for="employee-form-dept">部門 dept（必填）</label>
+            <input type="text" id="employee-form-dept" placeholder="例如 設備工程">
+          </div>
+          <div class="field">
+            <label for="employee-form-phone">電話 phone（必填）</label>
+            <input type="text" id="employee-form-phone" placeholder="例如 0912-000-000">
+          </div>
+        </div>
+        <div class="form-row cols-4" style="margin-top:8px;">
+          <div class="field">
+            <label for="employee-form-ext">分機 ext（可選）</label>
+            <input type="text" id="employee-form-ext" placeholder="例如 5208">
+          </div>
+          <div class="field">
+            <label for="employee-form-active">在職 active（必填）</label>
+            <select id="employee-form-active">
+              <option value="true">是（在職）</option>
+              <option value="false">否（離職）</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="employee-form-source">資料來源 source（系統自動）</label>
+            <input type="text" id="employee-form-source" readonly value="manual">
+          </div>
+          <div class="field">
+            <label for="employee-form-created-at">建立時間 created_at（系統自動）</label>
+            <input type="text" id="employee-form-created-at" readonly value="-">
+          </div>
+        </div>
+        <div class="form-row cols-3" style="margin-top:8px;">
+          <div class="field">
+            <label for="employee-form-updated-at">更新時間 updated_at（系統自動）</label>
+            <input type="text" id="employee-form-updated-at" readonly value="-">
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label>提示</label>
+            <div id="employee-form-message" class="info-inline">請填寫員工資料後按「新增員工」。</div>
+          </div>
+        </div>
+        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn success" id="btn-employee-add" type="button">新增員工</button>
+          <button class="btn primary hidden" id="btn-employee-save-edit" type="button">儲存修改</button>
+          <button class="btn ghost" id="btn-employee-clear-form" type="button">清空表單</button>
+          <button class="btn ghost hidden" id="btn-employee-cancel-edit" type="button">取消編輯</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>匯入員工主檔（CSV / XLSX）</h3>
+        <div class="hint">
+          欄位建議：emp_id、name、dept、phone、ext、active。<br>
+          也支援常見中文欄位名稱（工號、姓名、部門、電話、分機、在職）。<br>
+          重複工號預設規則：以新資料覆蓋舊資料。
+        </div>
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <input type="file" id="employee-file" accept=".csv,.txt,.xlsx,.xls">
+          <button class="btn primary" id="btn-import-employees" type="button">匯入員工資料</button>
+        </div>
+        <div id="employee-import-summary" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="form-row cols-3">
+          <div class="field" style="grid-column: span 2;">
+            <label for="employee-search">員工查詢</label>
+            <input type="search" id="employee-search" placeholder="工號/姓名/部門/電話">
+          </div>
+          <div class="field">
+            <button class="btn ghost" id="btn-clear-employee-search" type="button">清除員工查詢</button>
+          </div>
+        </div>
+        <div class="table-wrap" style="margin-top:8px;">
+          <table>
+            <thead>
+              <tr>
+                <th>工號</th>
+                <th>姓名</th>
+                <th>部門</th>
+                <th>電話</th>
+                <th>分機</th>
+                <th>在職</th>
+                <th>資料來源</th>
+                <th>建立時間</th>
+                <th>更新時間</th>
+                <th>匯入時間</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="employee-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>資料備份與還原</h3>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button class="btn primary" id="btn-export-backup" type="button">匯出完整備份（JSON）</button>
+          <input type="file" id="backup-file" accept=".json">
+          <button class="btn warning" id="btn-import-backup" type="button">匯入完整備份（JSON）</button>
+          <button class="btn ghost" id="btn-export-query-admin" type="button">匯出查詢結果（CSV）</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>資料維護</h3>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn ghost" id="btn-clear-demo" type="button">一鍵清空示範資料</button>
+          <button class="btn ghost" id="btn-rebuild-demo" type="button">一鍵重建示範資料</button>
+          <button class="btn danger" id="btn-clear-all" type="button">清空全部資料（需二次確認）</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>常用點位歷史字典</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>點位名稱</th>
+                <th>使用次數</th>
+                <th>最後使用時間</th>
+              </tr>
+            </thead>
+            <tbody id="point-history-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>系統說明</h3>
+        <div class="system-note">
+          1. 本系統完全離線運作，不依賴任何外部資源，也不會主動連網。<br>
+          2. 資料僅儲存在本機瀏覽器（IndexedDB + localStorage 雙重自動保存），請定期匯出完整備份 JSON。<br>
+          3. 員工資料可在管理區手動新增/編輯，或匯入 CSV / XLSX；刷卡/工號輸入後可自動帶出姓名、部門、電話。<br>
+          4. 本人確認結束流程：申請人電話通知結束後，需回辦公室再刷卡確認，系統才會轉為「已完成」。<br>
+          5. 隔離點位是條件式欄位：只有選擇「需要隔離點位」時才必填，不是每張單都必填。<br>
+          6. 若非原申請人確認結束，需先開啟管理模式，且必填代確認原因；系統會完整記錄代確認資訊。<br>
+          7. 可使用「匯入完整備份」還原資料，與「匯入員工主檔」為兩個不同功能。
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal" id="detail-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>工單詳細資料</h3>
+        <button class="btn ghost" id="btn-close-detail" type="button">關閉</button>
+      </div>
+      <div id="detail-content"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="confirm-modal">
+    <div class="modal-card" style="width:min(720px, 100%);">
+      <div class="modal-header">
+        <h3>本人確認結束</h3>
+        <button class="btn ghost" id="btn-close-confirm" type="button">關閉</button>
+      </div>
+      <div id="confirm-order-info" class="kv" style="margin-bottom:8px;"></div>
+      <div class="form-row cols-3">
+        <div class="field" style="grid-column: span 2;">
+          <label for="confirm-scan-input">刷卡 / 工號輸入（按 Enter）</label>
+          <input type="text" id="confirm-scan-input" placeholder="請刷卡或輸入工號">
+        </div>
+        <div class="field">
+          <button class="btn primary" id="btn-confirm-scan" type="button">查詢刷卡人</button>
+        </div>
+      </div>
+      <div id="confirm-scan-result" style="margin-top:8px;"></div>
+      <div class="field hidden" id="proxy-reason-wrap" style="margin-top:8px;">
+        <label for="proxy-reason">代確認原因（必填）</label>
+        <textarea id="proxy-reason" rows="3" placeholder="請輸入代確認原因"></textarea>
+      </div>
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn success" id="btn-submit-confirm-done" type="button">確認結束</button>
+        <button class="btn ghost" id="btn-cancel-confirm-done" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <datalist id="point-history-list"></datalist>
+  <div class="toast-wrap" id="toast-wrap"></div>
+
+  <script>
+    (function ensureEmbeddedExcelJS() {
+      if (window.ExcelJS && typeof window.ExcelJS.Workbook === 'function') {
+        return;
+      }
+
+      function toUint8Array(data) {
+        return data instanceof Uint8Array ? data : new Uint8Array(data);
+      }
+
+      function uint8ToText(bytes) {
+        return new TextDecoder('utf-8').decode(bytes);
+      }
+
+      async function inflateRaw(bytes) {
+        if (typeof DecompressionStream !== 'function') {
+          throw new Error('瀏覽器不支援 DecompressionStream，無法解析 XLSX。請改用 CSV。');
+        }
+        var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+        var ab = await new Response(stream).arrayBuffer();
+        return new Uint8Array(ab);
+      }
+
+      function findEntry(entries, name) {
+        if (entries[name]) return entries[name];
+        var noLead = name.replace(/^\/+/, '');
+        if (entries[noLead]) return entries[noLead];
+        var alt = './' + noLead;
+        if (entries[alt]) return entries[alt];
+        return null;
+      }
+
+      async function unzipEntries(buffer) {
+        var bytes = toUint8Array(buffer);
+        var view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        var end = bytes.length;
+        var min = Math.max(0, end - 66000);
+        var eocd = -1;
+        for (var i = end - 22; i >= min; i--) {
+          if (view.getUint32(i, true) === 0x06054b50) {
+            eocd = i;
+            break;
+          }
+        }
+        if (eocd < 0) throw new Error('不是有效的 ZIP/XLSX 檔案。');
+
+        var cdSize = view.getUint32(eocd + 12, true);
+        var cdOffset = view.getUint32(eocd + 16, true);
+        var ptr = cdOffset;
+        var entries = {};
+
+        while (ptr < cdOffset + cdSize) {
+          if (view.getUint32(ptr, true) !== 0x02014b50) break;
+          var method = view.getUint16(ptr + 10, true);
+          var compressedSize = view.getUint32(ptr + 20, true);
+          var fileNameLen = view.getUint16(ptr + 28, true);
+          var extraLen = view.getUint16(ptr + 30, true);
+          var commentLen = view.getUint16(ptr + 32, true);
+          var localOffset = view.getUint32(ptr + 42, true);
+          var fileNameBytes = bytes.slice(ptr + 46, ptr + 46 + fileNameLen);
+          var fileName = uint8ToText(fileNameBytes);
+
+          if (view.getUint32(localOffset, true) !== 0x04034b50) {
+            throw new Error('ZIP local header 讀取失敗。');
+          }
+          var lfNameLen = view.getUint16(localOffset + 26, true);
+          var lfExtraLen = view.getUint16(localOffset + 28, true);
+          var dataStart = localOffset + 30 + lfNameLen + lfExtraLen;
+          var compressed = bytes.slice(dataStart, dataStart + compressedSize);
+
+          entries[fileName] = {
+            method: method,
+            compressed: compressed
+          };
+
+          ptr += 46 + fileNameLen + extraLen + commentLen;
+        }
+
+        var output = {};
+        var keys = Object.keys(entries);
+        for (var k = 0; k < keys.length; k++) {
+          var key = keys[k];
+          var entry = entries[key];
+          if (entry.method === 0) {
+            output[key] = entry.compressed;
+          } else if (entry.method === 8) {
+            output[key] = await inflateRaw(entry.compressed);
+          } else {
+            throw new Error('不支援的壓縮格式：' + entry.method);
+          }
+        }
+        return output;
+      }
+
+      function resolvePath(basePath, target) {
+        if (!target) return '';
+        if (target.indexOf('http://') === 0 || target.indexOf('https://') === 0) return target;
+
+        var t = target.replace(/^\/+/, '');
+        if (target[0] === '/') return t;
+
+        var base = basePath.split('/');
+        base.pop();
+        var parts = t.split('/');
+        for (var i = 0; i < parts.length; i++) {
+          var part = parts[i];
+          if (!part || part === '.') continue;
+          if (part === '..') {
+            if (base.length) base.pop();
+          } else {
+            base.push(part);
+          }
+        }
+        return base.join('/');
+      }
+
+      function parseXml(xml) {
+        return new DOMParser().parseFromString(xml, 'application/xml');
+      }
+
+      function getNodeText(node) {
+        return node ? (node.textContent || '') : '';
+      }
+
+      function parseSharedStrings(xmlText) {
+        if (!xmlText) return [];
+        var doc = parseXml(xmlText);
+        var sis = Array.from(doc.getElementsByTagName('si'));
+        return sis.map(function(si) {
+          var richTexts = Array.from(si.getElementsByTagName('r'));
+          if (richTexts.length) {
+            return richTexts.map(function(r) {
+              var t = r.getElementsByTagName('t')[0];
+              return getNodeText(t);
+            }).join('');
+          }
+          var tNode = si.getElementsByTagName('t')[0];
+          return getNodeText(tNode);
+        });
+      }
+
+      function isDateFormatCode(code) {
+        if (!code) return false;
+        var s = String(code).toLowerCase();
+        s = s.replace(/[[^]]*]/g, '');
+        s = s.replace(/"[^"]*"/g, '');
+        return /[ymdhs]/.test(s);
+      }
+
+      function parseDateStyleIndexes(stylesXml) {
+        var builtInDateNumFmtIds = {
+          14: true, 15: true, 16: true, 17: true, 18: true, 19: true, 20: true, 21: true, 22: true,
+          27: true, 30: true, 36: true, 45: true, 46: true, 47: true, 50: true, 57: true, 58: true
+        };
+
+        var result = {};
+        if (!stylesXml) return result;
+        var doc = parseXml(stylesXml);
+        var customDateFmtIds = {};
+
+        var numFmtNodes = Array.from(doc.getElementsByTagName('numFmt'));
+        numFmtNodes.forEach(function(node) {
+          var id = Number(node.getAttribute('numFmtId'));
+          var code = node.getAttribute('formatCode');
+          if (!isNaN(id) && isDateFormatCode(code)) {
+            customDateFmtIds[id] = true;
+          }
+        });
+
+        var xfsParent = doc.getElementsByTagName('cellXfs')[0];
+        if (!xfsParent) return result;
+        var xfs = Array.from(xfsParent.getElementsByTagName('xf'));
+        xfs.forEach(function(xf, idx) {
+          var numFmtId = Number(xf.getAttribute('numFmtId'));
+          if (builtInDateNumFmtIds[numFmtId] || customDateFmtIds[numFmtId]) {
+            result[idx] = true;
+          }
+        });
+        return result;
+      }
+
+      function excelSerialToIso(serial) {
+        if (typeof serial !== 'number' || !isFinite(serial)) return '';
+        var epoch = Date.UTC(1899, 11, 30);
+        var ms = Math.round(serial * 86400000);
+        var d = new Date(epoch + ms);
+        return d.toISOString();
+      }
+
+      function colRefToIndex(cellRef) {
+        var m = String(cellRef || '').match(/^([A-Z]+)/);
+        if (!m) return -1;
+        var letters = m[1];
+        var index = 0;
+        for (var i = 0; i < letters.length; i++) {
+          index = index * 26 + (letters.charCodeAt(i) - 64);
+        }
+        return index - 1;
+      }
+
+      function parseSheetRelationships(xmlText, sheetPath) {
+        var map = {};
+        if (!xmlText) return map;
+        var doc = parseXml(xmlText);
+        var rels = Array.from(doc.getElementsByTagName('Relationship'));
+        rels.forEach(function(rel) {
+          var id = rel.getAttribute('Id');
+          var target = rel.getAttribute('Target') || '';
+          if (!id) return;
+          map[id] = resolvePath(sheetPath, target);
+        });
+        return map;
+      }
+
+      function parseHyperlinkMap(sheetDoc, relMap) {
+        var map = {};
+        var nodes = Array.from(sheetDoc.getElementsByTagName('hyperlink'));
+        nodes.forEach(function(node) {
+          var ref = node.getAttribute('ref') || '';
+          var rid = node.getAttribute('r:id');
+          var location = node.getAttribute('location');
+          var target = location || (rid ? relMap[rid] : '');
+          if (!ref || !target) return;
+          var firstRef = ref.split(':')[0];
+          map[firstRef] = target;
+        });
+        return map;
+      }
+
+      function parseInlineStr(cNode) {
+        var isNode = cNode.getElementsByTagName('is')[0];
+        if (!isNode) return '';
+        var rich = Array.from(isNode.getElementsByTagName('r'));
+        if (rich.length) {
+          return rich.map(function(r) {
+            var t = r.getElementsByTagName('t')[0];
+            return getNodeText(t);
+          }).join('');
+        }
+        var tNode = isNode.getElementsByTagName('t')[0];
+        return getNodeText(tNode);
+      }
+
+      function getCellValueFromNode(cNode, sharedStrings, dateStyleMap, hyperlinkMap) {
+        var ref = cNode.getAttribute('r') || '';
+        var type = cNode.getAttribute('t') || '';
+        var styleIndex = Number(cNode.getAttribute('s'));
+        if (isNaN(styleIndex)) styleIndex = -1;
+
+        var vNode = cNode.getElementsByTagName('v')[0];
+        var fNode = cNode.getElementsByTagName('f')[0];
+        var valueText = getNodeText(vNode);
+        var value = '';
+
+        if (type === 's') {
+          var sIndex = Number(valueText);
+          value = !isNaN(sIndex) ? (sharedStrings[sIndex] || '') : '';
+        } else if (type === 'b') {
+          value = valueText === '1';
+        } else if (type === 'inlineStr') {
+          value = parseInlineStr(cNode);
+        } else if (type === 'str') {
+          value = valueText;
+        } else if (type === 'e') {
+          value = valueText;
+        } else {
+          if (valueText === '') {
+            value = '';
+          } else {
+            var num = Number(valueText);
+            if (!isNaN(num) && isFinite(num)) {
+              if (dateStyleMap[styleIndex]) {
+                value = excelSerialToIso(num);
+              } else {
+                value = num;
+              }
+            } else {
+              value = valueText;
+            }
+          }
+        }
+
+        if (fNode && (value === '' || value === null || value === undefined)) {
+          value = getNodeText(fNode);
+        }
+
+        var hyperlink = hyperlinkMap[ref];
+        if (hyperlink) {
+          return { text: String(value || hyperlink), hyperlink: hyperlink };
+        }
+        return value;
+      }
+
+      async function parseXlsxRows(buffer) {
+        var entries = await unzipEntries(buffer);
+
+        function entryText(name) {
+          var entry = findEntry(entries, name);
+          if (!entry) return '';
+          return uint8ToText(entry);
+        }
+
+        var workbookPath = 'xl/workbook.xml';
+        var workbookXml = entryText(workbookPath);
+        if (!workbookXml) throw new Error('XLSX 缺少 workbook.xml');
+
+        var workbookDoc = parseXml(workbookXml);
+        var firstSheet = workbookDoc.getElementsByTagName('sheet')[0];
+        if (!firstSheet) throw new Error('XLSX 無工作表。');
+
+        var sheetName = firstSheet.getAttribute('name') || 'Sheet1';
+        var rid = firstSheet.getAttribute('r:id');
+
+        var relsXml = entryText('xl/_rels/workbook.xml.rels');
+        var relsDoc = parseXml(relsXml);
+        var rels = Array.from(relsDoc.getElementsByTagName('Relationship'));
+        var target = '';
+        rels.forEach(function(rel) {
+          if (rel.getAttribute('Id') === rid) {
+            target = rel.getAttribute('Target') || '';
+          }
+        });
+        if (!target) throw new Error('找不到第一張工作表關聯。');
+
+        var sheetPath = resolvePath(workbookPath, target);
+        var sheetXml = entryText(sheetPath);
+        if (!sheetXml) throw new Error('找不到第一張工作表內容。');
+
+        var sharedStrings = parseSharedStrings(entryText('xl/sharedStrings.xml'));
+        var dateStyleMap = parseDateStyleIndexes(entryText('xl/styles.xml'));
+
+        var sheetDoc = parseXml(sheetXml);
+        var relPath = sheetPath.replace(/\/[^\/]+$/, '/_rels/' + sheetPath.split('/').pop() + '.rels');
+        var sheetRelsXml = entryText(relPath);
+        var sheetRelMap = parseSheetRelationships(sheetRelsXml, sheetPath);
+        var hyperlinkMap = parseHyperlinkMap(sheetDoc, sheetRelMap);
+
+        var rowNodes = Array.from(sheetDoc.getElementsByTagName('row'));
+        var rows = rowNodes.map(function(rowNode) {
+          var cNodes = Array.from(rowNode.getElementsByTagName('c'));
+          var row = [];
+          cNodes.forEach(function(cNode) {
+            var ref = cNode.getAttribute('r') || '';
+            var colIndex = colRefToIndex(ref);
+            if (colIndex < 0) {
+              colIndex = row.length;
+            }
+            row[colIndex] = getCellValueFromNode(cNode, sharedStrings, dateStyleMap, hyperlinkMap);
+          });
+          return row;
+        });
+
+        return { sheetName: sheetName, rows: rows };
+      }
+
+      function Workbook() {
+        this._worksheets = [];
+        this.xlsx = {
+          load: async function(buffer) {
+            var parsed = await parseXlsxRows(buffer);
+            this._worksheets = [{
+              name: parsed.sheetName,
+              _rows: parsed.rows
+            }];
+          }.bind(this)
+        };
+      }
+
+      Workbook.prototype.getWorksheet = function(index) {
+        if (typeof index === 'number') {
+          return this._worksheets[index - 1] || null;
+        }
+        for (var i = 0; i < this._worksheets.length; i++) {
+          if (this._worksheets[i].name === index) return this._worksheets[i];
+        }
+        return null;
+      };
+
+      Object.defineProperty(Workbook.prototype, 'worksheets', {
+        get: function() {
+          return this._worksheets;
+        }
+      });
+
+      window.ExcelJS = {
+        Workbook: Workbook
+      };
+    })();
+  </script>
+
+  <script>
+    (function blockNetwork() {
+      function blocked() {
+        throw new Error('本系統為離線模式，已封鎖網路存取。');
+      }
+      try {
+        window.fetch = function() {
+          return Promise.reject(new Error('本系統為離線模式，已封鎖 fetch。'));
+        };
+      } catch (e) {}
+      try {
+        window.XMLHttpRequest = blocked;
+      } catch (e) {}
+      try {
+        window.WebSocket = blocked;
+      } catch (e) {}
+      try {
+        window.EventSource = blocked;
+      } catch (e) {}
+      try {
+        if (navigator && typeof navigator.sendBeacon === 'function') {
+          navigator.sendBeacon = function() {
+            return false;
+          };
+        }
+      } catch (e) {}
+    })();
+
+    (function appMain() {
+      'use strict';
+
+      var STORAGE_KEY = 'gas_chemical_workflow_offline_v1';
+      var APP_VERSION = '1.0.0';
+      var IDB_DB_NAME = 'gas_chemical_workflow_offline_db';
+      var IDB_DB_VERSION = 1;
+      var IDB_STORE_NAME = 'app_kv';
+      var IDB_STATE_KEY = 'state_snapshot';
+
+      var STATUS_META = {
+        pending: { label: '待開始', cls: 'pending' },
+        active: { label: '進行中', cls: 'active' },
+        end_reported: { label: '已電話通知結束，待本人確認', cls: 'end_reported' },
+        done: { label: '已完成', cls: 'done' },
+        cancelled: { label: '取消', cls: 'cancelled' }
+      };
+
+      var WORK_TYPE_META = {
+        gas: '送氣',
+        chemical: '送化',
+        both: '兩者'
+      };
+
+      var ACTION_META = {
+        create: '建單',
+        start: '開始作業',
+        end_report: '電話通知結束',
+        done_confirm: '本人確認結束',
+        proxy_done_confirm: '代確認結束',
+        edit: '編輯',
+        cancel: '取消'
+      };
+
+      var COMMON_OPTIONS = {
+        gas: ['Ar', 'N2', 'SiH4', 'H2', 'He', 'O2', 'NH3', '其他'],
+        chemical: ['IPA', 'H2SO4', 'HF', 'HCl', 'NH4OH', '其他']
+      };
+
+      var state = null;
+
+      var runtime = {
+        currentPage: 'dashboard',
+        todayFilters: {
+          search: '',
+          status: 'all',
+          date: '',
+          workType: 'all',
+          needIsolation: 'all'
+        },
+        dashboardSearch: '',
+        employeeSearch: '',
+        employeeForm: {
+          mode: 'create',
+          editingEmpId: '',
+          hintEmpId: ''
+        },
+        confirmContext: {
+          orderId: '',
+          scannedEmployee: null
+        },
+        clockTimer: null,
+        confirmOnLeave: true,
+        persistence: {
+          idbReady: false,
+          db: null,
+          writeRunning: false,
+          pendingPayload: ''
+        }
+      };
+
+      document.addEventListener('DOMContentLoaded', init);
+
+      async function init() {
+        await initPersistence();
+        state = await loadState();
+        ensureStateShape(state);
+
+        if (!state.meta || !state.meta.initialized_at) {
+          state = createEmptyState();
+          insertDemoData(state, true);
+          saveState();
+        }
+
+        if (!state.work_orders || !state.work_orders.length) {
+          insertDemoData(state, true);
+          saveState();
+        }
+
+        if (!runtime.todayFilters.date) {
+          runtime.todayFilters.date = formatDateKey(new Date());
+        }
+
+        runtime.confirmOnLeave = state.settings.confirm_before_leave !== false;
+
+        bindGlobalEvents();
+        resetNewOrderForm();
+        restoreSettingsToUI();
+        refreshAll();
+        startClock();
+      }
+
+      function createEmptyState() {
+        return {
+          meta: {
+            app_version: APP_VERSION,
+            initialized_at: nowIso(),
+            last_saved_at: nowIso()
+          },
+          settings: {
+            management_mode: false,
+            current_operator_emp_id: '',
+            current_operator_name: '辦公室值班',
+            confirm_before_leave: true
+          },
+          employees: [],
+          work_orders: [],
+          work_order_items: [],
+          work_order_detector_points: [],
+          activity_logs: [],
+          point_history_dictionary: []
+        };
+      }
+
+      function ensureStateShape(obj) {
+        if (!obj || typeof obj !== 'object') {
+          state = createEmptyState();
+          return;
+        }
+
+        if (!obj.meta) obj.meta = {};
+        if (!obj.settings) obj.settings = {};
+        if (!Array.isArray(obj.employees)) obj.employees = [];
+        if (!Array.isArray(obj.work_orders)) obj.work_orders = [];
+        if (!Array.isArray(obj.work_order_items)) obj.work_order_items = [];
+        if (!Array.isArray(obj.work_order_detector_points)) obj.work_order_detector_points = [];
+        if (!Array.isArray(obj.activity_logs)) obj.activity_logs = [];
+        if (!Array.isArray(obj.point_history_dictionary)) obj.point_history_dictionary = [];
+
+        if (typeof obj.settings.management_mode !== 'boolean') obj.settings.management_mode = false;
+        if (typeof obj.settings.confirm_before_leave !== 'boolean') obj.settings.confirm_before_leave = true;
+        if (!obj.settings.current_operator_name) obj.settings.current_operator_name = '辦公室值班';
+
+        var now = nowIso();
+        obj.employees.forEach(function(emp) {
+          if (!emp) return;
+          emp.emp_id = normalizeEmpId(emp.emp_id);
+          emp.name = String(emp.name || '').trim();
+          emp.dept = String(emp.dept || '').trim();
+          emp.phone = String(emp.phone || '').trim();
+          emp.ext = String(emp.ext || '').trim();
+
+          if (typeof emp.active !== 'boolean') {
+            emp.active = parseActiveValue(emp.active);
+          }
+
+          if (!emp.source) {
+            emp.source = emp.imported_at ? 'import' : 'manual';
+          }
+
+          if (emp.imported_at === undefined || emp.imported_at === null) {
+            emp.imported_at = '';
+          }
+
+          if (!emp.created_at) {
+            emp.created_at = emp.imported_at || now;
+          }
+
+          if (!emp.updated_at) {
+            emp.updated_at = emp.created_at || now;
+          }
+
+          if (typeof emp.is_demo !== 'boolean') {
+            emp.is_demo = false;
+          }
+        });
+      }
+
+      async function initPersistence() {
+        if (typeof indexedDB === 'undefined') {
+          runtime.persistence.idbReady = false;
+          runtime.persistence.db = null;
+          return;
+        }
+
+        try {
+          runtime.persistence.db = await openIndexedDb();
+          runtime.persistence.idbReady = true;
+        } catch (err) {
+          runtime.persistence.idbReady = false;
+          runtime.persistence.db = null;
+          console.warn('[storage] IndexedDB 初始化失敗，改用 localStorage。', err);
+        }
+      }
+
+      function openIndexedDb() {
+        return new Promise(function(resolve, reject) {
+          var req = indexedDB.open(IDB_DB_NAME, IDB_DB_VERSION);
+          req.onupgradeneeded = function(ev) {
+            var db = ev.target.result;
+            if (!db.objectStoreNames.contains(IDB_STORE_NAME)) {
+              db.createObjectStore(IDB_STORE_NAME);
+            }
+          };
+          req.onsuccess = function() {
+            resolve(req.result);
+          };
+          req.onerror = function() {
+            reject(req.error || new Error('IndexedDB 開啟失敗。'));
+          };
+        });
+      }
+
+      async function loadState() {
+        var localState = loadStateFromLocalStorage();
+        var idbState = await loadStateFromIndexedDb();
+        var chosen = chooseNewerState(localState, idbState);
+
+        if (!chosen) {
+          return createEmptyState();
+        }
+
+        try {
+          var payload = JSON.stringify(chosen);
+          persistToLocalStoragePayload(payload);
+          queueIndexedDbWrite(payload, true);
+        } catch (syncErr) {}
+
+        return chosen;
+      }
+
+      function loadStateFromLocalStorage() {
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return null;
+          return parseStatePayload(raw, 'localStorage');
+        } catch (err) {
+          console.warn('[storage] localStorage 讀取失敗。', err);
+          return null;
+        }
+      }
+
+      async function loadStateFromIndexedDb() {
+        if (!runtime.persistence.idbReady || !runtime.persistence.db) return null;
+        try {
+          var payload = await readIndexedDbPayload();
+          if (!payload) return null;
+          return parseStatePayload(payload, 'IndexedDB');
+        } catch (err) {
+          console.warn('[storage] IndexedDB 讀取失敗。', err);
+          return null;
+        }
+      }
+
+      function parseStatePayload(payload, sourceName) {
+        try {
+          return JSON.parse(payload);
+        } catch (err) {
+          console.warn('[storage] ' + sourceName + ' JSON 解析失敗。', err);
+          return null;
+        }
+      }
+
+      function getStateSavedAt(snapshot) {
+        if (!snapshot || !snapshot.meta || !snapshot.meta.last_saved_at) return 0;
+        var ts = Date.parse(snapshot.meta.last_saved_at);
+        return isNaN(ts) ? 0 : ts;
+      }
+
+      function chooseNewerState(localState, idbState) {
+        if (!localState && !idbState) return null;
+        if (localState && !idbState) return localState;
+        if (!localState && idbState) return idbState;
+        return getStateSavedAt(idbState) > getStateSavedAt(localState) ? idbState : localState;
+      }
+
+      function readIndexedDbPayload() {
+        return new Promise(function(resolve, reject) {
+          try {
+            var tx = runtime.persistence.db.transaction(IDB_STORE_NAME, 'readonly');
+            var store = tx.objectStore(IDB_STORE_NAME);
+            var req = store.get(IDB_STATE_KEY);
+            req.onsuccess = function() {
+              resolve(req.result || '');
+            };
+            req.onerror = function() {
+              reject(req.error || new Error('IndexedDB 讀取失敗。'));
+            };
+          } catch (err) {
+            reject(err);
+          }
+        });
+      }
+
+      function writeIndexedDbPayload(payload) {
+        return new Promise(function(resolve, reject) {
+          try {
+            var tx = runtime.persistence.db.transaction(IDB_STORE_NAME, 'readwrite');
+            var store = tx.objectStore(IDB_STORE_NAME);
+            store.put(payload, IDB_STATE_KEY);
+            tx.oncomplete = function() {
+              resolve();
+            };
+            tx.onerror = function() {
+              reject(tx.error || new Error('IndexedDB 寫入失敗。'));
+            };
+          } catch (err) {
+            reject(err);
+          }
+        });
+      }
+
+      function queueIndexedDbWrite(payload, silent) {
+        if (!runtime.persistence.idbReady || !runtime.persistence.db) return;
+        runtime.persistence.pendingPayload = payload;
+        if (runtime.persistence.writeRunning) return;
+
+        runtime.persistence.writeRunning = true;
+        (function flush() {
+          var current = runtime.persistence.pendingPayload;
+          runtime.persistence.pendingPayload = '';
+          writeIndexedDbPayload(current)
+            .catch(function(err) {
+              console.warn('[storage] IndexedDB 寫入失敗。', err);
+              if (!silent) {
+                showToast('warn', 'IndexedDB 儲存失敗，已保留 localStorage。');
+              }
+            })
+            .finally(function() {
+              if (runtime.persistence.pendingPayload) {
+                flush();
+              } else {
+                runtime.persistence.writeRunning = false;
+              }
+            });
+        })();
+      }
+
+      function persistToLocalStoragePayload(payload) {
+        localStorage.setItem(STORAGE_KEY, payload);
+      }
+
+      function saveState() {
+        try {
+          state.meta.last_saved_at = nowIso();
+          state.meta.app_version = APP_VERSION;
+          if (state.settings) {
+            state.settings.confirm_before_leave = runtime.confirmOnLeave !== false;
+          }
+
+          var payload = JSON.stringify(state);
+          var localOk = true;
+          try {
+            persistToLocalStoragePayload(payload);
+          } catch (localErr) {
+            localOk = false;
+            console.warn('[storage] localStorage 寫入失敗。', localErr);
+          }
+
+          queueIndexedDbWrite(payload, true);
+
+          if (!localOk && !runtime.persistence.idbReady) {
+            showToast('error', '資料儲存失敗，請檢查瀏覽器儲存空間。');
+          }
+        } catch (err) {
+          showToast('error', '資料儲存失敗，請檢查瀏覽器儲存空間。');
+        }
+      }
+
+      function nowIso() {
+        return new Date().toISOString();
+      }
+
+      function formatDateTime(iso) {
+        if (!iso) return '-';
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return '-';
+        var y = d.getFullYear();
+        var m = pad2(d.getMonth() + 1);
+        var day = pad2(d.getDate());
+        var hh = pad2(d.getHours());
+        var mm = pad2(d.getMinutes());
+        var ss = pad2(d.getSeconds());
+        return y + '-' + m + '-' + day + ' ' + hh + ':' + mm + ':' + ss;
+      }
+
+      function formatDateKey(dateObj) {
+        var y = dateObj.getFullYear();
+        var m = pad2(dateObj.getMonth() + 1);
+        var d = pad2(dateObj.getDate());
+        return y + '-' + m + '-' + d;
+      }
+
+      function pad2(v) {
+        return String(v).padStart(2, '0');
+      }
+
+      function getDateKeyFromIso(iso) {
+        if (!iso) return '';
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return '';
+        return formatDateKey(d);
+      }
+
+      function uid(prefix) {
+        var base = Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+        return prefix + '_' + base;
+      }
+
+      function generateOrderNo() {
+        var now = new Date();
+        var datePart = now.getFullYear() + pad2(now.getMonth() + 1) + pad2(now.getDate());
+        var dailyCount = state.work_orders.filter(function(o) {
+          return getDateKeyFromIso(o.created_at) === formatDateKey(now);
+        }).length + 1;
+        return 'WO-' + datePart + '-' + String(dailyCount).padStart(3, '0');
+      }
+
+      function getStatusBadge(status) {
+        var meta = STATUS_META[status] || { label: status, cls: 'cancelled' };
+        return '<span class="badge ' + meta.cls + '">' + escapeHtml(meta.label) + '</span>';
+      }
+
+      function getStatusLabel(status) {
+        return STATUS_META[status] ? STATUS_META[status].label : status;
+      }
+
+      function getWorkTypeLabel(type) {
+        return WORK_TYPE_META[type] || type || '-';
+      }
+
+      function getOrderById(orderId) {
+        for (var i = 0; i < state.work_orders.length; i++) {
+          if (state.work_orders[i].id === orderId) return state.work_orders[i];
+        }
+        return null;
+      }
+
+      function getOrderItems(orderId) {
+        return state.work_order_items
+          .filter(function(item) { return item.work_order_id === orderId; })
+          .sort(function(a, b) { return a.sort_order - b.sort_order; });
+      }
+
+      function getOrderPoints(orderId) {
+        return state.work_order_detector_points
+          .filter(function(p) { return p.work_order_id === orderId; })
+          .sort(function(a, b) { return a.sort_order - b.sort_order; });
+      }
+
+      function getOrderLogs(orderId) {
+        return state.activity_logs
+          .filter(function(log) { return log.work_order_id === orderId; })
+          .sort(function(a, b) {
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          });
+      }
+
+      function getEmployeeByEmpId(empId) {
+        var target = normalizeEmpId(empId);
+        if (!target) return null;
+        for (var i = 0; i < state.employees.length; i++) {
+          if (normalizeEmpId(state.employees[i].emp_id) === target) {
+            return state.employees[i];
+          }
+        }
+        return null;
+      }
+
+      function normalizeEmpId(v) {
+        return String(v || '').trim();
+      }
+
+      function parseActiveValue(raw) {
+        if (typeof raw === 'boolean') return raw;
+        var text = String(raw || '').trim().toLowerCase();
+        if (!text) return true;
+        return ['0', 'false', 'n', 'no', '離職', '否'].indexOf(text) < 0;
+      }
+
+      function normalizeEmployeeRecordInput(record) {
+        return {
+          emp_id: normalizeEmpId(record.emp_id),
+          name: String(record.name || '').trim(),
+          dept: String(record.dept || '').trim(),
+          phone: String(record.phone || '').trim(),
+          ext: String(record.ext || '').trim(),
+          active: parseActiveValue(record.active)
+        };
+      }
+
+      function getCurrentOperator() {
+        var empId = normalizeEmpId(state.settings.current_operator_emp_id);
+        if (!empId) {
+          return {
+            emp_id: 'OFFICE',
+            name: '辦公室值班'
+          };
+        }
+        var emp = getEmployeeByEmpId(empId);
+        if (emp) {
+          return {
+            emp_id: emp.emp_id,
+            name: emp.name
+          };
+        }
+        return {
+          emp_id: empId,
+          name: state.settings.current_operator_name || '辦公室值班'
+        };
+      }
+
+      function addActivityLog(orderId, actionType, operatorEmpId, operatorName, remark, isDemo) {
+        state.activity_logs.push({
+          id: uid('log'),
+          work_order_id: orderId,
+          action_type: actionType,
+          operator_emp_id: operatorEmpId || '',
+          operator_name: operatorName || '',
+          remark: remark || '',
+          created_at: nowIso(),
+          is_demo: !!isDemo
+        });
+      }
+
+      function updatePointDictionary(pointNames, usedAt, isDemo) {
+        var when = usedAt || nowIso();
+        var map = {};
+        for (var i = 0; i < state.point_history_dictionary.length; i++) {
+          map[state.point_history_dictionary[i].point_name] = state.point_history_dictionary[i];
+        }
+
+        pointNames.forEach(function(name) {
+          var point = String(name || '').trim();
+          if (!point) return;
+          if (!map[point]) {
+            var created = {
+              point_name: point,
+              use_count: 1,
+              last_used_at: when,
+              is_demo: !!isDemo
+            };
+            state.point_history_dictionary.push(created);
+            map[point] = created;
+          } else {
+            map[point].use_count = Number(map[point].use_count || 0) + 1;
+            map[point].last_used_at = when;
+            if (isDemo && !map[point].is_demo) {
+              map[point].is_demo = false;
+            }
+          }
+        });
+      }
+
+      function rebuildPointDictionaryFromOrders() {
+        var fresh = [];
+        var pointMap = {};
+        for (var i = 0; i < state.work_order_detector_points.length; i++) {
+          var rec = state.work_order_detector_points[i];
+          var point = String(rec.point_name || '').trim();
+          if (!point) continue;
+          if (!pointMap[point]) {
+            pointMap[point] = {
+              point_name: point,
+              use_count: 1,
+              last_used_at: nowIso(),
+              is_demo: !!rec.is_demo
+            };
+            fresh.push(pointMap[point]);
+          } else {
+            pointMap[point].use_count += 1;
+            if (!rec.is_demo) {
+              pointMap[point].is_demo = false;
+            }
+          }
+        }
+
+        state.point_history_dictionary = fresh.sort(function(a, b) {
+          return b.use_count - a.use_count;
+        });
+      }
+
+      function insertDemoData(targetState, clearFirst) {
+        if (clearFirst) {
+          targetState.employees = [];
+          targetState.work_orders = [];
+          targetState.work_order_items = [];
+          targetState.work_order_detector_points = [];
+          targetState.activity_logs = [];
+          targetState.point_history_dictionary = [];
+        }
+
+        var now = new Date();
+        var today = formatDateKey(now);
+
+        var demoEmployees = [
+          { emp_id: 'E1001', name: '王小明', dept: '設備工程', phone: '0912-111-111', ext: '5201', active: true },
+          { emp_id: 'E1002', name: '李雅婷', dept: '廠務工程', phone: '0912-222-222', ext: '5202', active: true },
+          { emp_id: 'E1003', name: '陳志豪', dept: '製程整合', phone: '0912-333-333', ext: '5203', active: true },
+          { emp_id: 'E1004', name: '吳佩珊', dept: '環安衛', phone: '0912-444-444', ext: '5204', active: true },
+          { emp_id: 'E1005', name: '張家宏', dept: '品保工程', phone: '0912-555-555', ext: '5205', active: true }
+        ];
+
+        demoEmployees.forEach(function(emp) {
+          targetState.employees.push({
+            emp_id: emp.emp_id,
+            name: emp.name,
+            dept: emp.dept,
+            phone: emp.phone,
+            ext: emp.ext,
+            active: emp.active,
+            imported_at: nowIso(),
+            is_demo: true
+          });
+        });
+
+        function makeIso(timeStr) {
+          return new Date(today + 'T' + timeStr + ':00').toISOString();
+        }
+
+        var orders = [
+          {
+            id: uid('wo'),
+            order_no: 'WO-' + today.replace(/-/g, '') + '-001',
+            status: 'pending',
+            applicant_emp_id: 'E1001',
+            applicant_name: '王小明',
+            applicant_dept: '設備工程',
+            applicant_phone: '0912-111-111',
+            machine_name: 'ETCH-01',
+            panel_name: 'P-A1',
+            work_type: 'chemical',
+            need_isolation_points: false,
+            note: '送化前確認管路壓力穩定。',
+            created_at: makeIso('08:10'),
+            started_at: null,
+            ended_reported_at: null,
+            confirmed_done_at: null,
+            created_by: 'E1001',
+            started_by: '',
+            ended_reported_by: '',
+            confirmed_done_by: '',
+            proxy_confirm_reason: '',
+            is_demo: true
+          },
+          {
+            id: uid('wo'),
+            order_no: 'WO-' + today.replace(/-/g, '') + '-002',
+            status: 'active',
+            applicant_emp_id: 'E1002',
+            applicant_name: '李雅婷',
+            applicant_dept: '廠務工程',
+            applicant_phone: '0912-222-222',
+            machine_name: 'CVD-03',
+            panel_name: 'P-B7',
+            work_type: 'gas',
+            need_isolation_points: true,
+            note: '維持氮氣保護，作業中勿關閉排風。',
+            created_at: makeIso('09:00'),
+            started_at: makeIso('09:20'),
+            ended_reported_at: null,
+            confirmed_done_at: null,
+            created_by: 'E1002',
+            started_by: 'E1004',
+            ended_reported_by: '',
+            confirmed_done_by: '',
+            proxy_confirm_reason: '',
+            is_demo: true
+          },
+          {
+            id: uid('wo'),
+            order_no: 'WO-' + today.replace(/-/g, '') + '-003',
+            status: 'end_reported',
+            applicant_emp_id: 'E1003',
+            applicant_name: '陳志豪',
+            applicant_dept: '製程整合',
+            applicant_phone: '0912-333-333',
+            machine_name: 'DIFF-11',
+            panel_name: 'P-C2',
+            work_type: 'both',
+            need_isolation_points: true,
+            note: '已電話通知結束，待本人回來刷卡。',
+            created_at: makeIso('10:00'),
+            started_at: makeIso('10:15'),
+            ended_reported_at: makeIso('11:30'),
+            confirmed_done_at: null,
+            created_by: 'E1003',
+            started_by: 'E1004',
+            ended_reported_by: 'E1004',
+            confirmed_done_by: '',
+            proxy_confirm_reason: '',
+            is_demo: true
+          },
+          {
+            id: uid('wo'),
+            order_no: 'WO-' + today.replace(/-/g, '') + '-004',
+            status: 'done',
+            applicant_emp_id: 'E1005',
+            applicant_name: '張家宏',
+            applicant_dept: '品保工程',
+            applicant_phone: '0912-555-555',
+            machine_name: 'PVD-05',
+            panel_name: 'P-D9',
+            work_type: 'chemical',
+            need_isolation_points: false,
+            note: '流程完整結束。',
+            created_at: makeIso('07:40'),
+            started_at: makeIso('08:05'),
+            ended_reported_at: makeIso('09:10'),
+            confirmed_done_at: makeIso('09:35'),
+            created_by: 'E1005',
+            started_by: 'E1004',
+            ended_reported_by: 'E1004',
+            confirmed_done_by: 'E1005',
+            proxy_confirm_reason: '',
+            is_demo: true
+          }
+        ];
+
+        orders.forEach(function(order) {
+          targetState.work_orders.push(order);
+        });
+
+        function addItem(orderId, itemType, itemName, qty, unit, sort) {
+          targetState.work_order_items.push({
+            id: uid('item'),
+            work_order_id: orderId,
+            item_type: itemType,
+            item_name: itemName,
+            quantity: qty,
+            unit: unit,
+            sort_order: sort,
+            is_demo: true
+          });
+        }
+
+        function addPoint(orderId, name, sort) {
+          targetState.work_order_detector_points.push({
+            id: uid('point'),
+            work_order_id: orderId,
+            point_name: name,
+            sort_order: sort,
+            is_demo: true
+          });
+        }
+
+        addItem(orders[0].id, 'chemical', 'IPA', 20, 'L', 1);
+        addItem(orders[1].id, 'gas', 'N2', 6, '瓶', 1);
+        addItem(orders[1].id, 'gas', 'Ar', 2, '瓶', 2);
+        addItem(orders[2].id, 'gas', 'H2', 1, '瓶', 1);
+        addItem(orders[2].id, 'chemical', 'HF', 5, 'L', 2);
+        addItem(orders[3].id, 'chemical', 'H2SO4', 12, 'L', 1);
+
+        addPoint(orders[1].id, 'GD-CVD-017', 1);
+        addPoint(orders[1].id, 'GD-CVD-018', 2);
+        addPoint(orders[2].id, 'GD-DIFF-021', 1);
+
+        targetState.point_history_dictionary.push(
+          { point_name: 'GD-CVD-017', use_count: 4, last_used_at: nowIso(), is_demo: true },
+          { point_name: 'GD-CVD-018', use_count: 3, last_used_at: nowIso(), is_demo: true },
+          { point_name: 'GD-DIFF-021', use_count: 2, last_used_at: nowIso(), is_demo: true },
+          { point_name: 'GD-ETCH-005', use_count: 5, last_used_at: nowIso(), is_demo: true }
+        );
+
+        function pushLog(orderId, actionType, operatorEmpId, operatorName, remark, createdAt) {
+          targetState.activity_logs.push({
+            id: uid('log'),
+            work_order_id: orderId,
+            action_type: actionType,
+            operator_emp_id: operatorEmpId,
+            operator_name: operatorName,
+            remark: remark,
+            created_at: createdAt,
+            is_demo: true
+          });
+        }
+
+        pushLog(orders[0].id, 'create', 'E1001', '王小明', '建立工單。', orders[0].created_at);
+
+        pushLog(orders[1].id, 'create', 'E1002', '李雅婷', '建立工單。', orders[1].created_at);
+        pushLog(orders[1].id, 'start', 'E1004', '吳佩珊', '接獲電話通知開始。', orders[1].started_at);
+
+        pushLog(orders[2].id, 'create', 'E1003', '陳志豪', '建立工單。', orders[2].created_at);
+        pushLog(orders[2].id, 'start', 'E1004', '吳佩珊', '接獲電話通知開始。', orders[2].started_at);
+        pushLog(orders[2].id, 'end_report', 'E1004', '吳佩珊', '已電話通知結束。', orders[2].ended_reported_at);
+
+        pushLog(orders[3].id, 'create', 'E1005', '張家宏', '建立工單。', orders[3].created_at);
+        pushLog(orders[3].id, 'start', 'E1004', '吳佩珊', '接獲電話通知開始。', orders[3].started_at);
+        pushLog(orders[3].id, 'end_report', 'E1004', '吳佩珊', '已電話通知結束。', orders[3].ended_reported_at);
+        pushLog(orders[3].id, 'done_confirm', 'E1005', '張家宏', '本人刷卡確認完成。', orders[3].confirmed_done_at);
+      }
+
+      function bindGlobalEvents() {
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        document.getElementById('main-nav').addEventListener('click', function(ev) {
+          var btn = ev.target.closest('.nav-btn');
+          if (!btn) return;
+          var page = btn.getAttribute('data-page');
+          if (!page) return;
+          switchPage(page);
+        });
+
+        document.getElementById('btn-set-operator').addEventListener('click', applyCurrentOperator);
+        document.getElementById('operator-emp-id').addEventListener('keydown', function(ev) {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            applyCurrentOperator();
+          }
+        });
+
+        document.getElementById('management-mode-switch').addEventListener('change', function(ev) {
+          toggleManagementMode(ev.target.checked);
+        });
+
+        document.getElementById('dashboard-search').addEventListener('input', function(ev) {
+          runtime.dashboardSearch = String(ev.target.value || '').trim();
+          renderDashboardRecent();
+        });
+
+        document.getElementById('btn-dashboard-clear-search').addEventListener('click', function() {
+          runtime.dashboardSearch = '';
+          document.getElementById('dashboard-search').value = '';
+          renderDashboardRecent();
+        });
+
+        bindNewOrderEvents();
+        bindTodayListEvents();
+        bindPendingConfirmEvents();
+        bindAdminEvents();
+        bindModalEvents();
+      }
+
+      function handleBeforeUnload(ev) {
+        if (!runtime.confirmOnLeave) return;
+        try {
+          saveState();
+        } catch (e) {}
+        ev.preventDefault();
+        ev.returnValue = '';
+        return '';
+      }
+
+      function bindNewOrderEvents() {
+        document.getElementById('btn-lookup-applicant').addEventListener('click', lookupApplicantFromInput);
+        document.getElementById('applicant-card-input').addEventListener('keydown', function(ev) {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            lookupApplicantFromInput();
+          }
+        });
+
+        document.getElementById('btn-add-item').addEventListener('click', function() {
+          addNewItemRow();
+        });
+
+        document.getElementById('new-items-body').addEventListener('change', function(ev) {
+          var row = ev.target.closest('tr');
+          if (!row) return;
+          if (ev.target.classList.contains('item-type')) {
+            var type = ev.target.value || 'gas';
+            var commonSel = row.querySelector('.item-common');
+            fillCommonOptions(commonSel, type);
+          }
+          if (ev.target.classList.contains('item-common')) {
+            var selected = ev.target.value;
+            var nameInput = row.querySelector('.item-name');
+            if (selected && selected !== '其他') {
+              nameInput.value = selected;
+            }
+            if (selected === '其他') {
+              nameInput.focus();
+            }
+          }
+        });
+
+        document.getElementById('new-items-body').addEventListener('click', function(ev) {
+          var btn = ev.target.closest('button[data-item-act]');
+          if (!btn) return;
+          var tr = btn.closest('tr');
+          if (!tr) return;
+          var act = btn.getAttribute('data-item-act');
+          if (act === 'del') {
+            tr.remove();
+          } else if (act === 'up') {
+            var prev = tr.previousElementSibling;
+            if (prev) tr.parentNode.insertBefore(tr, prev);
+          } else if (act === 'down') {
+            var next = tr.nextElementSibling;
+            if (next) tr.parentNode.insertBefore(next, tr);
+          }
+          normalizeItemRowIndexes();
+        });
+
+        document.querySelectorAll('input[name="need-isolation"]').forEach(function(radio) {
+          radio.addEventListener('change', togglePointSectionByRadio);
+        });
+
+        document.getElementById('btn-add-point').addEventListener('click', function() {
+          addPointInputRow('');
+          checkPointDuplicatesOnForm();
+        });
+
+        document.getElementById('new-point-list').addEventListener('click', function(ev) {
+          var btn = ev.target.closest('button[data-point-act]');
+          if (!btn) return;
+          var row = btn.closest('.point-row');
+          if (!row) return;
+          var act = btn.getAttribute('data-point-act');
+          if (act === 'del') {
+            row.remove();
+          } else if (act === 'up') {
+            var prev = row.previousElementSibling;
+            if (prev) row.parentNode.insertBefore(row, prev);
+          } else if (act === 'down') {
+            var next = row.nextElementSibling;
+            if (next) row.parentNode.insertBefore(next, row);
+          }
+          checkPointDuplicatesOnForm();
+        });
+
+        document.getElementById('new-point-list').addEventListener('input', function(ev) {
+          if (ev.target.classList.contains('point-name')) {
+            checkPointDuplicatesOnForm();
+          }
+        });
+
+        document.getElementById('new-order-form').addEventListener('submit', handleCreateOrderSubmit);
+        document.getElementById('btn-reset-new-order').addEventListener('click', resetNewOrderForm);
+
+        document.getElementById('new-order-message').addEventListener('click', function(ev) {
+          var btn = ev.target.closest('button[data-act="go-admin-create"]');
+          if (!btn) return;
+          var empId = btn.getAttribute('data-emp-id') || '';
+          openAdminEmployeeFormWithEmpId(empId);
+        });
+      }
+
+      function bindTodayListEvents() {
+        var ids = ['filter-search', 'filter-status', 'filter-date', 'filter-work-type', 'filter-need-iso'];
+        ids.forEach(function(id) {
+          document.getElementById(id).addEventListener('input', collectTodayFiltersAndRender);
+          document.getElementById(id).addEventListener('change', collectTodayFiltersAndRender);
+        });
+
+        document.getElementById('btn-reset-filters').addEventListener('click', function() {
+          runtime.todayFilters = {
+            search: '',
+            status: 'all',
+            date: formatDateKey(new Date()),
+            workType: 'all',
+            needIsolation: 'all'
+          };
+          syncTodayFilterInputs();
+          renderTodayList();
+        });
+
+        document.getElementById('btn-export-filtered-now').addEventListener('click', function() {
+          exportFilteredOrdersCsv();
+        });
+
+        document.getElementById('today-orders-body').addEventListener('click', function(ev) {
+          var btn = ev.target.closest('button[data-act]');
+          if (!btn) return;
+          var action = btn.getAttribute('data-act');
+          var orderId = btn.getAttribute('data-id');
+          if (!action || !orderId) return;
+          handleOrderAction(orderId, action);
+        });
+      }
+
+      function bindPendingConfirmEvents() {
+        document.getElementById('pending-confirm-body').addEventListener('click', function(ev) {
+          var btn = ev.target.closest('button[data-act]');
+          if (!btn) return;
+          var action = btn.getAttribute('data-act');
+          var orderId = btn.getAttribute('data-id');
+          if (action === 'confirm_done') {
+            openConfirmModal(orderId);
+          } else if (action === 'detail') {
+            openDetailModal(orderId);
+          }
+        });
+      }
+
+      function bindAdminEvents() {
+        document.getElementById('btn-import-employees').addEventListener('click', importEmployeeFile);
+
+        document.getElementById('btn-employee-add').addEventListener('click', saveEmployeeFromForm);
+        document.getElementById('btn-employee-save-edit').addEventListener('click', saveEmployeeFromForm);
+        document.getElementById('btn-employee-clear-form').addEventListener('click', resetEmployeeForm);
+        document.getElementById('btn-employee-cancel-edit').addEventListener('click', cancelEmployeeEdit);
+
+        document.getElementById('employee-search').addEventListener('input', function(ev) {
+          runtime.employeeSearch = String(ev.target.value || '').trim();
+          renderEmployeesTable();
+        });
+        document.getElementById('btn-clear-employee-search').addEventListener('click', function() {
+          runtime.employeeSearch = '';
+          document.getElementById('employee-search').value = '';
+          renderEmployeesTable();
+        });
+
+        document.getElementById('employee-table-body').addEventListener('click', function(ev) {
+          var btn = ev.target.closest('button[data-emp-act]');
+          if (!btn) return;
+          var act = btn.getAttribute('data-emp-act');
+          var empId = btn.getAttribute('data-emp-id');
+          if (!act || !empId) return;
+          if (act === 'edit') {
+            startEditEmployee(empId);
+          } else if (act === 'toggle-active') {
+            toggleEmployeeActive(empId);
+          }
+        });
+
+        document.getElementById('btn-export-backup').addEventListener('click', exportBackupJson);
+        document.getElementById('btn-import-backup').addEventListener('click', importBackupJson);
+        document.getElementById('btn-export-query-admin').addEventListener('click', exportFilteredOrdersCsv);
+
+        document.getElementById('btn-clear-demo').addEventListener('click', clearDemoData);
+        document.getElementById('btn-rebuild-demo').addEventListener('click', rebuildDemoData);
+        document.getElementById('btn-clear-all').addEventListener('click', clearAllData);
+      }
+
+      function bindModalEvents() {
+        document.getElementById('btn-close-detail').addEventListener('click', closeDetailModal);
+        document.getElementById('btn-close-confirm').addEventListener('click', closeConfirmModal);
+        document.getElementById('btn-cancel-confirm-done').addEventListener('click', closeConfirmModal);
+
+        document.getElementById('btn-confirm-scan').addEventListener('click', handleConfirmScan);
+        document.getElementById('confirm-scan-input').addEventListener('keydown', function(ev) {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            handleConfirmScan();
+          }
+        });
+
+        document.getElementById('btn-submit-confirm-done').addEventListener('click', submitDoneConfirm);
+
+        document.getElementById('detail-modal').addEventListener('click', function(ev) {
+          if (ev.target === document.getElementById('detail-modal')) {
+            closeDetailModal();
+          }
+        });
+
+        document.getElementById('confirm-modal').addEventListener('click', function(ev) {
+          if (ev.target === document.getElementById('confirm-modal')) {
+            closeConfirmModal();
+          }
+        });
+      }
+
+      function switchPage(pageId) {
+        runtime.currentPage = pageId;
+
+        document.querySelectorAll('.nav-btn').forEach(function(btn) {
+          btn.classList.toggle('active', btn.getAttribute('data-page') === pageId);
+        });
+
+        document.querySelectorAll('.page').forEach(function(page) {
+          page.classList.toggle('active', page.id === ('page-' + pageId));
+        });
+
+        if (pageId === 'pending-confirm') {
+          renderPendingConfirmList();
+        } else if (pageId === 'today-list') {
+          renderTodayList();
+        } else if (pageId === 'dashboard') {
+          renderDashboard();
+        } else if (pageId === 'admin') {
+          renderAdmin();
+        }
+      }
+
+      function restoreSettingsToUI() {
+        document.getElementById('management-mode-switch').checked = !!state.settings.management_mode;
+        document.getElementById('operator-emp-id').value = state.settings.current_operator_emp_id || '';
+        refreshOperatorChip();
+        syncTodayFilterInputs();
+      }
+
+      function syncTodayFilterInputs() {
+        document.getElementById('filter-search').value = runtime.todayFilters.search;
+        document.getElementById('filter-status').value = runtime.todayFilters.status;
+        document.getElementById('filter-date').value = runtime.todayFilters.date;
+        document.getElementById('filter-work-type').value = runtime.todayFilters.workType;
+        document.getElementById('filter-need-iso').value = runtime.todayFilters.needIsolation;
+      }
+
+      function applyCurrentOperator() {
+        var input = normalizeEmpId(document.getElementById('operator-emp-id').value);
+        if (!input) {
+          state.settings.current_operator_emp_id = '';
+          state.settings.current_operator_name = '辦公室值班';
+          saveState();
+          refreshOperatorChip();
+          showToast('info', '已切換為預設操作人：辦公室值班。');
+          return;
+        }
+
+        var emp = getEmployeeByEmpId(input);
+        if (!emp) {
+          showToast('error', '查無此工號，請先確認員工主檔。');
+          return;
+        }
+
+        state.settings.current_operator_emp_id = emp.emp_id;
+        state.settings.current_operator_name = emp.name;
+        saveState();
+        refreshOperatorChip();
+        showToast('success', '已套用操作人：' + emp.name + '（' + emp.emp_id + '）');
+      }
+
+      function refreshOperatorChip() {
+        var op = getCurrentOperator();
+        document.getElementById('operator-chip').textContent = '操作人：' + op.name + '（' + op.emp_id + '）';
+        document.getElementById('admin-management-mode').textContent = state.settings.management_mode ? '開啟' : '關閉';
+      }
+
+      function toggleManagementMode(next) {
+        if (next) {
+          var c1 = window.confirm('將進入管理模式，可執行代確認與高風險管理操作。是否繼續？');
+          if (!c1) {
+            document.getElementById('management-mode-switch').checked = false;
+            return;
+          }
+          var c2 = window.confirm('請再次確認：確定開啟管理模式？');
+          if (!c2) {
+            document.getElementById('management-mode-switch').checked = false;
+            return;
+          }
+          state.settings.management_mode = true;
+          showToast('warn', '管理模式已開啟。');
+        } else {
+          var ok = window.confirm('確定關閉管理模式？');
+          if (!ok) {
+            document.getElementById('management-mode-switch').checked = true;
+            return;
+          }
+          state.settings.management_mode = false;
+          showToast('info', '管理模式已關閉。');
+        }
+
+        saveState();
+        refreshOperatorChip();
+        renderAdmin();
+      }
+
+      function startClock() {
+        updateClock();
+        if (runtime.clockTimer) clearInterval(runtime.clockTimer);
+        runtime.clockTimer = setInterval(updateClock, 1000);
+      }
+
+      function updateClock() {
+        document.getElementById('clock-chip').textContent = '現在時間：' + formatDateTime(nowIso());
+      }
+
+      function refreshAll() {
+        renderDashboard();
+        renderTodayList();
+        renderPendingConfirmList();
+        renderAdmin();
+        renderPointHistoryDatalist();
+      }
+
+      function renderDashboard() {
+        var todayKey = formatDateKey(new Date());
+        var orders = state.work_orders.filter(function(order) {
+          return getDateKeyFromIso(order.created_at) === todayKey;
+        });
+
+        var counts = {
+          pending: 0,
+          active: 0,
+          end_reported: 0,
+          done: 0
+        };
+
+        orders.forEach(function(order) {
+          if (counts[order.status] !== undefined) {
+            counts[order.status] += 1;
+          }
+        });
+
+        var html = '' +
+          '<div class="stat pending"><div class="label">今日待開始</div><div class="value">' + counts.pending + '</div></div>' +
+          '<div class="stat active"><div class="label">今日進行中</div><div class="value">' + counts.active + '</div></div>' +
+          '<div class="stat end_reported"><div class="label">今日待本人確認</div><div class="value">' + counts.end_reported + '</div></div>' +
+          '<div class="stat done"><div class="label">今日已完成</div><div class="value">' + counts.done + '</div></div>';
+
+        document.getElementById('dashboard-stats').innerHTML = html;
+        renderDashboardRecent();
+      }
+
+      function renderDashboardRecent() {
+        var tbody = document.getElementById('dashboard-recent-body');
+        var query = String(runtime.dashboardSearch || '').trim().toLowerCase();
+        var orders = state.work_orders.slice().sort(function(a, b) {
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+
+        if (query) {
+          orders = orders.filter(function(order) {
+            return orderMatchesSearch(order, query);
+          });
+        }
+
+        orders = orders.slice(0, 12);
+
+        if (!orders.length) {
+          tbody.innerHTML = '<tr><td colspan="9" class="empty">查無符合紀錄</td></tr>';
+          return;
+        }
+
+        var rows = orders.map(function(order) {
+          var itemsText = getOrderItems(order.id).map(function(item) {
+            return item.item_name + ' x' + item.quantity + (item.unit ? item.unit : '');
+          }).join('；');
+
+          return '<tr>' +
+            '<td>' + getStatusBadge(order.status) + '</td>' +
+            '<td>' + escapeHtml(order.order_no) + '</td>' +
+            '<td>' + escapeHtml((order.machine_name || '-') + ' / ' + (order.panel_name || '-')) + '</td>' +
+            '<td>' + escapeHtml(order.applicant_name) + '</td>' +
+            '<td>' + escapeHtml(getWorkTypeLabel(order.work_type)) + '</td>' +
+            '<td>' + escapeHtml(itemsText || '-') + '</td>' +
+            '<td>' + (order.need_isolation_points ? '是' : '否') + '</td>' +
+            '<td>' + formatDateTime(order.created_at) + '</td>' +
+            '<td><button class="btn small ghost" data-act="detail" data-id="' + order.id + '">查看詳情</button></td>' +
+          '</tr>';
+        }).join('');
+
+        tbody.innerHTML = rows;
+
+        tbody.querySelectorAll('button[data-act="detail"]').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            openDetailModal(btn.getAttribute('data-id'));
+          });
+        });
+      }
+
+      function collectTodayFiltersAndRender() {
+        runtime.todayFilters.search = String(document.getElementById('filter-search').value || '').trim();
+        runtime.todayFilters.status = document.getElementById('filter-status').value;
+        runtime.todayFilters.date = document.getElementById('filter-date').value;
+        runtime.todayFilters.workType = document.getElementById('filter-work-type').value;
+        runtime.todayFilters.needIsolation = document.getElementById('filter-need-iso').value;
+        renderTodayList();
+      }
+
+      function getFilteredOrdersFromTodayPage() {
+        var search = String(runtime.todayFilters.search || '').trim().toLowerCase();
+        var status = runtime.todayFilters.status;
+        var date = runtime.todayFilters.date;
+        var workType = runtime.todayFilters.workType;
+        var needIso = runtime.todayFilters.needIsolation;
+
+        var filtered = state.work_orders.filter(function(order) {
+          if (date && getDateKeyFromIso(order.created_at) !== date) return false;
+          if (status !== 'all' && order.status !== status) return false;
+          if (workType !== 'all' && order.work_type !== workType) return false;
+          if (needIso === 'yes' && !order.need_isolation_points) return false;
+          if (needIso === 'no' && order.need_isolation_points) return false;
+          if (search && !orderMatchesSearch(order, search)) return false;
+          return true;
+        });
+
+        filtered.sort(function(a, b) {
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+
+        return filtered;
+      }
+
+      function renderTodayList() {
+        var tbody = document.getElementById('today-orders-body');
+        var orders = getFilteredOrdersFromTodayPage();
+
+        if (!orders.length) {
+          tbody.innerHTML = '<tr><td colspan="15" class="empty">沒有符合條件的工單</td></tr>';
+          return;
+        }
+
+        var html = orders.map(function(order) {
+          var items = getOrderItems(order.id);
+          var itemSummary = items.map(function(item) {
+            return item.item_name + ' x' + item.quantity + (item.unit ? item.unit : '');
+          }).join('；');
+          var points = getOrderPoints(order.id);
+
+          return '<tr>' +
+            '<td>' + getStatusBadge(order.status) + '</td>' +
+            '<td>' + escapeHtml(order.machine_name || '-') + '</td>' +
+            '<td>' + escapeHtml(order.panel_name || '-') + '</td>' +
+            '<td>' + escapeHtml(order.applicant_name || '-') + '</td>' +
+            '<td>' + escapeHtml(order.applicant_emp_id || '-') + '</td>' +
+            '<td>' + escapeHtml(order.applicant_phone || '-') + '</td>' +
+            '<td>' + escapeHtml(getWorkTypeLabel(order.work_type)) + '</td>' +
+            '<td>' + escapeHtml(itemSummary || '-') + '</td>' +
+            '<td>' + (order.need_isolation_points ? '是' : '否') + '</td>' +
+            '<td>' + points.length + '</td>' +
+            '<td>' + formatDateTime(order.created_at) + '</td>' +
+            '<td>' + formatDateTime(order.started_at) + '</td>' +
+            '<td>' + formatDateTime(order.ended_reported_at) + '</td>' +
+            '<td>' + formatDateTime(order.confirmed_done_at) + '</td>' +
+            '<td>' + renderOrderActionButtons(order) + '</td>' +
+          '</tr>';
+        }).join('');
+
+        tbody.innerHTML = html;
+      }
+
+      function renderOrderActionButtons(order) {
+        var html = '<div class="row-actions">';
+
+        if (order.status === 'pending') {
+          html += '<button class="btn small primary" data-act="start" data-id="' + order.id + '">開始</button>';
+          html += '<button class="btn small danger" data-act="cancel" data-id="' + order.id + '">取消</button>';
+        } else if (order.status === 'active') {
+          html += '<button class="btn small warning" data-act="end_report" data-id="' + order.id + '">已電話通知結束</button>';
+          html += '<button class="btn small danger" data-act="cancel" data-id="' + order.id + '">取消</button>';
+        } else if (order.status === 'end_reported') {
+          html += '<button class="btn small success" data-act="confirm_done" data-id="' + order.id + '">本人確認結束</button>';
+          html += '<button class="btn small danger" data-act="cancel" data-id="' + order.id + '">取消</button>';
+        }
+
+        html += '<button class="btn small ghost" data-act="detail" data-id="' + order.id + '">查看詳情</button>';
+        html += '</div>';
+        return html;
+      }
+
+      function renderPendingConfirmList() {
+        var tbody = document.getElementById('pending-confirm-body');
+        var rows = state.work_orders
+          .filter(function(order) { return order.status === 'end_reported'; })
+          .sort(function(a, b) {
+            return new Date(a.ended_reported_at).getTime() - new Date(b.ended_reported_at).getTime();
+          });
+
+        if (!rows.length) {
+          tbody.innerHTML = '<tr><td colspan="8" class="empty">目前沒有待本人確認的工單</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = rows.map(function(order) {
+          return '<tr>' +
+            '<td>' + escapeHtml(order.machine_name || '-') + '</td>' +
+            '<td>' + escapeHtml(order.panel_name || '-') + '</td>' +
+            '<td>' + escapeHtml(order.applicant_name || '-') + '</td>' +
+            '<td>' + escapeHtml(order.applicant_emp_id || '-') + '</td>' +
+            '<td>' + escapeHtml(order.applicant_phone || '-') + '</td>' +
+            '<td>' + formatDateTime(order.ended_reported_at) + '</td>' +
+            '<td>' + escapeHtml(calcWaitDuration(order.ended_reported_at)) + '</td>' +
+            '<td>' +
+              '<div class="row-actions">' +
+                '<button class="btn small success" data-act="confirm_done" data-id="' + order.id + '">刷卡確認</button>' +
+                '<button class="btn small ghost" data-act="detail" data-id="' + order.id + '">查看詳情</button>' +
+              '</div>' +
+            '</td>' +
+          '</tr>';
+        }).join('');
+      }
+
+      function calcWaitDuration(iso) {
+        if (!iso) return '-';
+        var start = new Date(iso).getTime();
+        if (isNaN(start)) return '-';
+        var diff = Date.now() - start;
+        if (diff < 0) diff = 0;
+        var totalMin = Math.floor(diff / 60000);
+        var days = Math.floor(totalMin / 1440);
+        var hours = Math.floor((totalMin % 1440) / 60);
+        var mins = totalMin % 60;
+        if (days > 0) return days + '天 ' + hours + '小時 ' + mins + '分';
+        if (hours > 0) return hours + '小時 ' + mins + '分';
+        return mins + '分';
+      }
+
+      function renderAdmin() {
+        document.getElementById('admin-management-mode').textContent = state.settings.management_mode ? '開啟' : '關閉';
+        document.getElementById('admin-employee-count').textContent = state.employees.length;
+        document.getElementById('admin-order-count').textContent = state.work_orders.length;
+        renderEmployeeForm();
+        renderEmployeesTable();
+        renderPointHistoryTable();
+      }
+
+      function renderEmployeeForm() {
+        var mode = runtime.employeeForm.mode;
+        var editingEmpId = runtime.employeeForm.editingEmpId;
+        var modeLabel = document.getElementById('employee-form-mode-label');
+        var addBtn = document.getElementById('btn-employee-add');
+        var saveBtn = document.getElementById('btn-employee-save-edit');
+        var cancelBtn = document.getElementById('btn-employee-cancel-edit');
+        var empIdInput = document.getElementById('employee-form-emp-id');
+
+        if (mode === 'edit' && editingEmpId) {
+          modeLabel.textContent = '目前模式：編輯（工號 ' + editingEmpId + '）';
+          addBtn.classList.add('hidden');
+          saveBtn.classList.remove('hidden');
+          cancelBtn.classList.remove('hidden');
+          empIdInput.readOnly = true;
+        } else {
+          modeLabel.textContent = '目前模式：新增';
+          addBtn.classList.remove('hidden');
+          saveBtn.classList.add('hidden');
+          cancelBtn.classList.add('hidden');
+          empIdInput.readOnly = false;
+        }
+      }
+
+      function setEmployeeFormMessage(kind, message) {
+        var box = document.getElementById('employee-form-message');
+        if (!box) return;
+        var cls = 'info-inline';
+        if (kind === 'error') cls = 'error-box';
+        if (kind === 'success') cls = 'ok-box';
+        if (kind === 'warn') cls = 'warn-box';
+        box.className = cls;
+        box.textContent = message;
+      }
+
+      function resetEmployeeForm(prefillEmpId) {
+        runtime.employeeForm.mode = 'create';
+        runtime.employeeForm.editingEmpId = '';
+        runtime.employeeForm.hintEmpId = normalizeEmpId(prefillEmpId || '');
+
+        document.getElementById('employee-form-emp-id').value = runtime.employeeForm.hintEmpId || '';
+        document.getElementById('employee-form-name').value = '';
+        document.getElementById('employee-form-dept').value = '';
+        document.getElementById('employee-form-phone').value = '';
+        document.getElementById('employee-form-ext').value = '';
+        document.getElementById('employee-form-active').value = 'true';
+        document.getElementById('employee-form-source').value = 'manual';
+        document.getElementById('employee-form-created-at').value = '-';
+        document.getElementById('employee-form-updated-at').value = '-';
+        setEmployeeFormMessage('info', '請填寫員工資料後按「新增員工」。');
+        renderEmployeeForm();
+      }
+
+      function cancelEmployeeEdit() {
+        resetEmployeeForm(runtime.employeeForm.hintEmpId || '');
+      }
+
+      function startEditEmployee(empId) {
+        var emp = getEmployeeByEmpId(empId);
+        if (!emp) {
+          showToast('error', '找不到員工資料。');
+          return;
+        }
+        runtime.employeeForm.mode = 'edit';
+        runtime.employeeForm.editingEmpId = emp.emp_id;
+
+        document.getElementById('employee-form-emp-id').value = emp.emp_id;
+        document.getElementById('employee-form-name').value = emp.name || '';
+        document.getElementById('employee-form-dept').value = emp.dept || '';
+        document.getElementById('employee-form-phone').value = emp.phone || '';
+        document.getElementById('employee-form-ext').value = emp.ext || '';
+        document.getElementById('employee-form-active').value = emp.active === false ? 'false' : 'true';
+        document.getElementById('employee-form-source').value = emp.source || '-';
+        document.getElementById('employee-form-created-at').value = formatDateTime(emp.created_at);
+        document.getElementById('employee-form-updated-at').value = formatDateTime(emp.updated_at);
+        setEmployeeFormMessage('info', '編輯模式：修改後請按「儲存修改」。');
+        renderEmployeeForm();
+        switchPage('admin');
+        document.getElementById('employee-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      function saveEmployeeFromForm() {
+        var mode = runtime.employeeForm.mode;
+        var editingEmpId = runtime.employeeForm.editingEmpId;
+
+        var record = normalizeEmployeeRecordInput({
+          emp_id: document.getElementById('employee-form-emp-id').value,
+          name: document.getElementById('employee-form-name').value,
+          dept: document.getElementById('employee-form-dept').value,
+          phone: document.getElementById('employee-form-phone').value,
+          ext: document.getElementById('employee-form-ext').value,
+          active: document.getElementById('employee-form-active').value
+        });
+
+        if (!record.emp_id || !record.name || !record.dept || !record.phone) {
+          setEmployeeFormMessage('error', '工號、姓名、部門、電話為必填。');
+          return;
+        }
+
+        if (mode === 'create') {
+          var exists = getEmployeeByEmpId(record.emp_id);
+          if (exists) {
+            setEmployeeFormMessage('error', '工號重複，請改用其他工號或改成編輯模式。');
+            return;
+          }
+
+          var now = nowIso();
+          state.employees.push({
+            emp_id: record.emp_id,
+            name: record.name,
+            dept: record.dept,
+            phone: record.phone,
+            ext: record.ext,
+            active: record.active,
+            imported_at: '',
+            created_at: now,
+            updated_at: now,
+            source: 'manual',
+            is_demo: false
+          });
+
+          saveState();
+          setEmployeeFormMessage('success', '新增完成：' + record.name + '（' + record.emp_id + '）。可回新增申請頁重新查詢。');
+          showToast('success', '員工新增成功。');
+          resetEmployeeForm('');
+          refreshAll();
+          return;
+        }
+
+        var target = getEmployeeByEmpId(editingEmpId);
+        if (!target) {
+          setEmployeeFormMessage('error', '找不到要編輯的員工。');
+          return;
+        }
+
+        target.name = record.name;
+        target.dept = record.dept;
+        target.phone = record.phone;
+        target.ext = record.ext;
+        target.active = record.active;
+        target.updated_at = nowIso();
+        target.is_demo = false;
+
+        saveState();
+        setEmployeeFormMessage('success', '員工資料已更新。');
+        showToast('success', '員工修改成功。');
+        resetEmployeeForm(runtime.employeeForm.hintEmpId || '');
+        refreshAll();
+      }
+
+      function toggleEmployeeActive(empId) {
+        var emp = getEmployeeByEmpId(empId);
+        if (!emp) {
+          showToast('error', '找不到員工資料。');
+          return;
+        }
+
+        var nextActive = !emp.active;
+        var msg = nextActive ? '確定將此員工設為在職？' : '確定將此員工設為離職？';
+        if (!window.confirm(msg)) return;
+
+        emp.active = nextActive;
+        emp.updated_at = nowIso();
+        emp.is_demo = false;
+
+        saveState();
+        renderEmployeesTable();
+        if (runtime.employeeForm.mode === 'edit' && runtime.employeeForm.editingEmpId === emp.emp_id) {
+          startEditEmployee(emp.emp_id);
+        }
+        showToast('success', nextActive ? '已設為在職。' : '已設為離職。');
+      }
+
+      function openAdminEmployeeFormWithEmpId(empId) {
+        switchPage('admin');
+        resetEmployeeForm(empId);
+        renderEmployeeForm();
+        var card = document.getElementById('employee-form-card');
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.getElementById('employee-form-emp-id').focus();
+      }
+
+      function renderEmployeesTable() {
+        var tbody = document.getElementById('employee-table-body');
+        var query = String(runtime.employeeSearch || '').trim().toLowerCase();
+
+        var rows = state.employees.slice().sort(function(a, b) {
+          return String(a.emp_id).localeCompare(String(b.emp_id));
+        }).filter(function(emp) {
+          if (!query) return true;
+          var text = [emp.emp_id, emp.name, emp.dept, emp.phone, emp.ext, emp.source].join(' ').toLowerCase();
+          return text.indexOf(query) >= 0;
+        });
+
+        if (!rows.length) {
+          tbody.innerHTML = '<tr><td colspan="11" class="empty">查無員工資料</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = rows.map(function(emp) {
+          var activeText = emp.active === false ? '離職' : '在職';
+          var toggleLabel = emp.active === false ? '設為在職' : '設為離職';
+          return '<tr>' +
+            '<td>' + escapeHtml(emp.emp_id || '-') + '</td>' +
+            '<td>' + escapeHtml(emp.name || '-') + '</td>' +
+            '<td>' + escapeHtml(emp.dept || '-') + '</td>' +
+            '<td>' + escapeHtml(emp.phone || '-') + '</td>' +
+            '<td>' + escapeHtml(emp.ext || '-') + '</td>' +
+            '<td>' + activeText + '</td>' +
+            '<td>' + escapeHtml(emp.source || '-') + '</td>' +
+            '<td>' + formatDateTime(emp.created_at) + '</td>' +
+            '<td>' + formatDateTime(emp.updated_at) + '</td>' +
+            '<td>' + formatDateTime(emp.imported_at) + '</td>' +
+            '<td>' +
+              '<div class="row-actions">' +
+                '<button class="btn small ghost" data-emp-act="edit" data-emp-id="' + escapeHtml(emp.emp_id) + '">編輯</button>' +
+                '<button class="btn small warning" data-emp-act="toggle-active" data-emp-id="' + escapeHtml(emp.emp_id) + '">' + toggleLabel + '</button>' +
+              '</div>' +
+            '</td>' +
+          '</tr>';
+        }).join('');
+      }
+
+      function renderPointHistoryDatalist() {
+
+        var datalist = document.getElementById('point-history-list');
+        var rows = state.point_history_dictionary.slice().sort(function(a, b) {
+          return Number(b.use_count || 0) - Number(a.use_count || 0);
+        }).slice(0, 150);
+
+        datalist.innerHTML = rows.map(function(row) {
+          return '<option value="' + escapeHtml(row.point_name) + '"></option>';
+        }).join('');
+      }
+
+      function renderPointHistoryTable() {
+        var tbody = document.getElementById('point-history-body');
+        var rows = state.point_history_dictionary.slice().sort(function(a, b) {
+          var countDiff = Number(b.use_count || 0) - Number(a.use_count || 0);
+          if (countDiff !== 0) return countDiff;
+          return String(a.point_name).localeCompare(String(b.point_name));
+        });
+
+        if (!rows.length) {
+          tbody.innerHTML = '<tr><td colspan="3" class="empty">目前沒有點位歷史資料</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = rows.map(function(row) {
+          return '<tr>' +
+            '<td>' + escapeHtml(row.point_name || '-') + '</td>' +
+            '<td>' + Number(row.use_count || 0) + '</td>' +
+            '<td>' + formatDateTime(row.last_used_at) + '</td>' +
+          '</tr>';
+        }).join('');
+      }
+
+      function resetNewOrderForm() {
+        document.getElementById('new-order-form').reset();
+        document.getElementById('applicant-emp-id').value = '';
+        document.getElementById('applicant-name').value = '';
+        document.getElementById('applicant-dept').value = '';
+        document.getElementById('applicant-phone').value = '';
+        document.getElementById('work-type').value = '';
+        document.getElementById('new-order-message').innerHTML = '';
+
+        var body = document.getElementById('new-items-body');
+        body.innerHTML = '';
+        addNewItemRow();
+
+        var pointList = document.getElementById('new-point-list');
+        pointList.innerHTML = '';
+        addPointInputRow('');
+
+        document.querySelector('input[name="need-isolation"][value="no"]').checked = true;
+        togglePointSectionByRadio();
+
+        document.getElementById('applicant-card-input').focus();
+      }
+
+      function lookupApplicantFromInput() {
+        var value = normalizeEmpId(document.getElementById('applicant-card-input').value);
+        if (!value) {
+          showFormMessage('error', '請輸入刷卡值或工號。');
+          return;
+        }
+        var emp = getEmployeeByEmpId(value);
+        if (!emp) {
+          document.getElementById('new-order-message').innerHTML =
+            '<div class="error-box">' +
+              '查無此員工主檔。可前往管理區手動補建檔。' +
+              '<div style="margin-top:8px;">' +
+                '<button class="btn small warning" type="button" data-act="go-admin-create" data-emp-id="' + escapeHtml(value) + '">帶入此工號到管理區新增員工</button>' +
+              '</div>' +
+            '</div>';
+          document.getElementById('applicant-emp-id').value = '';
+          document.getElementById('applicant-name').value = '';
+          document.getElementById('applicant-dept').value = '';
+          document.getElementById('applicant-phone').value = '';
+          return;
+        }
+
+        document.getElementById('applicant-emp-id').value = emp.emp_id;
+        document.getElementById('applicant-name').value = emp.name;
+        document.getElementById('applicant-dept').value = emp.dept || '';
+        document.getElementById('applicant-phone').value = emp.phone || '';
+        showFormMessage('success', '已帶入申請人資料：' + emp.name + '（' + emp.emp_id + '）');
+      }
+
+      function showFormMessage(type, msg) {
+        var boxId = 'new-order-message';
+        var cls = type === 'error' ? 'error-box' : (type === 'success' ? 'ok-box' : 'warn-box');
+        document.getElementById(boxId).innerHTML = '<div class="' + cls + '">' + escapeHtml(msg) + '</div>';
+      }
+
+      function addNewItemRow(data) {
+        var tr = document.createElement('tr');
+        tr.className = 'item-row';
+
+        var itemType = (data && data.item_type) ? data.item_type : 'gas';
+        var itemName = (data && data.item_name) ? data.item_name : '';
+        var qty = (data && data.quantity !== undefined) ? data.quantity : '';
+        var unit = (data && data.unit) ? data.unit : '';
+
+        tr.innerHTML = '' +
+          '<td class="item-index"></td>' +
+          '<td>' +
+            '<select class="item-type">' +
+              '<option value="gas"' + (itemType === 'gas' ? ' selected' : '') + '>gas</option>' +
+              '<option value="chemical"' + (itemType === 'chemical' ? ' selected' : '') + '>chemical</option>' +
+            '</select>' +
+          '</td>' +
+          '<td><select class="item-common"></select></td>' +
+          '<td><input type="text" class="item-name" placeholder="品項名稱" value="' + escapeHtml(itemName) + '"></td>' +
+          '<td><input type="number" class="item-qty" min="0" step="0.01" placeholder="數量" value="' + escapeHtml(qty) + '"></td>' +
+          '<td><input type="text" class="item-unit" placeholder="單位" value="' + escapeHtml(unit) + '"></td>' +
+          '<td>' +
+            '<div class="row-actions">' +
+              '<button type="button" class="btn small ghost" data-item-act="up">上移</button>' +
+              '<button type="button" class="btn small ghost" data-item-act="down">下移</button>' +
+              '<button type="button" class="btn small danger" data-item-act="del">刪除</button>' +
+            '</div>' +
+          '</td>';
+
+        document.getElementById('new-items-body').appendChild(tr);
+        fillCommonOptions(tr.querySelector('.item-common'), itemType);
+        normalizeItemRowIndexes();
+      }
+
+      function normalizeItemRowIndexes() {
+        document.querySelectorAll('#new-items-body tr').forEach(function(tr, idx) {
+          var cell = tr.querySelector('.item-index');
+          if (cell) {
+            cell.textContent = String(idx + 1);
+          }
+        });
+      }
+
+      function fillCommonOptions(selectEl, type) {
+        var options = COMMON_OPTIONS[type] || [];
+        var html = '<option value="">請選擇</option>';
+        options.forEach(function(name) {
+          html += '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
+        });
+        selectEl.innerHTML = html;
+      }
+
+      function togglePointSectionByRadio() {
+        var needIso = getNeedIsolationFromForm();
+        var section = document.getElementById('point-section');
+        section.classList.toggle('hidden', !needIso);
+        if (needIso && !document.querySelector('#new-point-list .point-row')) {
+          addPointInputRow('');
+        }
+        checkPointDuplicatesOnForm();
+      }
+
+      function getNeedIsolationFromForm() {
+        var selected = document.querySelector('input[name="need-isolation"]:checked');
+        return selected ? selected.value === 'yes' : false;
+      }
+
+      function addPointInputRow(value) {
+        var row = document.createElement('div');
+        row.className = 'point-row';
+        row.innerHTML = '' +
+          '<input type="text" class="point-name" list="point-history-list" placeholder="輸入隔離點位，例如 GD-CVD-017" value="' + escapeHtml(value || '') + '">' +
+          '<button type="button" class="btn small ghost" data-point-act="up">上移</button>' +
+          '<button type="button" class="btn small ghost" data-point-act="down">下移</button>' +
+          '<button type="button" class="btn small danger" data-point-act="del">刪除</button>';
+        document.getElementById('new-point-list').appendChild(row);
+      }
+
+      function getPointValuesFromForm() {
+        return Array.from(document.querySelectorAll('#new-point-list .point-name')).map(function(input) {
+          return String(input.value || '').trim();
+        }).filter(function(v) { return !!v; });
+      }
+
+      function getDuplicateValues(values) {
+        var seen = {};
+        var duplicates = [];
+        values.forEach(function(v) {
+          if (!seen[v]) {
+            seen[v] = 1;
+          } else {
+            seen[v] += 1;
+            if (seen[v] === 2) duplicates.push(v);
+          }
+        });
+        return duplicates;
+      }
+
+      function checkPointDuplicatesOnForm() {
+        var wrap = document.getElementById('point-duplicate-warning');
+        var needIso = getNeedIsolationFromForm();
+        if (!needIso) {
+          wrap.innerHTML = '';
+          return;
+        }
+        var points = getPointValuesFromForm();
+        var duplicates = getDuplicateValues(points);
+        if (!duplicates.length) {
+          wrap.innerHTML = '';
+          return;
+        }
+        wrap.innerHTML = '<div class="warn-box">提醒：同一張單內有重複點位：' + escapeHtml(duplicates.join('、')) + '。可送出，但建議再確認。</div>';
+      }
+
+      function collectItemsFromForm() {
+        var rows = Array.from(document.querySelectorAll('#new-items-body tr'));
+        var items = [];
+
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+          var type = String(row.querySelector('.item-type').value || '').trim();
+          var name = String(row.querySelector('.item-name').value || '').trim();
+          var qtyRaw = String(row.querySelector('.item-qty').value || '').trim();
+          var unit = String(row.querySelector('.item-unit').value || '').trim();
+
+          var isFullyBlank = !name && !qtyRaw && !unit;
+          if (isFullyBlank) continue;
+
+          var qty = Number(qtyRaw);
+          items.push({
+            item_type: type,
+            item_name: name,
+            quantity: qty,
+            unit: unit,
+            sort_order: items.length + 1,
+            rowIndex: i + 1
+          });
+        }
+
+        return items;
+      }
+
+      function validateNewOrderForm(data) {
+        if (!data.applicant_emp_id) return '申請人未指定，請先刷卡或輸入工號。';
+        if (!data.applicant_phone) return '電話為必填。';
+        if (!data.machine_name && !data.panel_name) return '機台名稱或盤面名稱至少需填一個。';
+        if (!data.work_type) return '請選擇作業類型。';
+        if (!data.items.length) return '至少需要一筆作業項目。';
+
+        for (var i = 0; i < data.items.length; i++) {
+          var item = data.items[i];
+          if (!item.item_name) return '第 ' + item.rowIndex + ' 筆作業項目名稱不可空白。';
+          if (!(item.quantity > 0)) return '第 ' + item.rowIndex + ' 筆作業項目數量必須大於 0。';
+        }
+
+        if (data.need_isolation_points && !data.points.length) {
+          return '已選擇需要隔離點位，請至少填一筆點位。';
+        }
+
+        return '';
+      }
+
+      function handleCreateOrderSubmit(ev) {
+        ev.preventDefault();
+
+        var applicantEmpId = normalizeEmpId(document.getElementById('applicant-emp-id').value);
+        var emp = getEmployeeByEmpId(applicantEmpId);
+        if (!emp) {
+          showFormMessage('error', '申請人工號不在員工主檔，請重新刷卡。');
+          return;
+        }
+
+        var data = {
+          applicant_emp_id: applicantEmpId,
+          applicant_name: String(document.getElementById('applicant-name').value || '').trim(),
+          applicant_dept: String(document.getElementById('applicant-dept').value || '').trim(),
+          applicant_phone: String(document.getElementById('applicant-phone').value || '').trim(),
+          machine_name: String(document.getElementById('machine-name').value || '').trim(),
+          panel_name: String(document.getElementById('panel-name').value || '').trim(),
+          work_type: String(document.getElementById('work-type').value || '').trim(),
+          need_isolation_points: getNeedIsolationFromForm(),
+          note: String(document.getElementById('order-note').value || '').trim(),
+          items: collectItemsFromForm(),
+          points: getPointValuesFromForm()
+        };
+
+        var error = validateNewOrderForm(data);
+        if (error) {
+          showFormMessage('error', error);
+          return;
+        }
+
+        var duplicates = getDuplicateValues(data.points);
+        if (data.need_isolation_points && duplicates.length) {
+          var goOn = window.confirm('此工單含重複點位：' + duplicates.join('、') + '。是否仍要送出？');
+          if (!goOn) return;
+        }
+
+        var operator = getCurrentOperator();
+        var now = nowIso();
+
+        var order = {
+          id: uid('wo'),
+          order_no: generateOrderNo(),
+          status: 'pending',
+          applicant_emp_id: data.applicant_emp_id,
+          applicant_name: data.applicant_name || emp.name,
+          applicant_dept: data.applicant_dept || emp.dept || '',
+          applicant_phone: data.applicant_phone,
+          machine_name: data.machine_name,
+          panel_name: data.panel_name,
+          work_type: data.work_type,
+          need_isolation_points: data.need_isolation_points,
+          note: data.note,
+          created_at: now,
+          started_at: null,
+          ended_reported_at: null,
+          confirmed_done_at: null,
+          created_by: operator.emp_id,
+          started_by: '',
+          ended_reported_by: '',
+          confirmed_done_by: '',
+          proxy_confirm_reason: '',
+          is_demo: false
+        };
+
+        state.work_orders.push(order);
+
+        data.items.forEach(function(item, index) {
+          state.work_order_items.push({
+            id: uid('item'),
+            work_order_id: order.id,
+            item_type: item.item_type,
+            item_name: item.item_name,
+            quantity: item.quantity,
+            unit: item.unit,
+            sort_order: index + 1,
+            is_demo: false
+          });
+        });
+
+        if (data.need_isolation_points) {
+          data.points.forEach(function(pointName, index) {
+            state.work_order_detector_points.push({
+              id: uid('point'),
+              work_order_id: order.id,
+              point_name: pointName,
+              sort_order: index + 1,
+              is_demo: false
+            });
+          });
+          updatePointDictionary(data.points, now, false);
+        }
+
+        addActivityLog(order.id, 'create', operator.emp_id, operator.name, '建立工單。', false);
+
+        saveState();
+        showFormMessage('success', '建單完成，狀態為「待開始」。單號：' + order.order_no);
+        showToast('success', '工單建立成功：' + order.order_no);
+
+        resetNewOrderForm();
+        renderPointHistoryDatalist();
+        refreshAll();
+        switchPage('today-list');
+      }
+
+      function handleOrderAction(orderId, action) {
+        var order = getOrderById(orderId);
+        if (!order) {
+          showToast('error', '找不到工單資料。');
+          return;
+        }
+
+        if (action === 'detail') {
+          openDetailModal(orderId);
+          return;
+        }
+
+        if (action === 'start') {
+          if (order.status !== 'pending') {
+            showToast('error', '狀態不符，只有待開始工單可執行開始。');
+            return;
+          }
+          if (!window.confirm('確認將工單狀態改為「進行中」？')) return;
+          var op1 = getCurrentOperator();
+          order.status = 'active';
+          order.started_at = nowIso();
+          order.started_by = op1.emp_id;
+          addActivityLog(order.id, 'start', op1.emp_id, op1.name, '接獲電話通知開始作業。', false);
+          saveState();
+          showToast('success', '已記錄開始時間。');
+          refreshAll();
+          return;
+        }
+
+        if (action === 'end_report') {
+          if (order.status !== 'active') {
+            showToast('error', '狀態不符，只有進行中工單可執行電話通知結束。');
+            return;
+          }
+          if (!window.confirm('確認記錄「已電話通知結束」？')) return;
+          var op2 = getCurrentOperator();
+          order.status = 'end_reported';
+          order.ended_reported_at = nowIso();
+          order.ended_reported_by = op2.emp_id;
+          addActivityLog(order.id, 'end_report', op2.emp_id, op2.name, '已電話通知結束。', false);
+          saveState();
+          showToast('success', '已記錄電話通知結束時間。');
+          refreshAll();
+          return;
+        }
+
+        if (action === 'confirm_done') {
+          if (order.status !== 'end_reported') {
+            showToast('error', '狀態不符，只有待本人確認工單可執行確認結束。');
+            return;
+          }
+          openConfirmModal(orderId);
+          return;
+        }
+
+        if (action === 'cancel') {
+          if (!['pending', 'active', 'end_reported'].includes(order.status)) {
+            showToast('error', '此狀態不可取消。');
+            return;
+          }
+          var c1 = window.confirm('確定取消此工單？');
+          if (!c1) return;
+          var reason = window.prompt('請輸入取消原因（可空白）', '') || '';
+          var op3 = getCurrentOperator();
+          order.status = 'cancelled';
+          addActivityLog(order.id, 'cancel', op3.emp_id, op3.name, reason || '取消工單。', false);
+          saveState();
+          showToast('warn', '工單已取消。');
+          refreshAll();
+        }
+      }
+
+      function openConfirmModal(orderId) {
+        var order = getOrderById(orderId);
+        if (!order) return;
+        runtime.confirmContext.orderId = orderId;
+        runtime.confirmContext.scannedEmployee = null;
+
+        var infoHtml = '' +
+          '<div><b>單號：</b>' + escapeHtml(order.order_no) + '</div>' +
+          '<div><b>機台 / 盤面：</b>' + escapeHtml((order.machine_name || '-') + ' / ' + (order.panel_name || '-')) + '</div>' +
+          '<div><b>原申請人：</b>' + escapeHtml(order.applicant_name) + '（' + escapeHtml(order.applicant_emp_id) + '）</div>' +
+          '<div><b>電話：</b>' + escapeHtml(order.applicant_phone || '-') + '</div>' +
+          '<div><b>電話通知結束時間：</b>' + formatDateTime(order.ended_reported_at) + '</div>' +
+          '<div><b>管理模式：</b>' + (state.settings.management_mode ? '開啟' : '關閉') + '</div>';
+
+        document.getElementById('confirm-order-info').innerHTML = infoHtml;
+        document.getElementById('confirm-scan-input').value = '';
+        document.getElementById('confirm-scan-result').innerHTML = '<div class="hint">請刷卡或輸入工號後按 Enter。</div>';
+        document.getElementById('proxy-reason-wrap').classList.add('hidden');
+        document.getElementById('proxy-reason').value = '';
+
+        document.getElementById('confirm-modal').classList.add('active');
+        document.getElementById('confirm-scan-input').focus();
+      }
+
+      function closeConfirmModal() {
+        document.getElementById('confirm-modal').classList.remove('active');
+        runtime.confirmContext.orderId = '';
+        runtime.confirmContext.scannedEmployee = null;
+      }
+
+      function handleConfirmScan() {
+        var order = getOrderById(runtime.confirmContext.orderId);
+        if (!order) {
+          showToast('error', '確認對象工單不存在。');
+          return;
+        }
+        var input = normalizeEmpId(document.getElementById('confirm-scan-input').value);
+        if (!input) {
+          showToast('error', '請輸入刷卡工號。');
+          return;
+        }
+
+        var emp = getEmployeeByEmpId(input);
+        if (!emp) {
+          runtime.confirmContext.scannedEmployee = null;
+          document.getElementById('confirm-scan-result').innerHTML = '<div class="error-box">查無此員工工號，無法確認。</div>';
+          document.getElementById('proxy-reason-wrap').classList.add('hidden');
+          return;
+        }
+
+        runtime.confirmContext.scannedEmployee = emp;
+
+        var isApplicant = emp.emp_id === order.applicant_emp_id;
+        var html = '' +
+          '<div class="kv">' +
+            '<div><b>目前刷卡工號 / 姓名：</b>' + escapeHtml(emp.emp_id + ' / ' + emp.name) + '</div>' +
+            '<div><b>原申請人工號 / 姓名：</b>' + escapeHtml(order.applicant_emp_id + ' / ' + order.applicant_name) + '</div>' +
+            '<div><b>是否為原申請人：</b>' + (isApplicant ? '是' : '否') + '</div>' +
+          '</div>';
+
+        if (!isApplicant) {
+          if (!state.settings.management_mode) {
+            html += '<div class="error-box" style="margin-top:8px;">非原申請人，需先開啟管理模式才能代確認。</div>';
+            document.getElementById('proxy-reason-wrap').classList.add('hidden');
+          } else {
+            html += '<div class="warn-box" style="margin-top:8px;">非原申請人代確認，請填寫代確認原因。</div>';
+            document.getElementById('proxy-reason-wrap').classList.remove('hidden');
+          }
+        } else {
+          document.getElementById('proxy-reason-wrap').classList.add('hidden');
+        }
+
+        document.getElementById('confirm-scan-result').innerHTML = html;
+      }
+
+      function submitDoneConfirm() {
+        var order = getOrderById(runtime.confirmContext.orderId);
+        if (!order) {
+          showToast('error', '找不到工單資料。');
+          return;
+        }
+
+        if (order.status !== 'end_reported') {
+          showToast('error', '狀態不符，無法確認結束。');
+          return;
+        }
+
+        var emp = runtime.confirmContext.scannedEmployee;
+        if (!emp) {
+          showToast('error', '請先刷卡並確認刷卡人。');
+          return;
+        }
+
+        var isApplicant = emp.emp_id === order.applicant_emp_id;
+        var actionType = 'done_confirm';
+        var remark = '本人刷卡確認完成。';
+
+        if (!isApplicant) {
+          if (!state.settings.management_mode) {
+            showToast('error', '非原申請人需在管理模式下代確認。');
+            return;
+          }
+          var reason = String(document.getElementById('proxy-reason').value || '').trim();
+          if (!reason) {
+            showToast('error', '代確認必須填寫原因。');
+            return;
+          }
+          actionType = 'proxy_done_confirm';
+          remark = '代確認原因：' + reason;
+          order.proxy_confirm_reason = reason;
+        }
+
+        order.status = 'done';
+        order.confirmed_done_at = nowIso();
+        order.confirmed_done_by = emp.emp_id;
+
+        addActivityLog(order.id, actionType, emp.emp_id, emp.name, remark, false);
+        saveState();
+
+        showToast('success', '已完成刷卡確認，工單狀態改為「已完成」。');
+        closeConfirmModal();
+        refreshAll();
+      }
+
+      function openDetailModal(orderId) {
+        var order = getOrderById(orderId);
+        if (!order) {
+          showToast('error', '找不到工單。');
+          return;
+        }
+
+        var items = getOrderItems(order.id);
+        var points = getOrderPoints(order.id);
+        var logs = getOrderLogs(order.id);
+
+        var baseInfo = '' +
+          '<div class="modal-grid">' +
+            '<div class="kv"><b>單號：</b>' + escapeHtml(order.order_no) + '</div>' +
+            '<div class="kv"><b>狀態：</b>' + escapeHtml(getStatusLabel(order.status)) + '</div>' +
+            '<div class="kv"><b>申請人：</b>' + escapeHtml(order.applicant_name + '（' + order.applicant_emp_id + '）') + '</div>' +
+            '<div class="kv"><b>部門 / 電話：</b>' + escapeHtml((order.applicant_dept || '-') + ' / ' + (order.applicant_phone || '-')) + '</div>' +
+            '<div class="kv"><b>機台名稱：</b>' + escapeHtml(order.machine_name || '-') + '</div>' +
+            '<div class="kv"><b>盤面名稱：</b>' + escapeHtml(order.panel_name || '-') + '</div>' +
+            '<div class="kv"><b>作業類型：</b>' + escapeHtml(getWorkTypeLabel(order.work_type)) + '</div>' +
+            '<div class="kv"><b>是否需要隔離點位：</b>' + (order.need_isolation_points ? '是' : '否') + '</div>' +
+            '<div class="kv"><b>建單時間：</b>' + formatDateTime(order.created_at) + '</div>' +
+            '<div class="kv"><b>開始時間：</b>' + formatDateTime(order.started_at) + '</div>' +
+            '<div class="kv"><b>電話通知結束時間：</b>' + formatDateTime(order.ended_reported_at) + '</div>' +
+            '<div class="kv"><b>本人確認結束時間：</b>' + formatDateTime(order.confirmed_done_at) + '</div>' +
+            '<div class="kv" style="grid-column: span 2;"><b>備註：</b>' + escapeHtml(order.note || '-') + '</div>' +
+          '</div>';
+
+        var itemTable = '' +
+          '<div class="card" style="padding:10px; margin-top:10px;">' +
+            '<h3 style="margin-top:0;">作業項目明細</h3>' +
+            '<div class="table-wrap"><table>' +
+              '<thead><tr><th>序</th><th>類型</th><th>品項名稱</th><th>數量</th><th>單位</th></tr></thead>' +
+              '<tbody>' +
+                (items.length ? items.map(function(item, idx) {
+                  return '<tr>' +
+                    '<td>' + (idx + 1) + '</td>' +
+                    '<td>' + escapeHtml(item.item_type) + '</td>' +
+                    '<td>' + escapeHtml(item.item_name) + '</td>' +
+                    '<td>' + escapeHtml(String(item.quantity)) + '</td>' +
+                    '<td>' + escapeHtml(item.unit || '-') + '</td>' +
+                  '</tr>';
+                }).join('') : '<tr><td colspan="5" class="empty">無作業項目</td></tr>') +
+              '</tbody>' +
+            '</table></div>' +
+          '</div>';
+
+        var pointsBlock = '' +
+          '<div class="card" style="padding:10px; margin-top:10px;">' +
+            '<h3 style="margin-top:0;">隔離點位清單</h3>' +
+            (points.length
+              ? '<div>' + points.map(function(p, idx) {
+                  return '<div class="kv" style="margin-bottom:6px;"><b>' + (idx + 1) + '.</b> ' + escapeHtml(p.point_name) + '</div>';
+                }).join('') + '</div>'
+              : '<div class="empty">此工單無隔離點位</div>') +
+          '</div>';
+
+        var logsTable = '' +
+          '<div class="card" style="padding:10px; margin-top:10px;">' +
+            '<h3 style="margin-top:0;">操作歷程</h3>' +
+            '<div class="table-wrap"><table>' +
+              '<thead><tr><th>時間</th><th>動作</th><th>操作人工號</th><th>操作人姓名</th><th>備註</th></tr></thead>' +
+              '<tbody>' +
+                (logs.length ? logs.map(function(log) {
+                  return '<tr>' +
+                    '<td>' + formatDateTime(log.created_at) + '</td>' +
+                    '<td>' + escapeHtml(ACTION_META[log.action_type] || log.action_type) + '</td>' +
+                    '<td>' + escapeHtml(log.operator_emp_id || '-') + '</td>' +
+                    '<td>' + escapeHtml(log.operator_name || '-') + '</td>' +
+                    '<td>' + escapeHtml(log.remark || '-') + '</td>' +
+                  '</tr>';
+                }).join('') : '<tr><td colspan="5" class="empty">尚無操作紀錄</td></tr>') +
+              '</tbody>' +
+            '</table></div>' +
+          '</div>';
+
+        document.getElementById('detail-content').innerHTML = baseInfo + itemTable + pointsBlock + logsTable;
+        document.getElementById('detail-modal').classList.add('active');
+      }
+
+      function closeDetailModal() {
+        document.getElementById('detail-modal').classList.remove('active');
+      }
+
+      function orderMatchesSearch(order, queryLower) {
+        var items = getOrderItems(order.id).map(function(item) {
+          return item.item_name;
+        }).join(' ');
+
+        var points = getOrderPoints(order.id).map(function(p) {
+          return p.point_name;
+        }).join(' ');
+
+        var text = [
+          order.machine_name,
+          order.panel_name,
+          order.applicant_name,
+          order.applicant_emp_id,
+          order.applicant_phone,
+          order.note,
+          items,
+          points,
+          order.order_no
+        ].join(' ').toLowerCase();
+
+        return text.indexOf(queryLower) >= 0;
+      }
+
+      function importEmployeeFile() {
+        var fileInput = document.getElementById('employee-file');
+        var file = fileInput.files && fileInput.files[0];
+        if (!file) {
+          showToast('error', '請先選擇員工檔案。');
+          return;
+        }
+
+        var name = String(file.name || '').toLowerCase();
+        var isExcel = name.endsWith('.xlsx') || name.endsWith('.xls');
+
+        if (isExcel) {
+          importEmployeesFromWorkbook(file);
+          return;
+        }
+
+        var reader = new FileReader();
+        reader.onload = function() {
+          try {
+            var text = String(reader.result || '');
+            var rows = parseCSV(text);
+            var result = importEmployeesFromRows(rows, 'import');
+            renderEmployeeImportSummary(result, 'CSV');
+            refreshAll();
+            showToast('success', '員工資料匯入完成。');
+          } catch (err) {
+            document.getElementById('employee-import-summary').innerHTML = '<div class="error-box">匯入失敗：' + escapeHtml(err.message) + '</div>';
+            showToast('error', '員工匯入失敗。');
+          }
+        };
+        reader.onerror = function() {
+          showToast('error', '檔案讀取失敗。');
+        };
+        reader.readAsText(file, 'utf-8');
+      }
+
+      function renderEmployeeImportSummary(result, sourceLabel) {
+        var cls = result.failCount > 0 ? 'warn-box' : 'ok-box';
+        document.getElementById('employee-import-summary').innerHTML =
+          '<div class="' + cls + '">' +
+          '來源：' + sourceLabel + '<br>' +
+          '匯入成功：' + result.successCount + ' 筆；' +
+          '匯入失敗：' + result.failCount + ' 筆；' +
+          '重複工號覆蓋：' + result.overwriteCount + ' 筆。' +
+          (result.failSamples.length ? '<br>失敗樣本：' + escapeHtml(result.failSamples.join(' | ')) : '') +
+          '</div>';
+      }
+
+      function importEmployeesFromCsvText(text) {
+        var rows = parseCSV(text);
+        return importEmployeesFromRows(rows, 'import');
+      }
+
+      async function importEmployeesFromWorkbook(file) {
+        try {
+          var buffer = await readFileAsArrayBuffer(file);
+          var workbook = new ExcelJS.Workbook();
+          var rows = [];
+
+          try {
+            await workbook.xlsx.load(buffer);
+            var worksheet = workbook.getWorksheet(1) || (workbook.worksheets && workbook.worksheets[0]);
+            if (!worksheet) {
+              throw new Error('找不到工作表資料。');
+            }
+            rows = extractRowsFromWorksheet(worksheet);
+          } catch (excelErr) {
+            rows = parseLegacyXlsRowsFromBuffer(buffer, file.name);
+            if (!rows.length) throw excelErr;
+          }
+
+          var result = importEmployeesFromRows(rows, 'import');
+          renderEmployeeImportSummary(result, 'Excel');
+          refreshAll();
+          showToast('success', '員工 Excel 匯入完成。');
+        } catch (err) {
+          document.getElementById('employee-import-summary').innerHTML = '<div class="error-box">匯入失敗：' + escapeHtml(err.message) + '</div>';
+          showToast('error', '員工匯入失敗。');
+        }
+      }
+
+      function readFileAsArrayBuffer(file) {
+        return new Promise(function(resolve, reject) {
+          var reader = new FileReader();
+          reader.onload = function() {
+            resolve(reader.result);
+          };
+          reader.onerror = function() {
+            reject(new Error('檔案讀取失敗。'));
+          };
+          reader.readAsArrayBuffer(file);
+        });
+      }
+
+      function extractRowsFromWorksheet(worksheet) {
+        if (!worksheet) return [];
+        if (Array.isArray(worksheet._rows)) {
+          return worksheet._rows.map(function(row) {
+            return Array.isArray(row) ? row.slice() : [];
+          });
+        }
+
+        var rows = [];
+        if (typeof worksheet.eachRow === 'function') {
+          worksheet.eachRow({ includeEmpty: true }, function(row) {
+            var arr = [];
+            if (typeof row.eachCell === 'function') {
+              row.eachCell({ includeEmpty: true }, function(cell, colNumber) {
+                arr[colNumber - 1] = getExcelCellValue(cell);
+              });
+            } else if (Array.isArray(row.values)) {
+              arr = row.values.slice(1);
+            }
+            rows.push(arr);
+          });
+        }
+        return rows;
+      }
+
+      function getExcelCellValue(cell) {
+        if (!cell) return '';
+        var raw = cell.value;
+        if (raw === null || raw === undefined) return '';
+        if (typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean') return raw;
+        if (raw instanceof Date) return raw.toISOString();
+
+        if (raw && typeof raw === 'object') {
+          if (Array.isArray(raw.richText)) {
+            return raw.richText.map(function(part) { return part.text || ''; }).join('');
+          }
+          if (raw.formula !== undefined) {
+            if (raw.result !== undefined && raw.result !== null) return raw.result;
+            return '';
+          }
+          if (raw.hyperlink) {
+            return raw.text || raw.hyperlink || '';
+          }
+          if (raw.text) return raw.text;
+          if (raw.result !== undefined && raw.result !== null) return raw.result;
+        }
+
+        return String(raw || '');
+      }
+
+      function importEmployeesFromRows(rows, sourceType) {
+        if (!Array.isArray(rows) || !rows.length) {
+          throw new Error('匯入內容為空。');
+        }
+
+        var headerIndex = -1;
+        for (var i = 0; i < rows.length; i++) {
+          if (Array.isArray(rows[i]) && rows[i].some(function(v) { return String(v === null || v === undefined ? '' : v).trim() !== ''; })) {
+            headerIndex = i;
+            break;
+          }
+        }
+        if (headerIndex < 0) throw new Error('找不到標題列。');
+
+        var header = (rows[headerIndex] || []).map(function(v) {
+          return normalizeImportCellToString(v).trim();
+        });
+        if (header.length) {
+          header[0] = header[0].replace(/^﻿/, '');
+        }
+
+        var col = mapEmployeeColumns(header);
+        if (col.emp_id < 0 || col.name < 0 || col.dept < 0 || col.phone < 0) {
+          throw new Error('缺少必要欄位（emp_id/name/dept/phone）。');
+        }
+
+        var successCount = 0;
+        var failCount = 0;
+        var overwriteCount = 0;
+        var failSamples = [];
+
+        for (var r = headerIndex + 1; r < rows.length; r++) {
+          var row = rows[r];
+          if (!Array.isArray(row) || !row.length) continue;
+
+          var record = {
+            emp_id: normalizeEmpId(readImportCell(row, col.emp_id)),
+            name: normalizeImportCellToString(readImportCell(row, col.name)).trim(),
+            dept: normalizeImportCellToString(readImportCell(row, col.dept)).trim(),
+            phone: normalizeImportCellToString(readImportCell(row, col.phone)).trim(),
+            ext: normalizeImportCellToString(readImportCell(row, col.ext)).trim(),
+            active: parseActiveValue(readImportCell(row, col.active))
+          };
+
+          var emptyRow = !record.emp_id && !record.name && !record.dept && !record.phone && !record.ext;
+          if (emptyRow) continue;
+
+          if (!record.emp_id || !record.name || !record.dept || !record.phone) {
+            failCount += 1;
+            if (failSamples.length < 5) failSamples.push('第' + (r + 1) + '列欄位不完整');
+            continue;
+          }
+
+          var upsert = upsertImportedEmployee(record, sourceType);
+          successCount += 1;
+          if (upsert === 'overwrite') overwriteCount += 1;
+        }
+
+        saveState();
+
+        return {
+          successCount: successCount,
+          failCount: failCount,
+          overwriteCount: overwriteCount,
+          failSamples: failSamples
+        };
+      }
+
+      function upsertImportedEmployee(record) {
+        var now = nowIso();
+        var exists = getEmployeeByEmpId(record.emp_id);
+        if (exists) {
+          exists.name = record.name;
+          exists.dept = record.dept;
+          exists.phone = record.phone;
+          exists.ext = record.ext;
+          exists.active = record.active;
+          exists.source = 'import';
+          exists.imported_at = now;
+          exists.updated_at = now;
+          if (!exists.created_at) exists.created_at = now;
+          exists.is_demo = false;
+          return 'overwrite';
+        }
+
+        state.employees.push({
+          emp_id: record.emp_id,
+          name: record.name,
+          dept: record.dept,
+          phone: record.phone,
+          ext: record.ext,
+          active: record.active,
+          imported_at: now,
+          created_at: now,
+          updated_at: now,
+          source: 'import',
+          is_demo: false
+        });
+        return 'create';
+      }
+
+      function readImportCell(row, idx) {
+        if (idx < 0 || idx >= row.length) return '';
+        return row[idx];
+      }
+
+      function normalizeImportCellToString(value) {
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'string') return value;
+        if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+        if (value instanceof Date) return value.toISOString();
+
+        if (value && typeof value === 'object') {
+          if (Array.isArray(value.richText)) {
+            return value.richText.map(function(part) { return part.text || ''; }).join('');
+          }
+          if (value.formula !== undefined) {
+            if (value.result !== undefined && value.result !== null) return String(value.result);
+            return '';
+          }
+          if (value.hyperlink) {
+            return String(value.text || value.hyperlink || '');
+          }
+          if (value.text !== undefined) return String(value.text);
+          if (value.result !== undefined && value.result !== null) return String(value.result);
+        }
+
+        return String(value);
+      }
+
+      function parseLegacyXlsRowsFromBuffer(buffer, fileName) {
+        var bytes = new Uint8Array(buffer);
+        var decoder = new TextDecoder('utf-8', { fatal: false });
+        var text = decoder.decode(bytes);
+        if (!text) return [];
+
+        if (/<table[s>]/i.test(text)) {
+          var doc = new DOMParser().parseFromString(text, 'text/html');
+          var htmlRows = Array.from(doc.querySelectorAll('tr')).map(function(tr) {
+            return Array.from(tr.querySelectorAll('th,td')).map(function(td) {
+              return (td.textContent || '').trim();
+            });
+          }).filter(function(row) { return row.length > 0; });
+          if (htmlRows.length) return htmlRows;
+        }
+
+        if (text.indexOf('	') >= 0) {
+          var tsvRows = text.split(/\r?\n/).map(function(line) {
+            return line.split('	');
+          }).filter(function(row) {
+            return row.some(function(cell) { return String(cell || '').trim() !== ''; });
+          });
+          if (tsvRows.length) return tsvRows;
+        }
+
+        if (text.indexOf(',') >= 0) {
+          return parseCSV(text);
+        }
+
+        throw new Error('無法解析此 Excel 檔案內容，請改存為 XLSX 或 CSV。');
+      }
+
+      function mapEmployeeColumns(header) {
+
+        var aliases = {
+          emp_id: ['emp_id', 'employee_id', 'id', '工號', '員工編號', '員編'],
+          name: ['name', '姓名'],
+          dept: ['dept', 'department', '部門', '單位'],
+          phone: ['phone', 'mobile', 'tel', '電話', '手機'],
+          ext: ['ext', 'extension', '分機'],
+          active: ['active', '在職', '在職狀態', 'status']
+        };
+
+        var normalized = header.map(function(h) { return normalizeHeaderName(h); });
+
+        function findIndexByAlias(list) {
+          for (var i = 0; i < normalized.length; i++) {
+            var h = normalized[i];
+            for (var j = 0; j < list.length; j++) {
+              if (h === normalizeHeaderName(list[j])) return i;
+            }
+          }
+          return -1;
+        }
+
+        return {
+          emp_id: findIndexByAlias(aliases.emp_id),
+          name: findIndexByAlias(aliases.name),
+          dept: findIndexByAlias(aliases.dept),
+          phone: findIndexByAlias(aliases.phone),
+          ext: findIndexByAlias(aliases.ext),
+          active: findIndexByAlias(aliases.active)
+        };
+      }
+
+      function normalizeHeaderName(name) {
+        return String(name || '').trim().toLowerCase().replace(/\s+/g, '').replace(/[_-]/g, '');
+      }
+
+      function parseCSV(text) {
+        var rows = [];
+        var row = [];
+        var cell = '';
+        var i = 0;
+        var inQuotes = false;
+
+        while (i < text.length) {
+          var ch = text[i];
+          var next = text[i + 1];
+
+          if (inQuotes) {
+            if (ch === '"' && next === '"') {
+              cell += '"';
+              i += 2;
+              continue;
+            }
+            if (ch === '"') {
+              inQuotes = false;
+              i += 1;
+              continue;
+            }
+            cell += ch;
+            i += 1;
+            continue;
+          }
+
+          if (ch === '"') {
+            inQuotes = true;
+            i += 1;
+            continue;
+          }
+
+          if (ch === ',') {
+            row.push(cell);
+            cell = '';
+            i += 1;
+            continue;
+          }
+
+          if (ch === '\r' && next === '\n') {
+            row.push(cell);
+            rows.push(row);
+            row = [];
+            cell = '';
+            i += 2;
+            continue;
+          }
+
+          if (ch === '\n' || ch === '\r') {
+            row.push(cell);
+            rows.push(row);
+            row = [];
+            cell = '';
+            i += 1;
+            continue;
+          }
+
+          cell += ch;
+          i += 1;
+        }
+
+        if (cell.length > 0 || row.length > 0) {
+          row.push(cell);
+          rows.push(row);
+        }
+
+        return rows;
+      }
+
+      function exportBackupJson() {
+        var payload = JSON.stringify(state, null, 2);
+        var fname = 'offline_workflow_backup_' + formatDateKey(new Date()).replace(/-/g, '') + '.json';
+        downloadFile(payload, fname, 'application/json;charset=utf-8');
+        showToast('success', '完整備份已匯出。');
+      }
+
+      function importBackupJson() {
+        var input = document.getElementById('backup-file');
+        var file = input.files && input.files[0];
+        if (!file) {
+          showToast('error', '請先選擇備份檔。');
+          return;
+        }
+
+        var ok1 = window.confirm('匯入備份會覆蓋目前所有資料，是否繼續？');
+        if (!ok1) return;
+
+        var reader = new FileReader();
+        reader.onload = function() {
+          try {
+            var obj = JSON.parse(String(reader.result || '{}'));
+            ensureStateShape(obj);
+            state = obj;
+            saveState();
+            restoreSettingsToUI();
+            refreshAll();
+            showToast('success', '備份還原完成。');
+          } catch (err) {
+            showToast('error', '備份還原失敗：' + err.message);
+          }
+        };
+        reader.onerror = function() {
+          showToast('error', '備份檔讀取失敗。');
+        };
+        reader.readAsText(file, 'utf-8');
+      }
+
+      function exportFilteredOrdersCsv() {
+        var orders = getFilteredOrdersFromTodayPage();
+        if (!orders.length) {
+          showToast('warn', '目前查詢結果沒有資料可匯出。');
+          return;
+        }
+
+        var header = [
+          'order_no', 'status', 'machine_name', 'panel_name',
+          'applicant_name', 'applicant_emp_id', 'applicant_phone', 'work_type',
+          'need_isolation_points', 'item_summary', 'point_summary', 'note',
+          'created_at', 'started_at', 'ended_reported_at', 'confirmed_done_at', 'proxy_confirm_reason'
+        ];
+
+        var lines = [header];
+
+        orders.forEach(function(order) {
+          var items = getOrderItems(order.id).map(function(item) {
+            return item.item_name + ' x' + item.quantity + (item.unit ? item.unit : '');
+          }).join(' | ');
+
+          var points = getOrderPoints(order.id).map(function(p) {
+            return p.point_name;
+          }).join(' | ');
+
+          lines.push([
+            order.order_no,
+            getStatusLabel(order.status),
+            order.machine_name,
+            order.panel_name,
+            order.applicant_name,
+            order.applicant_emp_id,
+            order.applicant_phone,
+            getWorkTypeLabel(order.work_type),
+            order.need_isolation_points ? '是' : '否',
+            items,
+            points,
+            order.note,
+            formatDateTime(order.created_at),
+            formatDateTime(order.started_at),
+            formatDateTime(order.ended_reported_at),
+            formatDateTime(order.confirmed_done_at),
+            order.proxy_confirm_reason || ''
+          ]);
+        });
+
+        var csv = lines.map(csvLine).join('\r\n');
+        var fname = 'work_orders_filtered_' + formatDateKey(new Date()).replace(/-/g, '') + '.csv';
+        downloadFile('\ufeff' + csv, fname, 'text/csv;charset=utf-8');
+        showToast('success', '查詢結果已匯出 CSV。');
+      }
+
+      function csvLine(arr) {
+        return arr.map(function(v) {
+          var text = String(v === undefined || v === null ? '' : v);
+          if (text.indexOf('"') >= 0) text = text.replace(/"/g, '""');
+          if (/[",\n\r]/.test(text)) text = '"' + text + '"';
+          return text;
+        }).join(',');
+      }
+
+      function downloadFile(content, fileName, mime) {
+        var blob = new Blob([content], { type: mime || 'application/octet-stream' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function clearDemoData() {
+        var ok = window.confirm('確定要清空示範資料？此操作不會刪除一般資料。');
+        if (!ok) return;
+
+        var demoOrderIds = new Set(state.work_orders.filter(function(o) { return !!o.is_demo; }).map(function(o) { return o.id; }));
+
+        state.work_orders = state.work_orders.filter(function(o) { return !o.is_demo; });
+        state.work_order_items = state.work_order_items.filter(function(item) {
+          return !item.is_demo && !demoOrderIds.has(item.work_order_id);
+        });
+        state.work_order_detector_points = state.work_order_detector_points.filter(function(p) {
+          return !p.is_demo && !demoOrderIds.has(p.work_order_id);
+        });
+        state.activity_logs = state.activity_logs.filter(function(log) {
+          return !log.is_demo && !demoOrderIds.has(log.work_order_id);
+        });
+        state.employees = state.employees.filter(function(emp) { return !emp.is_demo; });
+        state.point_history_dictionary = state.point_history_dictionary.filter(function(p) { return !p.is_demo; });
+
+        rebuildPointDictionaryFromOrders();
+
+        saveState();
+        refreshAll();
+        showToast('success', '示範資料已清空。');
+      }
+
+      function rebuildDemoData() {
+        var ok = window.confirm('確定重建示範資料？會先清掉舊示範資料，再補上新示範資料。');
+        if (!ok) return;
+
+        var demoOrderIds = new Set(state.work_orders.filter(function(o) { return !!o.is_demo; }).map(function(o) { return o.id; }));
+
+        state.work_orders = state.work_orders.filter(function(o) { return !o.is_demo; });
+        state.work_order_items = state.work_order_items.filter(function(item) {
+          return !item.is_demo && !demoOrderIds.has(item.work_order_id);
+        });
+        state.work_order_detector_points = state.work_order_detector_points.filter(function(p) {
+          return !p.is_demo && !demoOrderIds.has(p.work_order_id);
+        });
+        state.activity_logs = state.activity_logs.filter(function(log) {
+          return !log.is_demo && !demoOrderIds.has(log.work_order_id);
+        });
+        state.employees = state.employees.filter(function(emp) { return !emp.is_demo; });
+        state.point_history_dictionary = state.point_history_dictionary.filter(function(p) { return !p.is_demo; });
+
+        insertDemoData(state, false);
+        saveState();
+        refreshAll();
+        showToast('success', '示範資料已重建。');
+      }
+
+      function clearAllData() {
+        var c1 = window.confirm('此操作會刪除全部資料（含員工主檔與工單），是否繼續？');
+        if (!c1) return;
+        var c2 = window.prompt('請輸入 CLEAR 以完成二次確認：', '');
+        if (c2 !== 'CLEAR') {
+          showToast('warn', '二次確認未通過，已取消清空。');
+          return;
+        }
+
+        state = createEmptyState();
+        saveState();
+        resetNewOrderForm();
+        restoreSettingsToUI();
+        refreshAll();
+        showToast('warn', '全部資料已清空。');
+      }
+
+      function showToast(type, message) {
+        var wrap = document.getElementById('toast-wrap');
+        var div = document.createElement('div');
+        div.className = 'toast ' + (type || 'info');
+        div.textContent = message;
+        wrap.appendChild(div);
+
+        setTimeout(function() {
+          if (div.parentNode) {
+            div.parentNode.removeChild(div);
+          }
+        }, 3500);
+      }
+
+      function escapeHtml(value) {
+        return String(value === undefined || value === null ? '' : value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+    })();
+  </script>
+</body>
+</html>
