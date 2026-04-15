@@ -741,18 +741,18 @@
             </div>
             <div class="field">
               <label for="applicant-name">姓名</label>
-              <input type="text" id="applicant-name" readonly>
+              <input type="text" id="applicant-name" placeholder="可手填姓名">
             </div>
             <div class="field">
               <label for="applicant-dept">部門</label>
-              <input type="text" id="applicant-dept" readonly>
+              <input type="text" id="applicant-dept" placeholder="可手填部門">
             </div>
           </div>
 
           <div class="form-row cols-4" style="margin-top:8px;">
             <div class="field">
               <label for="applicant-emp-id">工號</label>
-              <input type="text" id="applicant-emp-id" readonly>
+              <input type="text" id="applicant-emp-id" placeholder="可手填工號">
             </div>
             <div class="field">
               <label for="applicant-phone">電話（必填）</label>
@@ -3244,16 +3244,17 @@
         var emp = getEmployeeByEmpId(value);
         if (!emp) {
           document.getElementById('new-order-message').innerHTML =
-            '<div class="error-box">' +
-              '查無此員工主檔。可前往管理區手動補建檔。' +
+            '<div class="warn-box">' +
+              '查無此員工主檔。你可直接手填姓名/部門/電話後建單，系統會自動建立員工主檔。' +
               '<div style="margin-top:8px;">' +
                 '<button class="btn small warning" type="button" data-act="go-admin-create" data-emp-id="' + escapeHtml(value) + '">帶入此工號到管理區新增員工</button>' +
               '</div>' +
             '</div>';
-          document.getElementById('applicant-emp-id').value = '';
+          document.getElementById('applicant-emp-id').value = value;
           document.getElementById('applicant-name').value = '';
           document.getElementById('applicant-dept').value = '';
           document.getElementById('applicant-phone').value = '';
+          document.getElementById('applicant-name').focus();
           return;
         }
 
@@ -3413,7 +3414,9 @@
       }
 
       function validateNewOrderForm(data) {
-        if (!data.applicant_emp_id) return '申請人未指定，請先刷卡或輸入工號。';
+        if (!data.applicant_emp_id) return '申請人工號為必填。';
+        if (!data.applicant_name) return '申請人姓名為必填。';
+        if (!data.applicant_dept) return '申請人部門為必填。';
         if (!data.applicant_phone) return '電話為必填。';
         if (!data.machine_name && !data.panel_name) return '機台名稱或盤面名稱至少需填一個。';
         if (!data.work_type) return '請選擇作業類型。';
@@ -3432,21 +3435,60 @@
         return '';
       }
 
+      function upsertApplicantEmployeeFromOrder(data, timestamp) {
+        var now = timestamp || nowIso();
+        var existing = getEmployeeByEmpId(data.applicant_emp_id);
+        if (existing) {
+          existing.name = data.applicant_name;
+          existing.dept = data.applicant_dept;
+          existing.phone = data.applicant_phone;
+          existing.ext = String(existing.ext || '').trim();
+          if (typeof existing.active !== 'boolean') {
+            existing.active = true;
+          }
+          if (!existing.created_at) existing.created_at = now;
+          if (existing.imported_at === undefined || existing.imported_at === null) {
+            existing.imported_at = '';
+          }
+          if (!existing.source) existing.source = 'manual';
+          existing.updated_at = now;
+          if (typeof existing.is_demo !== 'boolean') existing.is_demo = false;
+          return { created: false, emp: existing };
+        }
+
+        var newEmp = {
+          emp_id: data.applicant_emp_id,
+          name: data.applicant_name,
+          dept: data.applicant_dept,
+          phone: data.applicant_phone,
+          ext: '',
+          active: true,
+          imported_at: '',
+          created_at: now,
+          updated_at: now,
+          source: 'manual',
+          is_demo: false
+        };
+        state.employees.push(newEmp);
+        return { created: true, emp: newEmp };
+      }
+
       function handleCreateOrderSubmit(ev) {
         ev.preventDefault();
 
         var applicantEmpId = normalizeEmpId(document.getElementById('applicant-emp-id').value);
-        var emp = getEmployeeByEmpId(applicantEmpId);
-        if (!emp) {
-          showFormMessage('error', '申請人工號不在員工主檔，請重新刷卡。');
-          return;
+        var cardEmpId = normalizeEmpId(document.getElementById('applicant-card-input').value);
+        if (!applicantEmpId && cardEmpId) {
+          applicantEmpId = cardEmpId;
+          document.getElementById('applicant-emp-id').value = applicantEmpId;
         }
+        var existingEmp = getEmployeeByEmpId(applicantEmpId);
 
         var data = {
           applicant_emp_id: applicantEmpId,
-          applicant_name: String(document.getElementById('applicant-name').value || '').trim(),
-          applicant_dept: String(document.getElementById('applicant-dept').value || '').trim(),
-          applicant_phone: String(document.getElementById('applicant-phone').value || '').trim(),
+          applicant_name: String(document.getElementById('applicant-name').value || '').trim() || (existingEmp ? String(existingEmp.name || '').trim() : ''),
+          applicant_dept: String(document.getElementById('applicant-dept').value || '').trim() || (existingEmp ? String(existingEmp.dept || '').trim() : ''),
+          applicant_phone: String(document.getElementById('applicant-phone').value || '').trim() || (existingEmp ? String(existingEmp.phone || '').trim() : ''),
           machine_name: String(document.getElementById('machine-name').value || '').trim(),
           panel_name: String(document.getElementById('panel-name').value || '').trim(),
           work_type: String(document.getElementById('work-type').value || '').trim(),
@@ -3470,14 +3512,15 @@
 
         var operator = getCurrentOperator();
         var now = nowIso();
+        var applicantUpsert = upsertApplicantEmployeeFromOrder(data, now);
 
         var order = {
           id: uid('wo'),
           order_no: generateOrderNo(),
           status: 'pending',
           applicant_emp_id: data.applicant_emp_id,
-          applicant_name: data.applicant_name || emp.name,
-          applicant_dept: data.applicant_dept || emp.dept || '',
+          applicant_name: data.applicant_name,
+          applicant_dept: data.applicant_dept,
           applicant_phone: data.applicant_phone,
           machine_name: data.machine_name,
           panel_name: data.panel_name,
@@ -3529,6 +3572,9 @@
         saveState();
         showFormMessage('success', '建單完成，狀態為「待開始」。單號：' + order.order_no);
         showToast('success', '工單建立成功：' + order.order_no);
+        if (applicantUpsert.created) {
+          showToast('info', '已自動建立員工主檔：' + data.applicant_name + '（' + data.applicant_emp_id + '）');
+        }
 
         resetNewOrderForm();
         renderPointHistoryDatalist();
