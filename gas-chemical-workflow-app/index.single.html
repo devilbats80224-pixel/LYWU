@@ -1798,7 +1798,25 @@
             <input type="text" id="full-edit-facility-name" placeholder="廠務工程師姓名">
           </div>
         </div>
-        <div class="hint">可直接修正設備/廠務是誰。若只填工號，按「查詢工號帶入」可自動填姓名。</div>
+        <div class="form-row cols-4" style="margin-top:8px;">
+          <div class="field">
+            <label for="full-edit-equipment-dept">設備工程師部門（可選）</label>
+            <input type="text" id="full-edit-equipment-dept" placeholder="設備工程師部門">
+          </div>
+          <div class="field">
+            <label for="full-edit-equipment-phone">設備工程師電話（可選）</label>
+            <input type="text" id="full-edit-equipment-phone" placeholder="設備工程師電話">
+          </div>
+          <div class="field">
+            <label for="full-edit-facility-dept">廠務工程師部門（可選）</label>
+            <input type="text" id="full-edit-facility-dept" placeholder="廠務工程師部門">
+          </div>
+          <div class="field">
+            <label for="full-edit-facility-phone">廠務工程師電話（可選）</label>
+            <input type="text" id="full-edit-facility-phone" placeholder="廠務工程師電話">
+          </div>
+        </div>
+        <div class="hint">可直接修正設備/廠務的工號、姓名、部門、電話。若只填工號，按「查詢工號帶入」可自動帶入姓名/部門/電話。</div>
       </div>
 
       <div class="form-row cols-4" style="margin-top:8px;">
@@ -2621,19 +2639,27 @@
           }
           order.equipment_engineer_emp_id = normalizeEmpId(order.equipment_engineer_emp_id || '');
           order.equipment_engineer_name = String(order.equipment_engineer_name || '').trim();
+          order.equipment_engineer_dept = String(order.equipment_engineer_dept || '').trim();
+          order.equipment_engineer_phone = String(order.equipment_engineer_phone || '').trim();
           order.equipment_signed_at = String(order.equipment_signed_at || '').trim();
           order.facility_engineer_emp_id = normalizeEmpId(order.facility_engineer_emp_id || '');
           order.facility_engineer_name = String(order.facility_engineer_name || '').trim();
+          order.facility_engineer_dept = String(order.facility_engineer_dept || '').trim();
+          order.facility_engineer_phone = String(order.facility_engineer_phone || '').trim();
           order.facility_signed_at = String(order.facility_signed_at || '').trim();
 
           if (order.applicant_role === 'equipment' && !order.equipment_engineer_emp_id) {
             order.equipment_engineer_emp_id = normalizeEmpId(order.applicant_emp_id || '');
             order.equipment_engineer_name = String(order.applicant_name || '').trim();
+            order.equipment_engineer_dept = String(order.applicant_dept || '').trim();
+            order.equipment_engineer_phone = String(order.applicant_phone || '').trim();
             order.equipment_signed_at = order.created_at || now;
           }
           if (order.applicant_role === 'facility' && !order.facility_engineer_emp_id) {
             order.facility_engineer_emp_id = normalizeEmpId(order.applicant_emp_id || '');
             order.facility_engineer_name = String(order.applicant_name || '').trim();
+            order.facility_engineer_dept = String(order.applicant_dept || '').trim();
+            order.facility_engineer_phone = String(order.applicant_phone || '').trim();
             order.facility_signed_at = order.created_at || now;
           }
         });
@@ -3090,13 +3116,16 @@
         return '<span class="datetime-wrap"><span class="date">' + escapeHtml(parts[0]) + '</span><span class="time">' + escapeHtml(parts[1]) + '</span></span>';
       }
 
-      function renderEngineerValue(name, empId) {
+      function renderEngineerValue(name, empId, dept, phone) {
         var n = String(name || '').trim();
         var e = normalizeEmpId(empId || '');
+        var d = String(dept || '').trim();
+        var p = String(phone || '').trim();
         if (!n && !e) return '-';
         var emp = e ? getEmployeeByEmpId(e) : null;
-        var p = emp && emp.phone ? String(emp.phone || '').trim() : '';
-        return escapeHtml((n || '-') + ' / ' + (e || '-') + ' / ' + (p || '-'));
+        if (!d && emp && emp.dept) d = String(emp.dept || '').trim();
+        if (!p && emp && emp.phone) p = String(emp.phone || '').trim();
+        return escapeHtml((n || '-') + ' / ' + (e || '-') + ' / ' + (d || '-') + ' / ' + (p || '-'));
       }
 
       function buildOrderMachinePanelCell(order) {
@@ -3111,8 +3140,18 @@
 
       function buildOrderPeopleCell(order) {
         var applicantValue = escapeHtml((order.applicant_name || '-') + ' / ' + (order.applicant_emp_id || '-') + ' / ' + (order.applicant_phone || '-'));
-        var equipmentValue = renderEngineerValue(order.equipment_engineer_name, order.equipment_engineer_emp_id);
-        var facilityValue = renderEngineerValue(order.facility_engineer_name, order.facility_engineer_emp_id);
+        var equipmentValue = renderEngineerValue(
+          order.equipment_engineer_name,
+          order.equipment_engineer_emp_id,
+          order.equipment_engineer_dept,
+          order.equipment_engineer_phone
+        );
+        var facilityValue = renderEngineerValue(
+          order.facility_engineer_name,
+          order.facility_engineer_emp_id,
+          order.facility_engineer_dept,
+          order.facility_engineer_phone
+        );
         return '' +
           '<div class="orders-cell-stack">' +
             '<div class="person-line"><span class="person-label">申請</span><span class="person-value">' + applicantValue + '</span></div>' +
@@ -3513,9 +3552,13 @@
             applicant_role: order.applicant_role || getDefaultEngineerRoleByDept(order.applicant_dept),
             equipment_engineer_emp_id: order.equipment_engineer_emp_id || '',
             equipment_engineer_name: order.equipment_engineer_name || '',
+            equipment_engineer_dept: order.equipment_engineer_dept || '',
+            equipment_engineer_phone: order.equipment_engineer_phone || '',
             equipment_signed_at: order.equipment_signed_at || '',
             facility_engineer_emp_id: order.facility_engineer_emp_id || '',
             facility_engineer_name: order.facility_engineer_name || '',
+            facility_engineer_dept: order.facility_engineer_dept || '',
+            facility_engineer_phone: order.facility_engineer_phone || '',
             facility_signed_at: order.facility_signed_at || '',
             planned_date: order.planned_date || '',
             planned_start_time: order.planned_start_time || '',
@@ -3795,9 +3838,13 @@
           applicant_role: ENGINEER_ROLE_META[src.applicant_role] ? src.applicant_role : (ENGINEER_ROLE_META[payload.applicant && payload.applicant.role] ? payload.applicant.role : getDefaultEngineerRoleByDept(src.applicant_dept)),
           equipment_engineer_emp_id: normalizeEmpId(src.equipment_engineer_emp_id || ''),
           equipment_engineer_name: String(src.equipment_engineer_name || ''),
+          equipment_engineer_dept: String(src.equipment_engineer_dept || ''),
+          equipment_engineer_phone: String(src.equipment_engineer_phone || ''),
           equipment_signed_at: String(src.equipment_signed_at || ''),
           facility_engineer_emp_id: normalizeEmpId(src.facility_engineer_emp_id || ''),
           facility_engineer_name: String(src.facility_engineer_name || ''),
+          facility_engineer_dept: String(src.facility_engineer_dept || ''),
+          facility_engineer_phone: String(src.facility_engineer_phone || ''),
           facility_signed_at: String(src.facility_signed_at || ''),
           planned_date: String(src.planned_date || getDateKeyFromIso(createdAt) || formatDateKey(new Date())),
           planned_start_time: String(src.planned_start_time || ''),
@@ -3822,11 +3869,15 @@
         if (order.applicant_role === 'equipment' && !order.equipment_engineer_emp_id) {
           order.equipment_engineer_emp_id = order.applicant_emp_id;
           order.equipment_engineer_name = order.applicant_name;
+          order.equipment_engineer_dept = order.applicant_dept || '';
+          order.equipment_engineer_phone = order.applicant_phone || '';
           order.equipment_signed_at = createdAt;
         }
         if (order.applicant_role === 'facility' && !order.facility_engineer_emp_id) {
           order.facility_engineer_emp_id = order.applicant_emp_id;
           order.facility_engineer_name = order.applicant_name;
+          order.facility_engineer_dept = order.applicant_dept || '';
+          order.facility_engineer_phone = order.applicant_phone || '';
           order.facility_signed_at = createdAt;
         }
 
@@ -4057,9 +4108,13 @@
           applicant_role: ENGINEER_ROLE_META[patch.applicant_role] ? patch.applicant_role : (ENGINEER_ROLE_META[order.applicant_role] ? order.applicant_role : getDefaultEngineerRoleByDept(patch.applicant_dept !== undefined ? patch.applicant_dept : order.applicant_dept)),
           equipment_engineer_emp_id: normalizeEmpId(patch.equipment_engineer_emp_id !== undefined ? patch.equipment_engineer_emp_id : order.equipment_engineer_emp_id),
           equipment_engineer_name: String(patch.equipment_engineer_name !== undefined ? patch.equipment_engineer_name : order.equipment_engineer_name).trim(),
+          equipment_engineer_dept: String(patch.equipment_engineer_dept !== undefined ? patch.equipment_engineer_dept : order.equipment_engineer_dept).trim(),
+          equipment_engineer_phone: String(patch.equipment_engineer_phone !== undefined ? patch.equipment_engineer_phone : order.equipment_engineer_phone).trim(),
           equipment_signed_at: String(patch.equipment_signed_at !== undefined ? patch.equipment_signed_at : order.equipment_signed_at).trim(),
           facility_engineer_emp_id: normalizeEmpId(patch.facility_engineer_emp_id !== undefined ? patch.facility_engineer_emp_id : order.facility_engineer_emp_id),
           facility_engineer_name: String(patch.facility_engineer_name !== undefined ? patch.facility_engineer_name : order.facility_engineer_name).trim(),
+          facility_engineer_dept: String(patch.facility_engineer_dept !== undefined ? patch.facility_engineer_dept : order.facility_engineer_dept).trim(),
+          facility_engineer_phone: String(patch.facility_engineer_phone !== undefined ? patch.facility_engineer_phone : order.facility_engineer_phone).trim(),
           facility_signed_at: String(patch.facility_signed_at !== undefined ? patch.facility_signed_at : order.facility_signed_at).trim(),
           planned_date: String(patch.planned_date !== undefined ? patch.planned_date : order.planned_date).trim(),
           planned_start_time: String(patch.planned_start_time !== undefined ? patch.planned_start_time : order.planned_start_time).trim(),
@@ -4112,9 +4167,13 @@
         order.applicant_role = normalized.applicant_role;
         order.equipment_engineer_emp_id = normalized.equipment_engineer_emp_id;
         order.equipment_engineer_name = normalized.equipment_engineer_name;
+        order.equipment_engineer_dept = normalized.equipment_engineer_dept;
+        order.equipment_engineer_phone = normalized.equipment_engineer_phone;
         order.equipment_signed_at = normalized.equipment_signed_at;
         order.facility_engineer_emp_id = normalized.facility_engineer_emp_id;
         order.facility_engineer_name = normalized.facility_engineer_name;
+        order.facility_engineer_dept = normalized.facility_engineer_dept;
+        order.facility_engineer_phone = normalized.facility_engineer_phone;
         order.facility_signed_at = normalized.facility_signed_at;
         order.planned_date = normalized.planned_date || getDateKeyFromIso(order.created_at) || formatDateKey(new Date());
         order.planned_start_time = normalized.planned_start_time;
@@ -4127,11 +4186,15 @@
         if (order.applicant_role === 'equipment' && !order.equipment_engineer_emp_id) {
           order.equipment_engineer_emp_id = order.applicant_emp_id;
           order.equipment_engineer_name = order.applicant_name;
+          order.equipment_engineer_dept = order.applicant_dept || '';
+          order.equipment_engineer_phone = order.applicant_phone || '';
           order.equipment_signed_at = eventObj.created_at || nowIso();
         }
         if (order.applicant_role === 'facility' && !order.facility_engineer_emp_id) {
           order.facility_engineer_emp_id = order.applicant_emp_id;
           order.facility_engineer_name = order.applicant_name;
+          order.facility_engineer_dept = order.applicant_dept || '';
+          order.facility_engineer_phone = order.applicant_phone || '';
           order.facility_signed_at = eventObj.created_at || nowIso();
         }
 
@@ -6615,9 +6678,13 @@
           applicant_role: data.applicant_role,
           equipment_engineer_emp_id: data.applicant_role === 'equipment' ? data.applicant_emp_id : '',
           equipment_engineer_name: data.applicant_role === 'equipment' ? data.applicant_name : '',
+          equipment_engineer_dept: data.applicant_role === 'equipment' ? data.applicant_dept : '',
+          equipment_engineer_phone: data.applicant_role === 'equipment' ? data.applicant_phone : '',
           equipment_signed_at: data.applicant_role === 'equipment' ? now : '',
           facility_engineer_emp_id: data.applicant_role === 'facility' ? data.applicant_emp_id : '',
           facility_engineer_name: data.applicant_role === 'facility' ? data.applicant_name : '',
+          facility_engineer_dept: data.applicant_role === 'facility' ? data.applicant_dept : '',
+          facility_engineer_phone: data.applicant_role === 'facility' ? data.applicant_phone : '',
           facility_signed_at: data.applicant_role === 'facility' ? now : '',
           planned_date: data.planned_date || formatDateKey(new Date()),
           planned_start_time: data.planned_start_time || '',
@@ -6643,10 +6710,14 @@
           if (coApplicant.role === 'equipment') {
             order.equipment_engineer_emp_id = coApplicant.emp_id;
             order.equipment_engineer_name = coApplicant.name;
+            order.equipment_engineer_dept = coApplicant.dept;
+            order.equipment_engineer_phone = coApplicant.phone;
             order.equipment_signed_at = now;
           } else if (coApplicant.role === 'facility') {
             order.facility_engineer_emp_id = coApplicant.emp_id;
             order.facility_engineer_name = coApplicant.name;
+            order.facility_engineer_dept = coApplicant.dept;
+            order.facility_engineer_phone = coApplicant.phone;
             order.facility_signed_at = now;
           }
         }
@@ -7191,10 +7262,14 @@
         if (role === 'equipment') {
           order.equipment_engineer_emp_id = emp.emp_id;
           order.equipment_engineer_name = emp.name;
+          order.equipment_engineer_dept = emp.dept || '';
+          order.equipment_engineer_phone = emp.phone || '';
           order.equipment_signed_at = now;
         } else {
           order.facility_engineer_emp_id = emp.emp_id;
           order.facility_engineer_name = emp.name;
+          order.facility_engineer_dept = emp.dept || '';
+          order.facility_engineer_phone = emp.phone || '';
           order.facility_signed_at = now;
         }
         if (!ENGINEER_ROLE_META[order.applicant_role]) {
@@ -7718,6 +7793,8 @@
         var isEquipment = role === 'equipment';
         var empIdEl = document.getElementById(isEquipment ? 'full-edit-equipment-emp-id' : 'full-edit-facility-emp-id');
         var nameEl = document.getElementById(isEquipment ? 'full-edit-equipment-name' : 'full-edit-facility-name');
+        var deptEl = document.getElementById(isEquipment ? 'full-edit-equipment-dept' : 'full-edit-facility-dept');
+        var phoneEl = document.getElementById(isEquipment ? 'full-edit-equipment-phone' : 'full-edit-facility-phone');
         var empId = normalizeEmpId(empIdEl.value);
         if (!empId) {
           showToast('error', '請先輸入工號再查詢。');
@@ -7726,11 +7803,13 @@
         empIdEl.value = empId;
         var emp = getEmployeeByEmpId(empId);
         if (!emp) {
-          showToast('warn', '查無員工主檔，可手動填寫姓名。');
+          showToast('warn', '查無員工主檔，可手動填寫姓名/部門/電話。');
           nameEl.focus();
           return;
         }
         nameEl.value = emp.name || '';
+        deptEl.value = emp.dept || '';
+        phoneEl.value = emp.phone || '';
         showToast('success', '已帶入' + (isEquipment ? '設備' : '廠務') + '工程師：' + (emp.name || '-') + '（' + emp.emp_id + '）');
       }
 
@@ -7775,8 +7854,12 @@
         }
         document.getElementById('full-edit-equipment-emp-id').value = order.equipment_engineer_emp_id || '';
         document.getElementById('full-edit-equipment-name').value = order.equipment_engineer_name || '';
+        document.getElementById('full-edit-equipment-dept').value = order.equipment_engineer_dept || '';
+        document.getElementById('full-edit-equipment-phone').value = order.equipment_engineer_phone || '';
         document.getElementById('full-edit-facility-emp-id').value = order.facility_engineer_emp_id || '';
         document.getElementById('full-edit-facility-name').value = order.facility_engineer_name || '';
+        document.getElementById('full-edit-facility-dept').value = order.facility_engineer_dept || '';
+        document.getElementById('full-edit-facility-phone').value = order.facility_engineer_phone || '';
         document.getElementById('full-edit-machine-name').value = order.machine_name || '';
         document.getElementById('full-edit-panel-name').value = order.panel_name || '';
         document.getElementById('full-edit-work-type').value = order.work_type || '';
@@ -7838,15 +7921,27 @@
         var points = needIso ? getFullEditOrderPointValues() : [];
         var equipmentEmpId = normalizeEmpId(document.getElementById('full-edit-equipment-emp-id').value);
         var equipmentName = String(document.getElementById('full-edit-equipment-name').value || '').trim();
+        var equipmentDept = String(document.getElementById('full-edit-equipment-dept').value || '').trim();
+        var equipmentPhone = String(document.getElementById('full-edit-equipment-phone').value || '').trim();
         var facilityEmpId = normalizeEmpId(document.getElementById('full-edit-facility-emp-id').value);
         var facilityName = String(document.getElementById('full-edit-facility-name').value || '').trim();
+        var facilityDept = String(document.getElementById('full-edit-facility-dept').value || '').trim();
+        var facilityPhone = String(document.getElementById('full-edit-facility-phone').value || '').trim();
         if (equipmentEmpId && !equipmentName) {
           var equipmentEmp = getEmployeeByEmpId(equipmentEmpId);
-          equipmentName = equipmentEmp ? String(equipmentEmp.name || '').trim() : '';
+          if (equipmentEmp) {
+            equipmentName = String(equipmentEmp.name || '').trim();
+            if (!equipmentDept) equipmentDept = String(equipmentEmp.dept || '').trim();
+            if (!equipmentPhone) equipmentPhone = String(equipmentEmp.phone || '').trim();
+          }
         }
         if (facilityEmpId && !facilityName) {
           var facilityEmp = getEmployeeByEmpId(facilityEmpId);
-          facilityName = facilityEmp ? String(facilityEmp.name || '').trim() : '';
+          if (facilityEmp) {
+            facilityName = String(facilityEmp.name || '').trim();
+            if (!facilityDept) facilityDept = String(facilityEmp.dept || '').trim();
+            if (!facilityPhone) facilityPhone = String(facilityEmp.phone || '').trim();
+          }
         }
         return {
           applicant_emp_id: normalizeEmpId(document.getElementById('full-edit-applicant-emp-id').value),
@@ -7856,8 +7951,12 @@
           applicant_role: String(document.getElementById('full-edit-applicant-role').value || '').trim() || getDefaultEngineerRoleByDept(document.getElementById('full-edit-applicant-dept').value),
           equipment_engineer_emp_id: equipmentEmpId,
           equipment_engineer_name: equipmentName,
+          equipment_engineer_dept: equipmentDept,
+          equipment_engineer_phone: equipmentPhone,
           facility_engineer_emp_id: facilityEmpId,
           facility_engineer_name: facilityName,
+          facility_engineer_dept: facilityDept,
+          facility_engineer_phone: facilityPhone,
           planned_date: String(document.getElementById('full-edit-planned-date').value || '').trim(),
           planned_start_time: String(document.getElementById('full-edit-planned-start-time').value || '').trim(),
           planned_end_time: String(document.getElementById('full-edit-planned-end-time').value || '').trim(),
@@ -7890,9 +7989,13 @@
             note: order.note || '',
             equipment_engineer_emp_id: order.equipment_engineer_emp_id || '',
             equipment_engineer_name: order.equipment_engineer_name || '',
+            equipment_engineer_dept: order.equipment_engineer_dept || '',
+            equipment_engineer_phone: order.equipment_engineer_phone || '',
             equipment_signed_at: order.equipment_signed_at || '',
             facility_engineer_emp_id: order.facility_engineer_emp_id || '',
             facility_engineer_name: order.facility_engineer_name || '',
+            facility_engineer_dept: order.facility_engineer_dept || '',
+            facility_engineer_phone: order.facility_engineer_phone || '',
             facility_signed_at: order.facility_signed_at || ''
           },
           items: getOrderItems(order.id).map(function(item) {
@@ -7968,21 +8071,37 @@
         order.note = data.note;
         var prevEquipmentEmpId = order.equipment_engineer_emp_id || '';
         var prevEquipmentName = order.equipment_engineer_name || '';
+        var prevEquipmentDept = order.equipment_engineer_dept || '';
+        var prevEquipmentPhone = order.equipment_engineer_phone || '';
         var prevFacilityEmpId = order.facility_engineer_emp_id || '';
         var prevFacilityName = order.facility_engineer_name || '';
+        var prevFacilityDept = order.facility_engineer_dept || '';
+        var prevFacilityPhone = order.facility_engineer_phone || '';
         order.equipment_engineer_emp_id = data.equipment_engineer_emp_id || '';
         order.equipment_engineer_name = data.equipment_engineer_name || '';
+        order.equipment_engineer_dept = data.equipment_engineer_dept || '';
+        order.equipment_engineer_phone = data.equipment_engineer_phone || '';
         order.facility_engineer_emp_id = data.facility_engineer_emp_id || '';
         order.facility_engineer_name = data.facility_engineer_name || '';
+        order.facility_engineer_dept = data.facility_engineer_dept || '';
+        order.facility_engineer_phone = data.facility_engineer_phone || '';
         if (order.equipment_engineer_emp_id || order.equipment_engineer_name) {
-          if (!order.equipment_signed_at || prevEquipmentEmpId !== order.equipment_engineer_emp_id || prevEquipmentName !== order.equipment_engineer_name) {
+          if (!order.equipment_signed_at ||
+            prevEquipmentEmpId !== order.equipment_engineer_emp_id ||
+            prevEquipmentName !== order.equipment_engineer_name ||
+            prevEquipmentDept !== order.equipment_engineer_dept ||
+            prevEquipmentPhone !== order.equipment_engineer_phone) {
             order.equipment_signed_at = now;
           }
         } else {
           order.equipment_signed_at = '';
         }
         if (order.facility_engineer_emp_id || order.facility_engineer_name) {
-          if (!order.facility_signed_at || prevFacilityEmpId !== order.facility_engineer_emp_id || prevFacilityName !== order.facility_engineer_name) {
+          if (!order.facility_signed_at ||
+            prevFacilityEmpId !== order.facility_engineer_emp_id ||
+            prevFacilityName !== order.facility_engineer_name ||
+            prevFacilityDept !== order.facility_engineer_dept ||
+            prevFacilityPhone !== order.facility_engineer_phone) {
             order.facility_signed_at = now;
           }
         } else {
@@ -7991,11 +8110,15 @@
         if (order.applicant_role === 'equipment' && !order.equipment_engineer_emp_id) {
           order.equipment_engineer_emp_id = order.applicant_emp_id;
           order.equipment_engineer_name = order.applicant_name;
+          order.equipment_engineer_dept = order.applicant_dept || '';
+          order.equipment_engineer_phone = order.applicant_phone || '';
           order.equipment_signed_at = now;
         }
         if (order.applicant_role === 'facility' && !order.facility_engineer_emp_id) {
           order.facility_engineer_emp_id = order.applicant_emp_id;
           order.facility_engineer_name = order.applicant_name;
+          order.facility_engineer_dept = order.applicant_dept || '';
+          order.facility_engineer_phone = order.applicant_phone || '';
           order.facility_signed_at = now;
         }
 
@@ -8071,12 +8194,17 @@
           order.panel_name,
           order.applicant_name,
           order.applicant_emp_id,
+          order.applicant_dept,
           order.applicant_phone,
           order.applicant_role,
           order.equipment_engineer_name,
           order.equipment_engineer_emp_id,
+          order.equipment_engineer_dept,
+          order.equipment_engineer_phone,
           order.facility_engineer_name,
           order.facility_engineer_emp_id,
+          order.facility_engineer_dept,
+          order.facility_engineer_phone,
           order.planned_date,
           order.planned_start_time,
           order.planned_end_time,
@@ -8652,9 +8780,13 @@
           applicant_role: ['申請角色', '申請人角色', 'applicant_role'],
           equipment_engineer_emp_id: ['設備工程師工號', 'equipment_engineer_emp_id'],
           equipment_engineer_name: ['設備工程師姓名', 'equipment_engineer_name'],
+          equipment_engineer_dept: ['設備工程師部門', 'equipment_engineer_dept'],
+          equipment_engineer_phone: ['設備工程師電話', 'equipment_engineer_phone'],
           equipment_signed_at: ['設備工程師簽到時間', 'equipment_signed_at'],
           facility_engineer_emp_id: ['廠務工程師工號', 'facility_engineer_emp_id'],
           facility_engineer_name: ['廠務工程師姓名', 'facility_engineer_name'],
+          facility_engineer_dept: ['廠務工程師部門', 'facility_engineer_dept'],
+          facility_engineer_phone: ['廠務工程師電話', 'facility_engineer_phone'],
           facility_signed_at: ['廠務工程師簽到時間', 'facility_signed_at'],
           work_type: ['作業類型', 'work_type'],
           need_isolation_points: ['是否隔離', 'need_isolation_points'],
@@ -8809,9 +8941,13 @@
           target.applicant_role = parseEngineerRoleCode(src.applicant_role) || parseEngineerRoleCode(readRowByColumn(row, col.applicant_role)) || getDefaultEngineerRoleByDept(target.applicant_dept);
           target.equipment_engineer_emp_id = normalizeEmpId(src.equipment_engineer_emp_id || readRowByColumn(row, col.equipment_engineer_emp_id) || '');
           target.equipment_engineer_name = String(src.equipment_engineer_name || readRowByColumn(row, col.equipment_engineer_name) || '').trim();
+          target.equipment_engineer_dept = String(src.equipment_engineer_dept || readRowByColumn(row, col.equipment_engineer_dept) || '').trim();
+          target.equipment_engineer_phone = String(src.equipment_engineer_phone || readRowByColumn(row, col.equipment_engineer_phone) || '').trim();
           target.equipment_signed_at = normalizeDateTimeForStorage(src.equipment_signed_at || readRowByColumn(row, col.equipment_signed_at) || '');
           target.facility_engineer_emp_id = normalizeEmpId(src.facility_engineer_emp_id || readRowByColumn(row, col.facility_engineer_emp_id) || '');
           target.facility_engineer_name = String(src.facility_engineer_name || readRowByColumn(row, col.facility_engineer_name) || '').trim();
+          target.facility_engineer_dept = String(src.facility_engineer_dept || readRowByColumn(row, col.facility_engineer_dept) || '').trim();
+          target.facility_engineer_phone = String(src.facility_engineer_phone || readRowByColumn(row, col.facility_engineer_phone) || '').trim();
           target.facility_signed_at = normalizeDateTimeForStorage(src.facility_signed_at || readRowByColumn(row, col.facility_signed_at) || '');
           target.planned_date = String(src.planned_date || readRowByColumn(row, col.planned_date) || scheduleParsed.planned_date || getOrderScheduleDateKey(src) || getDateKeyFromIso(createdAt) || formatDateKey(new Date())).trim();
           target.planned_start_time = String(src.planned_start_time || readRowByColumn(row, col.planned_start_time) || scheduleParsed.planned_start_time || '').trim();
@@ -8947,8 +9083,9 @@
       function buildFilteredOrdersExportRows(orders) {
         var rows = [[
           '狀態', '單號', '機台', '盤面', '申請人', '工號', '電話', '部門',
-          '申請角色', '設備工程師工號', '設備工程師姓名', '設備工程師簽到時間',
-          '廠務工程師工號', '廠務工程師姓名', '廠務工程師簽到時間',
+          '申請角色',
+          '設備工程師工號', '設備工程師姓名', '設備工程師部門', '設備工程師電話', '設備工程師簽到時間',
+          '廠務工程師工號', '廠務工程師姓名', '廠務工程師部門', '廠務工程師電話', '廠務工程師簽到時間',
           '作業類型', '項目摘要', '是否隔離', '點位數量',
           '預計作業日', '預計開始時間', '預計結束時間', '預計時程',
           '建單時間', '開始時間', '電話通知結束', '本人確認結束', '備註',
@@ -8971,9 +9108,13 @@
             applicant_role: order.applicant_role || '',
             equipment_engineer_emp_id: order.equipment_engineer_emp_id || '',
             equipment_engineer_name: order.equipment_engineer_name || '',
+            equipment_engineer_dept: order.equipment_engineer_dept || '',
+            equipment_engineer_phone: order.equipment_engineer_phone || '',
             equipment_signed_at: order.equipment_signed_at || '',
             facility_engineer_emp_id: order.facility_engineer_emp_id || '',
             facility_engineer_name: order.facility_engineer_name || '',
+            facility_engineer_dept: order.facility_engineer_dept || '',
+            facility_engineer_phone: order.facility_engineer_phone || '',
             facility_signed_at: order.facility_signed_at || '',
             planned_date: order.planned_date || '',
             planned_start_time: order.planned_start_time || '',
@@ -9006,9 +9147,13 @@
             getEngineerRoleLabel(order.applicant_role),
             order.equipment_engineer_emp_id || '-',
             order.equipment_engineer_name || '-',
+            order.equipment_engineer_dept || '-',
+            order.equipment_engineer_phone || '-',
             formatDateTime(order.equipment_signed_at),
             order.facility_engineer_emp_id || '-',
             order.facility_engineer_name || '-',
+            order.facility_engineer_dept || '-',
+            order.facility_engineer_phone || '-',
             formatDateTime(order.facility_signed_at),
             getWorkTypeLabel(order.work_type),
             items || '-',
