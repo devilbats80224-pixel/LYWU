@@ -1776,6 +1776,31 @@
         </div>
       </div>
 
+      <div class="card" style="padding:10px; margin-top:10px;">
+        <h3 style="margin-top:0;">設備 / 廠務簽到人（可編輯）</h3>
+        <div class="form-row cols-4">
+          <div class="field">
+            <label for="full-edit-equipment-emp-id">設備工程師工號（可選）</label>
+            <input type="text" id="full-edit-equipment-emp-id" placeholder="例如 E1001">
+            <button class="btn small ghost" id="btn-full-edit-lookup-equipment" type="button" style="margin-top:6px;">查詢工號帶入</button>
+          </div>
+          <div class="field">
+            <label for="full-edit-equipment-name">設備工程師姓名（可選）</label>
+            <input type="text" id="full-edit-equipment-name" placeholder="設備工程師姓名">
+          </div>
+          <div class="field">
+            <label for="full-edit-facility-emp-id">廠務工程師工號（可選）</label>
+            <input type="text" id="full-edit-facility-emp-id" placeholder="例如 E1002">
+            <button class="btn small ghost" id="btn-full-edit-lookup-facility" type="button" style="margin-top:6px;">查詢工號帶入</button>
+          </div>
+          <div class="field">
+            <label for="full-edit-facility-name">廠務工程師姓名（可選）</label>
+            <input type="text" id="full-edit-facility-name" placeholder="廠務工程師姓名">
+          </div>
+        </div>
+        <div class="hint">可直接修正設備/廠務是誰。若只填工號，按「查詢工號帶入」可自動填姓名。</div>
+      </div>
+
       <div class="form-row cols-4" style="margin-top:8px;">
         <div class="field" style="grid-column: span 4;">
           <label for="full-edit-note">備註</label>
@@ -5095,10 +5120,28 @@
         document.getElementById('btn-cancel-full-edit-order').addEventListener('click', closeFullEditOrderModal);
         document.getElementById('btn-submit-full-edit-order').addEventListener('click', submitFullEditOrder);
         document.getElementById('btn-full-edit-lookup-applicant').addEventListener('click', lookupFullEditApplicantFromEmpId);
+        document.getElementById('btn-full-edit-lookup-equipment').addEventListener('click', function() {
+          lookupFullEditEngineerByEmpId('equipment');
+        });
+        document.getElementById('btn-full-edit-lookup-facility').addEventListener('click', function() {
+          lookupFullEditEngineerByEmpId('facility');
+        });
         document.getElementById('full-edit-applicant-emp-id').addEventListener('keydown', function(ev) {
           if (ev.key === 'Enter') {
             ev.preventDefault();
             lookupFullEditApplicantFromEmpId();
+          }
+        });
+        document.getElementById('full-edit-equipment-emp-id').addEventListener('keydown', function(ev) {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            lookupFullEditEngineerByEmpId('equipment');
+          }
+        });
+        document.getElementById('full-edit-facility-emp-id').addEventListener('keydown', function(ev) {
+          if (ev.key === 'Enter') {
+            ev.preventDefault();
+            lookupFullEditEngineerByEmpId('facility');
           }
         });
         document.getElementById('btn-add-full-edit-item').addEventListener('click', function() {
@@ -7671,6 +7714,26 @@
         showToast('success', '已帶入簽到人資料：' + (emp.name || '-') + '（' + emp.emp_id + '）');
       }
 
+      function lookupFullEditEngineerByEmpId(role) {
+        var isEquipment = role === 'equipment';
+        var empIdEl = document.getElementById(isEquipment ? 'full-edit-equipment-emp-id' : 'full-edit-facility-emp-id');
+        var nameEl = document.getElementById(isEquipment ? 'full-edit-equipment-name' : 'full-edit-facility-name');
+        var empId = normalizeEmpId(empIdEl.value);
+        if (!empId) {
+          showToast('error', '請先輸入工號再查詢。');
+          return;
+        }
+        empIdEl.value = empId;
+        var emp = getEmployeeByEmpId(empId);
+        if (!emp) {
+          showToast('warn', '查無員工主檔，可手動填寫姓名。');
+          nameEl.focus();
+          return;
+        }
+        nameEl.value = emp.name || '';
+        showToast('success', '已帶入' + (isEquipment ? '設備' : '廠務') + '工程師：' + (emp.name || '-') + '（' + emp.emp_id + '）');
+      }
+
       function openFullEditOrderModal(orderId, options) {
         if (!isActionAllowedByTerminal('full_edit')) {
           showToast('error', getRoleRestrictionHint('full_edit'));
@@ -7691,7 +7754,7 @@
           : ('工單完整編輯：' + order.order_no);
         document.getElementById('full-edit-order-info').innerHTML = isCosignMode
           ? '<b>提醒：</b>目前為補簽到模式，已清空申請人欄位供第二位工程師簽到；其餘欄位沿用原工單，可視需要修正。'
-          : '<b>提醒：</b>此功能會覆蓋該工單的申請資料、作業項目與隔離點位。';
+          : '<b>提醒：</b>此功能會覆蓋該工單的申請資料、設備/廠務簽到人、作業項目與隔離點位。';
         document.getElementById('full-edit-order-no-status').value = order.order_no + ' / ' + getStatusLabel(order.status);
 
         if (isCosignMode) {
@@ -7710,6 +7773,10 @@
           document.getElementById('full-edit-applicant-phone').value = order.applicant_phone || '';
           document.getElementById('full-edit-applicant-role').value = order.applicant_role || getDefaultEngineerRoleByDept(order.applicant_dept);
         }
+        document.getElementById('full-edit-equipment-emp-id').value = order.equipment_engineer_emp_id || '';
+        document.getElementById('full-edit-equipment-name').value = order.equipment_engineer_name || '';
+        document.getElementById('full-edit-facility-emp-id').value = order.facility_engineer_emp_id || '';
+        document.getElementById('full-edit-facility-name').value = order.facility_engineer_name || '';
         document.getElementById('full-edit-machine-name').value = order.machine_name || '';
         document.getElementById('full-edit-panel-name').value = order.panel_name || '';
         document.getElementById('full-edit-work-type').value = order.work_type || '';
@@ -7769,12 +7836,28 @@
       function collectFullEditOrderFormData(order) {
         var needIso = getFullEditNeedIsolationFromForm();
         var points = needIso ? getFullEditOrderPointValues() : [];
+        var equipmentEmpId = normalizeEmpId(document.getElementById('full-edit-equipment-emp-id').value);
+        var equipmentName = String(document.getElementById('full-edit-equipment-name').value || '').trim();
+        var facilityEmpId = normalizeEmpId(document.getElementById('full-edit-facility-emp-id').value);
+        var facilityName = String(document.getElementById('full-edit-facility-name').value || '').trim();
+        if (equipmentEmpId && !equipmentName) {
+          var equipmentEmp = getEmployeeByEmpId(equipmentEmpId);
+          equipmentName = equipmentEmp ? String(equipmentEmp.name || '').trim() : '';
+        }
+        if (facilityEmpId && !facilityName) {
+          var facilityEmp = getEmployeeByEmpId(facilityEmpId);
+          facilityName = facilityEmp ? String(facilityEmp.name || '').trim() : '';
+        }
         return {
           applicant_emp_id: normalizeEmpId(document.getElementById('full-edit-applicant-emp-id').value),
           applicant_name: String(document.getElementById('full-edit-applicant-name').value || '').trim(),
           applicant_dept: String(document.getElementById('full-edit-applicant-dept').value || '').trim(),
           applicant_phone: String(document.getElementById('full-edit-applicant-phone').value || '').trim(),
           applicant_role: String(document.getElementById('full-edit-applicant-role').value || '').trim() || getDefaultEngineerRoleByDept(document.getElementById('full-edit-applicant-dept').value),
+          equipment_engineer_emp_id: equipmentEmpId,
+          equipment_engineer_name: equipmentName,
+          facility_engineer_emp_id: facilityEmpId,
+          facility_engineer_name: facilityName,
           planned_date: String(document.getElementById('full-edit-planned-date').value || '').trim(),
           planned_start_time: String(document.getElementById('full-edit-planned-start-time').value || '').trim(),
           planned_end_time: String(document.getElementById('full-edit-planned-end-time').value || '').trim(),
@@ -7883,6 +7966,28 @@
         order.work_type = data.work_type;
         order.need_isolation_points = data.need_isolation_points;
         order.note = data.note;
+        var prevEquipmentEmpId = order.equipment_engineer_emp_id || '';
+        var prevEquipmentName = order.equipment_engineer_name || '';
+        var prevFacilityEmpId = order.facility_engineer_emp_id || '';
+        var prevFacilityName = order.facility_engineer_name || '';
+        order.equipment_engineer_emp_id = data.equipment_engineer_emp_id || '';
+        order.equipment_engineer_name = data.equipment_engineer_name || '';
+        order.facility_engineer_emp_id = data.facility_engineer_emp_id || '';
+        order.facility_engineer_name = data.facility_engineer_name || '';
+        if (order.equipment_engineer_emp_id || order.equipment_engineer_name) {
+          if (!order.equipment_signed_at || prevEquipmentEmpId !== order.equipment_engineer_emp_id || prevEquipmentName !== order.equipment_engineer_name) {
+            order.equipment_signed_at = now;
+          }
+        } else {
+          order.equipment_signed_at = '';
+        }
+        if (order.facility_engineer_emp_id || order.facility_engineer_name) {
+          if (!order.facility_signed_at || prevFacilityEmpId !== order.facility_engineer_emp_id || prevFacilityName !== order.facility_engineer_name) {
+            order.facility_signed_at = now;
+          }
+        } else {
+          order.facility_signed_at = '';
+        }
         if (order.applicant_role === 'equipment' && !order.equipment_engineer_emp_id) {
           order.equipment_engineer_emp_id = order.applicant_emp_id;
           order.equipment_engineer_name = order.applicant_name;
