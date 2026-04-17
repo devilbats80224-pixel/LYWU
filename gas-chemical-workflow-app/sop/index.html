@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>送氣／送化作業申請與隔離管理系統 SOP</title>
+  <style>
+    @page { size: A4; margin: 14mm; }
+    body {
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      line-height: 1.65;
+      color: #1f2a3a;
+      font-size: 12.5pt;
+      margin: 0;
+      background: #fff;
+    }
+    .cover {
+      min-height: 240mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 14px;
+      padding: 8mm;
+    }
+    h1 { font-size: 26pt; margin: 0; color: #123c8f; }
+    h2 {
+      font-size: 18pt;
+      margin: 18px 0 8px;
+      color: #1b4ea7;
+      border-left: 5px solid #1b4ea7;
+      padding-left: 10px;
+      break-after: avoid-page;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 14pt;
+      margin: 14px 0 4px;
+      color: #173c7c;
+      break-after: avoid-page;
+      page-break-after: avoid;
+    }
+    p, li { margin: 4px 0; }
+    ul { margin: 6px 0 10px 22px; }
+    .meta { color: #4b5f7d; }
+    .tip, .warn, .note {
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin: 10px 0;
+    }
+    .tip { background: #eaf2ff; border: 1px solid #cddfff; }
+    .warn { background: #fff5e5; border: 1px solid #ffd99b; }
+    .note { background: #eefaf1; border: 1px solid #bde7c7; }
+    .step { margin: 8px 0 14px; }
+    .shot {
+      margin: 8px 0 16px;
+      border: 1px solid #d7deea;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #f8fbff;
+      page-break-inside: avoid;
+      break-inside: avoid-page;
+    }
+    .shot img {
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      display: block;
+      margin: 0 auto;
+    }
+    .shot figcaption {
+      font-size: 10.5pt;
+      color: #4c607f;
+      padding: 8px 10px;
+      border-top: 1px solid #d7deea;
+      background: #f4f7fc;
+    }
+    .page-break { page-break-before: auto; break-before: auto; }
+    .small { font-size: 10.5pt; color: #5d6a7e; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 10.5pt;
+    }
+    th, td {
+      border: 1px solid #d7deea;
+      padding: 7px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #eef3fb; }
+    .footer { margin-top: 24px; font-size: 10pt; color: #6a7893; }
+    code { background: #f0f4fb; padding: 1px 5px; border-radius: 6px; }
+
+    /* 螢幕閱讀：避免圖片被強制放大造成模糊或比例觀感異常 */
+    @media screen {
+      .shot {
+        overflow-x: auto;
+      }
+      .shot img {
+        width: auto;
+        max-width: 100%;
+        max-height: none;
+      }
+    }
+
+    /* 列印/PDF：維持頁面密度與版面節奏 */
+    @media print {
+      .shot img {
+        width: 100%;
+        max-width: 100%;
+        max-height: 138mm;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <div class="meta">內部作業文件｜離線單機版</div>
+    <h1>送氣／送化作業申請與隔離管理系統</h1>
+    <h1 style="font-size:22pt; color:#2c5fc7;">SOP 操作手冊（圖文版）</h1>
+    <div class="meta">適用版本：gas_chemical_workflow_offline.html（2026-04-16 版）</div>
+    <div class="meta">文件日期：2026-04-16</div>
+    <div class="tip">
+      <b>文件目的</b><br>
+      本手冊用於辦公室值班人員、設備工程師、廠務工程師之日常操作，涵蓋建單、流程控管、補簽到、完整編輯、同步設定、資料備份還原。
+    </div>
+    <div class="warn">
+      <b>重要原則</b><br>
+      1. 本系統為離線單機 HTML，資料儲存在本機瀏覽器。<br>
+      2. 若有雙機協作，請使用「終端角色 + 共享資料夾事件同步」，不要用完整備份 JSON 當同步機制。<br>
+      3. 高風險操作（代確認、刪除）請先開啟管理模式。
+    </div>
+  </section>
+
+  <section class="page-break">
+    <h2>1. 快速上手流程（建議）</h2>
+    <ol>
+      <li class="step"><b>先看角色狀態</b>：確認目前是建單端/收單端/混合模式。</li>
+      <li class="step"><b>新增申請</b>：填申請人、作業項目、隔離需求，送出建單。</li>
+      <li class="step"><b>歷史作業列表追蹤</b>：依狀態操作開始、通知結束、本人確認或編輯。</li>
+      <li class="step"><b>補簽到 / 完整編輯</b>：同一張單可補第二位工程師，並修正錯填資料。</li>
+      <li class="step"><b>管理區維護</b>：員工主檔、同步設定、匯入/匯出、備份還原。</li>
+    </ol>
+    <figure class="shot">
+      <img src="sop_assets/dashboard.png" alt="首頁 Dashboard" />
+      <figcaption>圖 1：首頁 Dashboard（狀態總覽、快速搜尋、最近紀錄）</figcaption>
+    </figure>
+  </section>
+
+  <section class="page-break">
+    <h2>2. 首頁 Dashboard 操作</h2>
+    <h3>2.1 狀態總覽卡片</h3>
+    <ul>
+      <li>卡片顯示：待開始、進行中、待本人確認、已完成、已取消。</li>
+      <li>可直接點卡片，快速篩選下方記錄。</li>
+      <li>再點一次同卡片可取消篩選。</li>
+    </ul>
+    <figure class="shot">
+      <img src="sop_assets/dashboard_filter_pending.png" alt="Dashboard 狀態卡篩選" />
+      <figcaption>圖 2：點選狀態卡後，下面記錄會依狀態即時篩選</figcaption>
+    </figure>
+
+    <h3>2.2 快速搜尋</h3>
+    <ul>
+      <li>可搜尋機台/盤面/姓名/工號/電話/品項/點位/備註。</li>
+      <li>適合快速定位特定單號與責任人。</li>
+    </ul>
+  </section>
+
+  <section class="page-break">
+    <h2>3. 新增申請（簽到建單）</h2>
+    <figure class="shot">
+      <img src="sop_assets/new_order.png" alt="新增申請" />
+      <figcaption>圖 3：新增申請頁（支援刷卡/工號查詢、手填、雙工程師簽到）</figcaption>
+    </figure>
+
+    <h3>3.1 必填邏輯</h3>
+    <ul>
+      <li>申請人（工號/姓名/部門/電話）</li>
+      <li>作業類型</li>
+      <li>至少一筆作業項目（品項、數量>0）</li>
+      <li>機台或盤面至少一個</li>
+    </ul>
+
+    <h3>3.2 第二簽到人（可選）</h3>
+    <ul>
+      <li>可在建單當下直接填入第二位（設備/廠務）一起簽到。</li>
+      <li>若查無員工主檔，可手填姓名/部門/電話，系統可自動建檔。</li>
+    </ul>
+
+    <h3>3.3 隔離點位與項目對應</h3>
+    <ul>
+      <li>每一筆作業項目可填「對應偵測器點位（可選）」。</li>
+      <li>若該 gas/chemical 不需點位，可留空。</li>
+      <li>「需要隔離點位」= 是 時，仍需至少一筆點位（可由項目映射自動帶入）。</li>
+    </ul>
+  </section>
+
+  <section class="page-break">
+    <h2>4. 歷史作業列表（原今日作業列表）</h2>
+    <figure class="shot">
+      <img src="sop_assets/history_list.png" alt="歷史作業列表" />
+      <figcaption>圖 4：歷史作業列表（可查任意日期、狀態、作業類型與隔離條件）</figcaption>
+    </figure>
+
+    <h3>4.1 查詢與篩選</h3>
+    <ul>
+      <li>日期可留空查全部，或指定日期。</li>
+      <li>狀態、作業類型、是否隔離可交叉篩選。</li>
+      <li>表格為資訊濃縮排版：機台/盤面、人員資訊、作業資訊、時間紀錄、操作按鈕。</li>
+    </ul>
+
+    <h3>4.2 流程按鈕（依角色限制）</h3>
+    <table>
+      <thead>
+        <tr><th>狀態</th><th>常用操作</th><th>說明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>待開始</td><td>開始 / 完整編輯 / 查看詳情</td><td>由收單端主責開始流程</td></tr>
+        <tr><td>進行中</td><td>已通知結束 / 編輯追加 / 完整編輯</td><td>通知結束後轉待本人確認</td></tr>
+        <tr><td>待本人確認</td><td>本人確認結束 / 補簽到 / 完整編輯</td><td>本人刷卡確認或管理模式代確認</td></tr>
+        <tr><td>已完成/已取消</td><td>完整編輯 / 查看詳情</td><td>可修正資料但不再走主流程</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="page-break">
+    <h2>5. 工單完整編輯（含設備/廠務資料修正）</h2>
+    <div class="warn"><b>紅框編號對照</b>：請依圖中 <b>1 → 2 → 3 → 4</b> 順序操作。</div>
+    <figure class="shot">
+      <img src="sop_assets/full_edit_modal.png" alt="完整編輯彈窗" />
+      <figcaption>圖 5：完整編輯可覆蓋工單完整內容（含設備/廠務簽到人欄位）</figcaption>
+    </figure>
+
+    <h3>5.1 可修正欄位</h3>
+    <ul>
+      <li><b>紅框 1</b>：申請人基本資料與作業型態。</li>
+      <li><b>紅框 2</b>：設備/廠務簽到人（工號、姓名、部門、電話）。</li>
+      <li><b>紅框 3</b>：隔離設定、作業項目與對應偵測器點位。</li>
+      <li><b>紅框 4</b>：按「儲存完整編輯」完成覆蓋更新。</li>
+    </ul>
+    <ul>
+      <li>申請人：工號、姓名、部門、電話、角色</li>
+      <li>設備工程師：工號、姓名、<b>部門、電話</b></li>
+      <li>廠務工程師：工號、姓名、<b>部門、電話</b></li>
+      <li>機台/盤面、預計時程、備註</li>
+      <li>作業項目（含每筆對應點位）與隔離點位清單</li>
+    </ul>
+
+    <h3>5.2 編輯注意事項</h3>
+    <ul>
+      <li>這是覆蓋式儲存，按下「儲存完整編輯」會以本次內容更新工單。</li>
+      <li>若設備/廠務改人或改聯絡資訊，簽到時間會依變更規則更新。</li>
+      <li>請確認部門/電話正確，避免後續通知找不到人。</li>
+    </ul>
+  </section>
+
+  <section class="page-break">
+    <h2>6. 補簽到（第二位工程師）</h2>
+    <div class="warn"><b>紅框編號對照</b>：補簽到也走完整編輯視窗，請依 <b>1 → 2 → 3 → 4</b> 操作。</div>
+    <figure class="shot">
+      <img src="sop_assets/cosign_modal.png" alt="補簽到彈窗" />
+      <figcaption>圖 6：補簽到模式（完整編輯視窗開啟）可補第二位工程師資料</figcaption>
+    </figure>
+
+    <h3>6.1 使用時機</h3>
+    <ul>
+      <li>同一台機台已有工單，但後續設備/廠務另一方補簽到。</li>
+      <li>避免同機台重複開第二張單造成追蹤混亂。</li>
+    </ul>
+
+    <h3>6.2 操作重點</h3>
+    <ul>
+      <li><b>紅框 1</b>：先填第二位工程師申請資料（可刷卡/工號查詢帶入）。</li>
+      <li><b>紅框 2</b>：補齊設備/廠務簽到資訊。</li>
+      <li><b>紅框 3</b>：必要時同步補正時程、隔離點位與作業項目。</li>
+      <li><b>紅框 4</b>：按儲存完成補簽到。</li>
+    </ul>
+    <ul>
+      <li>補簽到可選設備或廠務角色。</li>
+      <li>支援刷卡/工號查詢，查無員工時可手填並建檔。</li>
+      <li>可同步補正機台/盤面、補登點位，必要時可切到完整編輯調整項目。</li>
+    </ul>
+  </section>
+
+  <section class="page-break">
+    <h2>7. 管理區總覽</h2>
+    <figure class="shot">
+      <img src="sop_assets/admin_overview_top.png" alt="管理區總覽-同步與角色設定" />
+      <figcaption>圖 7-1：管理區上半部（管理摘要、終端角色與同步設定、角色說明）</figcaption>
+    </figure>
+    <figure class="shot">
+      <img src="sop_assets/admin_overview_mid.png" alt="管理區總覽-員工維護與匯入" />
+      <figcaption>圖 7-2：員工維護重點（1. 手動維護員工主檔、2. 匯入員工 CSV/XLSX）</figcaption>
+    </figure>
+    <figure class="shot">
+      <img src="sop_assets/admin_overview_bottom.png" alt="管理區總覽-備份還原與匯出" />
+      <figcaption>圖 7-3：資料備份還原重點（3. 備份還原與匯出）</figcaption>
+    </figure>
+
+    <h3>7.1 員工主檔管理</h3>
+    <ul>
+      <li>手動新增/編輯（含在職切換）。</li>
+      <li>支援 CSV / XLSX 匯入。</li>
+      <li>建單/補簽到查無員工時，可即時補建檔。</li>
+    </ul>
+
+    <h3>7.2 備份與還原</h3>
+    <ul>
+      <li><b>完整備份 JSON</b>：災難復原、換機遷移。</li>
+      <li><b>完整查詢結果 XLSX</b>：稽核、報表、跨日期資料整理。</li>
+    </ul>
+  </section>
+
+  <section class="page-break">
+    <h2>8. 終端角色與同步設定（雙機協作）</h2>
+    <figure class="shot">
+      <img src="sop_assets/admin_sync.png" alt="終端角色與同步設定" />
+      <figcaption>圖 8：終端角色與同步設定（建單端/收單端/混合模式 + 共享資料夾同步）</figcaption>
+    </figure>
+
+    <h3>8.1 角色定義</h3>
+    <ul>
+      <li><b>建單端（intake）</b>：建立申請、補簽到、完整編輯、本人確認。</li>
+      <li><b>收單端（receiver）</b>：主流程操作（開始、通知結束、確認、取消等）。</li>
+      <li><b>混合模式（hybrid）</b>：測試/備援，正式上線不建議長期使用。</li>
+    </ul>
+
+    <h3>8.2 同步設定步驟</h3>
+    <ol>
+      <li>管理區選擇終端模式與終端名稱。</li>
+      <li>按「選擇同步根資料夾」，完成授權。</li>
+      <li>確認子資料夾狀態：events / archive / errors。</li>
+      <li>啟用自動掃描並設定掃描秒數（建議 5~10 秒）。</li>
+      <li>觀察「最近同步紀錄」與匯入/匯出統計。</li>
+    </ol>
+  </section>
+
+  <section class="page-break">
+    <h2>9. 通知與簽退管理建議</h2>
+    <div class="note">
+      <b>建議值班追蹤方式</b><br>
+      在歷史作業列表同時查看「設備工程師 / 廠務工程師」欄位與「時間紀錄」，以避免漏提醒簽退。
+    </div>
+    <ul>
+      <li>若作業到「待本人確認」，請主動通知人員回來刷卡。</li>
+      <li>若發現資料有誤，優先用「完整編輯」修正，避免重複開單。</li>
+      <li>若兩邊人員分開到場，優先用「補簽到」補第二位工程師。</li>
+      <li>若要查跨日資料，使用歷史作業列表日期篩選 + XLSX 匯出。</li>
+    </ul>
+  </section>
+
+  <section class="page-break">
+    <h2>10. 常見問題（FAQ）</h2>
+    <h3>Q1：查無員工怎麼辦？</h3>
+    <p>A：可直接手填姓名/部門/電話，送單或補簽到時會自動建檔；也可到管理區手動建立。</p>
+
+    <h3>Q2：隔離點位一定要填嗎？</h3>
+    <p>A：不是。只有在「需要隔離點位 = 是」時才強制至少一筆。每項目的對應點位可個別留空。</p>
+
+    <h3>Q3：設備/廠務資料填錯可改嗎？</h3>
+    <p>A：可以，進入「完整編輯」可修正設備/廠務的工號、姓名、部門、電話。</p>
+
+    <h3>Q4：雙機協作為何不用完整備份 JSON 同步？</h3>
+    <p>A：完整備份是還原用途；雙機協作應用共享資料夾事件檔（append-only）避免互覆蓋。</p>
+
+    <h3>Q5：資料安全如何做？</h3>
+    <p>A：至少每日一次匯出完整備份 JSON，並定期匯出完整查詢結果 XLSX 供稽核追溯。</p>
+
+    <div class="footer">
+      文件結束。若你要，我可以再幫你產生「值班台精簡版 SOP（1~2 頁）」與「新進人員快速卡（單頁）」。
+    </div>
+  </section>
+</body>
+</html>
