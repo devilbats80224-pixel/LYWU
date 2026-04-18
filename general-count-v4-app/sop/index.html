@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>施工管制表整理工具－使用教學 SOP</title>
+  <style>
+    :root{
+      --bg:#f3f4f6;
+      --panel:#ffffff;
+      --ink:#0f172a;
+      --muted:#475569;
+      --line:#d1d5db;
+      --brand:#0f766e;
+      --brand-soft:#ecfdf5;
+      --warn:#92400e;
+      --warn-soft:#fffbeb;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font:16px/1.68 "Noto Sans TC","Microsoft JhengHei","PingFang TC",sans-serif;
+    }
+    .wrap{max-width:1220px;margin:24px auto;padding:0 16px 42px}
+    .hero{
+      background:linear-gradient(135deg,#0f766e 0%,#134e4a 100%);
+      color:#fff;
+      border-radius:16px;
+      padding:26px;
+      box-shadow:0 16px 32px rgba(15,118,110,.22);
+      margin-bottom:16px;
+    }
+    .hero h1{margin:0 0 10px;font-size:34px;line-height:1.22}
+    .hero p{margin:4px 0;color:#d1fae5}
+    .meta{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+      gap:10px;
+      margin-top:14px;
+    }
+    .meta div{
+      background:rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.26);
+      border-radius:10px;
+      padding:10px 12px;
+      font-size:14px;
+    }
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:18px;
+      margin-top:14px;
+    }
+    h2{margin:0 0 10px;font-size:25px}
+    h3{margin:10px 0 8px;font-size:20px}
+    p{margin:7px 0}
+    ul,ol{margin:8px 0 8px 22px;padding:0}
+    li{margin:4px 0}
+    .toc a{color:#0f766e;text-decoration:none}
+    .toc a:hover{text-decoration:underline}
+    .tip,.warn{
+      border-radius:10px;
+      padding:10px 12px;
+      margin:10px 0;
+      font-size:15px;
+    }
+    .tip{background:var(--brand-soft);border:1px solid #86efac}
+    .warn{background:var(--warn-soft);border:1px solid #fcd34d;color:var(--warn)}
+    .step{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:14px;
+      margin:12px 0;
+      background:#fff;
+    }
+    .tag{
+      display:inline-block;
+      font-size:12px;
+      letter-spacing:.03em;
+      text-transform:uppercase;
+      color:#0f766e;
+      border:1px solid #99f6e4;
+      background:#f0fdfa;
+      border-radius:999px;
+      padding:2px 10px;
+      font-weight:700;
+      margin-bottom:6px;
+    }
+    figure{
+      margin:10px 0 0;
+      border:1px solid var(--line);
+      border-radius:10px;
+      overflow:hidden;
+      background:#fff;
+    }
+    figure img{
+      width:100%;
+      display:block;
+      max-height:560px;
+      object-fit:contain;
+      background:#f8fafc;
+    }
+    figcaption{
+      font-size:13px;
+      color:var(--muted);
+      padding:8px 10px;
+      border-top:1px solid var(--line);
+      background:#fafafa;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:8px;
+      font-size:14px;
+    }
+    th,td{border:1px solid var(--line);padding:8px;vertical-align:top}
+    th{background:#f8fafc;text-align:left}
+    .small{font-size:13px;color:var(--muted)}
+    .checklist li{list-style:"☐  "}
+
+    @media print{
+      @page{size:A4;margin:9mm}
+      body{background:#fff;font-size:10.5pt;line-height:1.45}
+      .wrap{max-width:none;margin:0;padding:0}
+      .hero{box-shadow:none;border-radius:10px;padding:14px}
+      .panel{margin-top:8px;padding:10px}
+      .step{break-inside:auto;page-break-inside:auto;margin:8px 0;padding:10px}
+      figure{break-inside:auto;page-break-inside:auto;margin-top:6px}
+      figure img{max-height:86mm}
+      figure.fig-large img{max-height:122mm}
+      h2,h3{break-after:avoid-page;page-break-after:avoid}
+      ol,ul{margin-top:3px;margin-bottom:5px}
+      .no-print-break{break-inside:avoid-page;page-break-inside:avoid}
+      a{color:inherit;text-decoration:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>施工管制表整理工具<br>使用教學 SOP（依實際工作流）</h1>
+      <div class="meta">
+        <div><strong>版本日期：</strong>2026-04-17</div>
+        <div><strong>目的：</strong>每日上傳報表後，快速盤點、校正、匯出並貼回公版</div>
+        <div><strong>本版重點：</strong>移除「合併新報表 / 套用整理功能」主流程，改成待檢查與批次確認 Site 為核心</div>
+      </div>
+    </section>
+
+    <section class="panel toc no-print-break">
+      <h2>目錄</h2>
+      <ol>
+        <li><a href="#prep">前置說明與本版範圍</a></li>
+        <li><a href="#workflow">標準操作流程（SOP）</a></li>
+        <li><a href="#logic">篩選邏輯與底色規則</a></li>
+        <li><a href="#daily">每日檢核清單</a></li>
+      </ol>
+    </section>
+
+    <section id="prep" class="panel">
+      <h2>1. 前置說明與本版範圍</h2>
+      <ul>
+        <li>本 SOP 依你目前日常流程撰寫：<strong>上傳 → 待檢查盤點 → 批次確認Site → 全表複檢 → 下載/複製 → 貼回公版</strong>。</li>
+        <li>「合併新報表（增量更新）」與「套用整理功能按鈕」不列入主流程（可保留在工具中，但本 SOP 不當成每日必做）。</li>
+        <li>下方所有圖都用紅框與中文步驟字標示重點操作區。</li>
+      </ul>
+      <div class="tip">建議先用同一份來源檔試跑一遍，確認欄位、底色與公版貼值一致，再投入正式班別資料。</div>
+      <figure>
+        <img src="assets/01_初始畫面.png" alt="工具初始畫面" />
+        <figcaption>圖 1：工具主畫面（上傳區與下方工項表格區位置）</figcaption>
+      </figure>
+    </section>
+
+    <section id="workflow" class="panel">
+      <h2>2. 標準操作流程（SOP）</h2>
+
+      <article class="step">
+        <div class="tag">Step 1</div>
+        <h3>上傳來源報表並確認解析成功</h3>
+        <ol>
+          <li>在上傳區放入 ESP 匯出的施工報表。</li>
+          <li>確認畫面已載入資料列與欄位數。</li>
+          <li>先看是否有明顯異常（例如筆數明顯不對）。</li>
+        </ol>
+        <figure class="fig-large">
+          <img src="assets/61_上傳解析成功_實際有工項.png" alt="上傳解析成功（實際有工項）" />
+          <figcaption>圖 2：上傳解析成功後的實際畫面（含上傳區、篩選列與可編輯工項表格）</figcaption>
+        </figure>
+      </article>
+
+      <article class="step">
+        <div class="tag">Step 2</div>
+        <h3>用篩選按鈕集中盤點「待檢查」異常並人工修正</h3>
+        <ol>
+          <li>先按「待檢查」，把需要人工確認的工項集中顯示。</li>
+          <li>再交叉搭配 Site（P1~P4）、高風險、夜間、簽到簽退、巡檢按鈕做分群盤點。</li>
+          <li>在表格內直接修改欄位值，修完再切下一組篩選。</li>
+        </ol>
+        <p class="small">篩選按鈕可同時開多個，邏輯為<strong>交集</strong>（同一列需同時滿足所有啟用條件）。</p>
+        <table>
+          <thead>
+            <tr><th>按鈕 / 群組</th><th>預設篩選條件（依工具程式）</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>篩選設定</td><td>可編輯 ISEP / PUSD / CCD / EBO 等群組關鍵字清單，改完後按鈕即套用新規則。</td></tr>
+            <tr><td>ISEP</td><td>課別符合 ISEP 群組值（預設：<code>F20ISEP1</code>；可在「篩選設定」調整）。</td></tr>
+            <tr><td>PUSD</td><td>課別符合 PUSD 群組值（預設：<code>PUSD 廠區服務一課</code>；可調整）。</td></tr>
+            <tr><td>CCD</td><td>課別符合 CCD 群組清單（資料中心相關課別，清單可調整）。</td></tr>
+            <tr><td>EBO</td><td>課別符合 EBO 群組清單（EBO Clean / Process / Repair…，清單可調整）。</td></tr>
+            <tr><td>P1 / P2 / P3 / P4</td><td><code>Phase(Site)</code> 文字包含對應碼；例如 <code>Outsite,P1</code> 也會命中 P1。</td></tr>
+            <tr><td>廠務L1</td><td><code>高風險作業</code> 欄位包含 <code>L1</code>。</td></tr>
+            <tr><td>廠務L2</td><td><code>高風險作業</code> 欄位包含 <code>L2</code>。</td></tr>
+            <tr><td>設備高風險</td><td><code>高風險作業</code> 欄位包含 <code>設備高風險</code>。</td></tr>
+            <tr><td>夜間施工</td><td>簽退時間命中 <code>18:30~23:59</code> 或 <code>00:00~00:30</code>；簽退空值也納入。</td></tr>
+            <tr><td>待檢查</td><td>優先抓黃底旗標（ISEP/Site/申請類別）；若旗標欄不存在，退回即時計算規則。</td></tr>
+            <tr><td>消防中斷/火警隔離</td><td>申請類別命中消防中斷/火警隔離（含代碼 8/10）或欄位值為 <code>V</code>。</td></tr>
+            <tr><td>尚未分類Site</td><td><code>Phase</code> 非單獨 <code>P1/P2/P3/P4</code>（空值、多值、Outsite 皆視為未分類）。</td></tr>
+            <tr><td>已簽到 / 未簽到</td><td><code>簽到時間</code> 有值 / 空值。</td></tr>
+            <tr><td>已簽退 / 未簽退</td><td><code>簽退時間</code> 有值 / 空值。</td></tr>
+            <tr><td>已巡檢 / 未巡檢</td><td><code>巡檢人員</code> 有值且非 NA / 空值或 NA。</td></tr>
+          </tbody>
+        </table>
+        <figure class="fig-large">
+          <img src="assets/63_待檢查篩選結果_有工項.png" alt="待檢查篩選結果（有工項）" />
+          <figcaption>圖 3：按「待檢查」後的真實工項結果（含完整篩選按鈕列與資料列），可逐筆盤點並直接編修</figcaption>
+        </figure>
+      </article>
+
+      <article class="step">
+        <div class="tag">Step 3</div>
+        <h3>修正後進行「批次確認Site」並保存覆寫規則</h3>
+        <ol>
+          <li>完成待檢查項目修正後，按「批次確認Site」集中核定。</li>
+          <li>彈窗會列出待核定工項（舊Site→新Site、工程內容、原因/備註），確認後一次送出。</li>
+          <li>再視需要匯出 Site 覆寫規則 JSON，留給下一班或隔日沿用。</li>
+          <li>此機制目的：<strong>遇到同工程名稱 + 施工位置的重複工項時，不必每天重改 Site</strong>。</li>
+        </ol>
+        <div class="tip">Site 覆寫規則是你的「經驗庫」。同樣條件再次出現時可直接沿用，縮短每日整理時間。</div>
+        <figure>
+          <img src="assets/27_批次確認Site彈窗_有工項.png" alt="批次確認Site彈窗（有工項）" />
+          <figcaption>圖 4：批次確認Site彈窗（真實有工項），可一次核定多筆待確認項目</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/37_Site覆寫規則按鈕區_真實.png" alt="Site覆寫規則按鈕區" />
+          <figcaption>圖 5：Site 覆寫規則區（匯入/匯出/批次確認/撤銷未確認）</figcaption>
+        </figure>
+      </article>
+
+      <article class="step">
+        <div class="tag">Step 4</div>
+        <h3>全表複檢：先看上方 Site 小表與申請類別，再核對下方統計大表</h3>
+        <ol>
+          <li>上方先看 Site 小表，再展開申請類別下拉做交叉檢查。</li>
+          <li>下方大表：施工件數統計 + 日/夜巡檢 + 單位統計。</li>
+          <li>若你手動改了申請類別或其他關鍵欄位，上下統計大小表都會同步聯動變化。</li>
+        </ol>
+        <figure>
+          <img src="assets/64_Site小表.png" alt="Site小表" />
+          <figcaption>圖 6：上方 Site 小表（P1~P4、L1/L2/設備、已巡檢件數）</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/66_申請類別下拉展開.png" alt="申請類別下拉展開" />
+          <figcaption>圖 7：展開申請類別下拉選單（切換後會聯動更新上下統計）</figcaption>
+        </figure>
+        <figure class="fig-large">
+          <img src="assets/50_統計大表主表_清楚版.png" alt="統計大表主表（放大檢核）" />
+          <figcaption>圖 8：下方統計大表主表（放大檢核：施工件數、廠務/設備分佈、P1~P4 Level 統計）</figcaption>
+        </figure>
+      </article>
+
+      <article class="step">
+        <div class="tag">Step 5</div>
+        <h3>輸出整理結果，或一鍵複製 ISEP~消防中斷欄位</h3>
+        <ol>
+          <li>先下載 <code>下載處理結果.xlsx</code> 當完整備份。</li>
+          <li>若只需目前篩選群組，可用 <code>下載篩選處理結果.xlsx</code>。</li>
+          <li>需要貼回公版時，可用 <code>複製 ISEP~消防中斷欄位</code>，並搭配下方統計大表件數一起貼回。</li>
+        </ol>
+        <figure>
+          <img src="assets/67_下載按鈕區_不重疊.png" alt="下載與一鍵複製按鈕區（全量/篩選/複製 ISEP~消防中斷欄位）" />
+          <figcaption>圖 9：下載與一鍵複製按鈕區（下載處理結果.xlsx / 下載篩選處理結果.xlsx / 複製 ISEP~消防中斷欄位）</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/68_一鍵複製提示_不重疊.png" alt="一鍵複製提示視窗（筆數與底色統計）" />
+          <figcaption>圖 10：按「複製 ISEP~消防中斷欄位」後的提示（含筆數與底色統計）</figcaption>
+        </figure>
+        <figure class="fig-large">
+          <img src="assets/69_下載處理結果_Excel實拍.png" alt="下載處理結果報表外觀（Excel實拍）" />
+          <figcaption>圖 11：下載處理結果.xlsx 外觀（以實際下載檔開啟，放大截圖）</figcaption>
+        </figure>
+      </article>
+
+      <article class="step">
+        <div class="tag">Step 6</div>
+        <h3>貼回公版報表：先清空資料列與底色，再貼回整理結果（公版檔示範）</h3>
+        <ol>
+          <li>開啟公版施工報表。</li>
+          <li>保留表頭與版型，先清空舊資料列內容與底色。</li>
+          <li>新增足夠空白資料列。</li>
+          <li>貼上網頁整理好的所有工項（包含底色）。</li>
+          <li>再貼上網頁統計大表對應件數到公版統計區。</li>
+        </ol>
+        <div class="warn">若已手動改申請類別，請務必用最新統計結果覆蓋公版統計區，不要沿用舊件數。</div>
+        <figure class="fig-large">
+          <img src="assets/70_公版Step1_清空前_Excel實拍.png" alt="公版流程 Step1 清空前（Excel實拍）" />
+          <figcaption>圖 12：公版流程 Step 1（清空前；實際開啟公版施工報表）</figcaption>
+        </figure>
+        <figure class="fig-large">
+          <img src="assets/71_公版Step2_清空內容底色_Excel實拍.png" alt="公版流程 Step2 清空內容底色（Excel實拍）" />
+          <figcaption>圖 13：公版流程 Step 2（清空資料列內容與底色，保留表頭欄位）</figcaption>
+        </figure>
+        <figure class="fig-large">
+          <img src="assets/72_公版Step3_新增空白列_Excel實拍.png" alt="公版流程 Step3 新增空白列（Excel實拍）" />
+          <figcaption>圖 14：公版流程 Step 3（新增空白資料列，準備貼上整理結果）</figcaption>
+        </figure>
+        <figure class="fig-large">
+          <img src="assets/73_公版Step4_貼上整理結果_Excel實拍.png" alt="公版流程 Step4 貼上整理結果（Excel實拍）" />
+          <figcaption>圖 15：公版流程 Step 4（貼上整理後工項內容，含底色）</figcaption>
+        </figure>
+        <figure class="fig-large">
+          <img src="assets/74_公版Step5_統計區_Excel實拍.png" alt="公版流程 Step5 貼上統計件數（Excel實拍）" />
+          <figcaption>圖 16：公版流程 Step 5（貼上統計大表件數到公版統計區）</figcaption>
+        </figure>
+      </article>
+    </section>
+
+    <section id="logic" class="panel">
+      <h2>3. 篩選與底色規則（公版一致）</h2>
+      <h3>3.1 底色規則</h3>
+      <ul>
+        <li>廠務 L1 + 設備高風險：<strong>紅色底</strong></li>
+        <li>廠務 L2：<strong>黃色底</strong></li>
+        <li>NA + 高風險場所：<strong>灰色底</strong></li>
+      </ul>
+      <p>你網頁整理好的資料列底色邏輯，需與公版報表保持一致，貼回時連同底色一起貼。</p>
+
+      <h3>3.2 本 SOP 未納入主流程的功能</h3>
+      <ul>
+        <li>合併新報表（增量更新）</li>
+        <li>套用整理功能按鈕（排序/GMS/規則按鈕的逐一操作）</li>
+      </ul>
+      <p class="small">以上兩項仍可作為特殊情境備用，但不是你目前每天必做步驟。</p>
+    </section>
+
+    <section id="daily" class="panel">
+      <h2>4. 每日檢核清單</h2>
+      <ul class="checklist">
+        <li>來源報表上傳後，先確認筆數/欄位數合理。</li>
+        <li>待檢查 + Site/風險/簽到簽退/巡檢交叉盤點是否完成。</li>
+        <li>批次確認Site是否已核定，必要時是否已匯出覆寫規則 JSON。</li>
+        <li>上方統計小表與下方統計大表是否一致聯動。</li>
+        <li>下載結果是否完成，且公版已先清空資料列/底色再貼回。</li>
+        <li>公版統計區件數是否已使用最新聯動結果覆蓋。</li>
+      </ul>
+      <p class="small">本文件可直接列印成 PDF；每次工具規則調整後，建議同步更新這份 SOP。</p>
+    </section>
+  </div>
+</body>
+</html>
